@@ -1,0 +1,27 @@
+services:
+  st-frontend:
+    build:
+      context: ./st-frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./st-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - st-backend
+
+  st-backend:
+    build:
+      context: ./st-backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./st-backend:/app
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
