@@ -10,6 +10,7 @@ email-validator==2.2.0
 # --- Database (async) ---
 sqlalchemy[asyncio]==2.0.36
 aiomysql==0.2.0
+cryptography==44.0.0  # MySQL 8.x caching_sha2_password için gerekli
 alembic==1.14.0
 
 # --- Cache / queue ---
