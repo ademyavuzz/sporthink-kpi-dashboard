@@ -1,0 +1,41 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+    "ASYNC", # async checks
+]
+ignore = [
+    "E501",  # line-too-long (formatter handles)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "unit: unit tests",
+    "integration: integration tests",
+    "task: celery task tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = ["app/__init__.py", "*/tests/*"]
