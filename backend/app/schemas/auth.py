@@ -5,7 +5,7 @@ Bkz: docs/overview/05-rbac-security.md §5.4 token mimarisi
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.user import UserResponse
 
@@ -21,6 +21,9 @@ class LoginRequest(BaseModel):
 
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=1, max_length=128)
+    # `False` ise refresh cookie session-only (browser kapanınca silinir);
+    # `True` ise `refresh_token_expire_days` kadar persist eder.
+    remember_me: bool = True
 
 
 class TokenResponse(BaseModel):
@@ -33,3 +36,45 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int  # access token TTL (saniye)
     user: UserResponse
+
+
+class ForgotPasswordRequest(BaseModel):
+    """`POST /auth/forgot-password` isteği.
+
+    Kullanıcı email enum'unu sızdırmamak için response her zaman aynı —
+    `{"sent": true}`. Bu istek başarılı/başarısız ayırt edilemez.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    lang: str = Field(default="tr", pattern="^(tr|en)$")
+
+
+class ForgotPasswordResponse(BaseModel):
+    sent: bool = True
+
+
+class VerifyResetTokenResponse(BaseModel):
+    """`GET /auth/verify-reset-token?token=...` cevabı.
+
+    Token geçerliyse `valid=True` ve maskelenmiş email döner; geçersizse
+    422 + `INVALID_OR_EXPIRED_TOKEN` exception (handler'a düşer).
+    """
+
+    valid: bool
+    purpose: str  # "invite" | "reset"
+    user_email: str  # maskelenmiş: "ad***@domain.com"
+    first_name: str
+
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=10, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
+
+
+class ResetPasswordResponse(BaseModel):
+    success: bool = True
+    email: str

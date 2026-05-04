@@ -4,7 +4,15 @@
 (backend/CLAUDE.md §4).
 """
 
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    LoginRequest,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    TokenResponse,
+    VerifyResetTokenResponse,
+)
 from app.schemas.common import SuccessEnvelope
 from app.schemas.campaign_detail import (
     CampaignAdMetrics,
@@ -68,6 +76,8 @@ __all__ = [
     "DateRange",
     "DimensionBreakdown",
     "EcommerceResponse",
+    "ForgotPasswordRequest",
+    "ForgotPasswordResponse",
     "FunnelResponse",
     "FunnelStep",
     "GoogleAdsResponse",
@@ -84,6 +94,8 @@ __all__ = [
     "MetaAdsResponse",
     "OverviewResponse",
     "ProductsResponse",
+    "ResetPasswordRequest",
+    "ResetPasswordResponse",
     "RoleSummary",
     "SuccessEnvelope",
     "TokenResponse",
@@ -91,4 +103,5 @@ __all__ = [
     "TopProductRow",
     "TrafficResponse",
     "UserResponse",
+    "VerifyResetTokenResponse",
 ]

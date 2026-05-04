@@ -36,7 +36,7 @@ export interface UserUpdate {
 }
 
 export interface UserCreateResponse extends UserListItem {
-  temp_password: string;
+  invitation_sent: boolean;
 }
 
 export interface AuditLogItem {
@@ -239,5 +239,5 @@ export type PermissionsGrouped = Record<string, PermissionItem[]>;
 export interface AdminPasswordResetResponse {
   user_id: number;
   email: string;
-  temp_password: string;
+  reset_email_sent: boolean;
 }

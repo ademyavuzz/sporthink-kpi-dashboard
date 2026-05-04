@@ -62,9 +62,16 @@ services:
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
-      FRONTEND_ORIGIN: http://localhost:5173
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
-      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-noreply@sporthink.local}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Sporthink Dashboard}
+      INVITE_TOKEN_EXPIRE_HOURS: ${INVITE_TOKEN_EXPIRE_HOURS:-168}
+      RESET_TOKEN_EXPIRE_MINUTES: ${RESET_TOKEN_EXPIRE_MINUTES:-60}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@sporthink.local}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-ChangeMe!1234567890}
       UPLOAD_DIR: /var/sporthink/uploads
@@ -91,6 +98,14 @@ services:
       DATABASE_URL: mysql+aiomysql://${MYSQL_USER:-sporthink}:${MYSQL_PASSWORD:-sporthink_dev_pw}@mysql:3306/${MYSQL_DATABASE:-sporthink_dashboard}
       REDIS_CACHE_URL: redis://redis:6379/0
       REDIS_BROKER_URL: redis://redis:6379/1
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Sporthink Dashboard}
     depends_on:
       mysql:
         condition: service_healthy

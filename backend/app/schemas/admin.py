@@ -99,15 +99,22 @@ class UserUpdate(BaseModel):
 
 
 class UserCreateResponse(UserListItem):
-    """Yeni kullanıcı oluştuğunda dönen + geçici şifre."""
-    temp_password: str
+    """Yeni kullanıcı oluştuğunda dönen + davet maili durumu.
+
+    Geçici şifre artık üretilmiyor — kullanıcı maildeki linkle kendi
+    şifresini belirler.
+    """
+    invitation_sent: bool = True
 
 
 class AdminPasswordResetResponse(BaseModel):
-    """`POST /users/{id}/reset-password` cevabı."""
+    """`POST /users/{id}/reset-password` cevabı.
+
+    Reset linki kullanıcının emailine gönderilir; ekrana şifre düşmez.
+    """
     user_id: int
     email: str
-    temp_password: str
+    reset_email_sent: bool = True
 
 
 # --- Audit log ---

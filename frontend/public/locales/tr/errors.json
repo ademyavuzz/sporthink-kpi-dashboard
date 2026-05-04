@@ -7,6 +7,8 @@
   "PERMISSION_DENIED": "Bu işlem için yetkiniz yok.",
   "RESOURCE_NOT_FOUND": "Aradığınız kayıt bulunamadı.",
   "VALIDATION_ERROR": "Form hatası. Lütfen alanları kontrol edin.",
+  "INVALID_OR_EXPIRED_TOKEN": "Bağlantı geçersiz veya süresi dolmuş.",
+  "EMAIL_ALREADY_EXISTS": "Bu e-posta zaten kayıtlı.",
   "CONFLICT": "Bu kayıt zaten mevcut.",
   "RATE_LIMIT_EXCEEDED": "Çok fazla istek. Lütfen biraz bekleyin.",
 

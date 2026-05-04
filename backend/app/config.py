@@ -32,8 +32,21 @@ class Settings(BaseSettings):
 
     frontend_origin: str = "http://localhost:5173"
 
-    sendgrid_api_key: str = ""
-    sendgrid_from_email: str = "noreply@sporthink.local"
+    # --- E-posta (Gmail SMTP) ---
+    # Gmail uygulama şifresi (app password): https://myaccount.google.com/apppasswords
+    # Production'da kişisel hesap yerine domain SMTP'si kullanılması önerilir;
+    # Gmail SMTP'nin günlük relay limiti ~500 mail/gün'dür.
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    mail_from: str = ""  # Boş ise smtp_user kullanılır (Gmail relay zorunluluğu)
+    mail_from_name: str = "Sporthink Dashboard"
+
+    # Davet ve şifre sıfırlama token süreleri
+    invite_token_expire_hours: int = 168  # 7 gün
+    reset_token_expire_minutes: int = 60  # 1 saat
 
     super_admin_email: str = "admin@sporthink.local"
     super_admin_password: str = "ChangeMe!1234567890"
@@ -50,6 +63,19 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [self.frontend_origin]
+
+    @property
+    def effective_mail_from(self) -> str:
+        """Gmail SMTP'de From adresi SMTP user ile aynı olmalıdır.
+
+        Boş bırakılırsa user'a düşer; aksi takdirde elle override edilen
+        adres dönülür.
+        """
+        return self.mail_from or self.smtp_user
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_user and self.smtp_password)
 
 
 @lru_cache

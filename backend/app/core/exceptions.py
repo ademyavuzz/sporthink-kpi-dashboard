@@ -67,6 +67,11 @@ class ValidationError(SporthinkException):
     message = "Validation failed"
 
 
+class InvalidOrExpiredTokenError(ValidationError):
+    code = "INVALID_OR_EXPIRED_TOKEN"
+    message = "Reset token is invalid or expired"
+
+
 class ConflictError(SporthinkException):
     code = "CONFLICT"
     status_code = 409

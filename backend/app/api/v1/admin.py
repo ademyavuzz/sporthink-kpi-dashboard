@@ -437,7 +437,7 @@ async def list_users(
 @router.post(
     "/users",
     response_model=SuccessEnvelope[UserCreateResponse],
-    summary="Yeni kullanıcı davet et",
+    summary="Yeni kullanıcı davet et — kullanıcı kendi şifresini belirler",
 )
 async def create_user(
     payload: UserCreate,
@@ -445,20 +445,29 @@ async def create_user(
     current: User = Depends(require_permission(Permission.USERS_CREATE)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[UserCreateResponse]:
-    user, temp_pw = await user_management_service.create_user(
+    """Yeni kullanıcı oluşturur ve davet linkini email ile gönderir.
+
+    Geçici şifre üretilmez; kullanıcı maildeki link ile kendi şifresini kurar.
+    Davet TTL: `settings.invite_token_expire_hours` (default 7 gün).
+    """
+    accept_lang = (request.headers.get("accept-language") or "tr").lower()
+    lang = "en" if accept_lang.startswith("en") else "tr"
+
+    user = await user_management_service.create_user(
         db,
         email=payload.email,
         first_name=payload.first_name,
         last_name=payload.last_name,
         role_id=payload.role_id,
         actor=current,
+        lang=lang,
         ip=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
     role = await db.get(Role, user.role_id) if user.role_id else None
     item = _user_to_item(user, role)
     return SuccessEnvelope(
-        data=UserCreateResponse(**item.model_dump(), temp_password=temp_pw)
+        data=UserCreateResponse(**item.model_dump(), invitation_sent=True)
     )
 
 
@@ -511,7 +520,7 @@ async def delete_user(
 @router.post(
     "/users/{user_id}/reset-password",
     response_model=SuccessEnvelope[AdminPasswordResetResponse],
-    summary="Admin: kullanıcı şifresini sıfırla (geçici şifre üretir)",
+    summary="Admin: kullanıcının emailine şifre sıfırlama linki gönderir",
 )
 async def admin_reset_password(
     request: Request,
@@ -519,39 +528,24 @@ async def admin_reset_password(
     current: User = Depends(require_permission(Permission.USERS_RESET_PASSWORD)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[AdminPasswordResetResponse]:
-    """Süper Admin başkasının şifresini sıfırlar — yeni geçici şifre üretilip
-    döner. Tüm aktif refresh token'lar revoke edilir.
+    """Süper Admin başkasının şifresini sıfırlar — kullanıcının emailine
+    reset linki gider. Geçici şifre üretilmez. Yeni şifre belirleyince
+    aktif refresh tokenları revoke edilir.
     """
-    from sqlalchemy import delete as sa_delete
+    accept_lang = (request.headers.get("accept-language") or "tr").lower()
+    lang = "en" if accept_lang.startswith("en") else "tr"
 
-    from app.core.security import hash_password
-    from app.models import RefreshToken
-    from app.repositories import audit_log_repository as audit_repo
-
-    user = await db.get(User, user_id)
-    if user is None or user.deleted_at is not None:
-        raise ResourceNotFoundError(params={"user_id": user_id})
-
-    temp_pw = user_management_service.generate_temp_password()
-    user.password_hash = hash_password(temp_pw)
-    await db.execute(sa_delete(RefreshToken).where(RefreshToken.user_id == user_id))
-
-    await audit_repo.add(
+    user = await user_management_service.admin_send_password_reset(
         db,
-        action="password.admin_reset",
-        user_id=current.id,
-        user_email=current.email,
-        resource_type="user",
-        resource_id=str(user.id),
-        ip_address=_client_ip(request),
+        user_id,
+        actor=current,
+        lang=lang,
+        ip=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
-        details={"target_email": user.email},
     )
-    await db.commit()
-
     return SuccessEnvelope(
         data=AdminPasswordResetResponse(
-            user_id=user.id, email=user.email, temp_password=temp_pw
+            user_id=user.id, email=user.email, reset_email_sent=True
         )
     )
 

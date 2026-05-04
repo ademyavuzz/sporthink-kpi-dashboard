@@ -1,21 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Moon, Sun } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, Moon, Sun } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api/auth";
@@ -28,6 +21,7 @@ import { useThemeStore } from "@/stores/useThemeStore";
 const loginSchema = z.object({
   email: z.string().min(1, { message: "form.required" }),
   password: z.string().min(1, { message: "form.password_required" }),
+  remember_me: z.boolean().default(true),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -48,15 +42,16 @@ export default function LoginPage() {
   const setLanguage = useLanguageStore((s) => s.setLanguage);
 
   const [serverErrorCode, setServerErrorCode] = useState<string | null>(null);
-  const [forgotOpen, setForgotOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", remember_me: true },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -141,15 +136,18 @@ export default function LoginPage() {
               >
                 {t("auth:email")}
               </Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder={t("auth:email_placeholder")}
-                aria-invalid={!!errors.email}
-                className="h-11"
-                {...register("email")}
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t("auth:email_placeholder")}
+                  aria-invalid={!!errors.email}
+                  className="h-11 pl-10"
+                  {...register("email")}
+                />
+              </div>
               {errors.email && (
                 <p className="text-xs text-destructive">
                   {t(`errors:${errors.email.message}`)}
@@ -158,35 +156,63 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-baseline justify-between">
-                <Label
-                  htmlFor="password"
-                  className="text-[11px] font-semibold uppercase tracking-wide text-text-muted"
-                >
-                  {t("auth:password")}
-                </Label>
+              <Label
+                htmlFor="password"
+                className="text-[11px] font-semibold uppercase tracking-wide text-text-muted"
+              >
+                {t("auth:password")}
+              </Label>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder={t("auth:password_placeholder")}
+                  aria-invalid={!!errors.password}
+                  className="h-11 pl-10 pr-11"
+                  {...register("password")}
+                />
                 <button
                   type="button"
-                  onClick={() => setForgotOpen(true)}
-                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t("auth:hide_password") : t("auth:show_password")}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-md text-text-muted hover:bg-muted hover:text-foreground transition-colors"
                 >
-                  {t("auth:forgot_password")}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder={t("auth:password_placeholder")}
-                aria-invalid={!!errors.password}
-                className="h-11"
-                {...register("password")}
-              />
               {errors.password && (
                 <p className="text-xs text-destructive">
                   {t(`errors:${errors.password.message}`)}
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <Controller
+                control={control}
+                name="remember_me"
+                render={({ field }) => (
+                  <label
+                    htmlFor="remember_me"
+                    className="inline-flex cursor-pointer select-none items-center gap-2 text-xs font-medium text-text-muted hover:text-foreground transition-colors"
+                  >
+                    <Checkbox
+                      id="remember_me"
+                      checked={field.value}
+                      onCheckedChange={(c) => field.onChange(c === true)}
+                    />
+                    {t("auth:remember_me")}
+                  </label>
+                )}
+              />
+              <Link
+                to="/forgot-password"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                {t("auth:forgot_password")}
+              </Link>
             </div>
 
             {serverErrorCode && (
@@ -224,21 +250,6 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("auth:forgot_password_title")}</DialogTitle>
-            <DialogDescription className="pt-2">
-              {t("auth:forgot_password_help")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setForgotOpen(false)}>
-              {t("auth:forgot_password_close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

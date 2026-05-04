@@ -637,6 +637,7 @@ CREATE TABLE `password_reset_tokens` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `token_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purpose` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'reset',
   `expires_at` datetime NOT NULL,
   `used_at` datetime DEFAULT NULL,
   `requested_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -645,6 +646,7 @@ CREATE TABLE `password_reset_tokens` (
   UNIQUE KEY `uk_token_hash` (`token_hash`),
   KEY `idx_user` (`user_id`),
   KEY `idx_expires` (`expires_at`),
+  KEY `idx_user_purpose` (`user_id`, `purpose`),
   CONSTRAINT `fk_prt_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

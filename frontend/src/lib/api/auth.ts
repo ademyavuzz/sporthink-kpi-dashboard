@@ -1,6 +1,15 @@
 import { apiClient, unwrap } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
-import type { LoginRequest, MeResponse, TokenResponse } from "@/types/auth";
+import type {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  LoginRequest,
+  MeResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  TokenResponse,
+  VerifyResetTokenResponse,
+} from "@/types/auth";
 
 /**
  * Auth API — backend `/api/v1/auth/*` ile birebir.
@@ -26,6 +35,30 @@ export const authApi = {
 
   async me(): Promise<MeResponse> {
     const r = await apiClient.get<ApiEnvelope<MeResponse>>("/auth/me");
+    return unwrap(r);
+  },
+
+  async forgotPassword(payload: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+    const r = await apiClient.post<ApiEnvelope<ForgotPasswordResponse>>(
+      "/auth/forgot-password",
+      payload,
+    );
+    return unwrap(r);
+  },
+
+  async verifyResetToken(token: string): Promise<VerifyResetTokenResponse> {
+    const r = await apiClient.get<ApiEnvelope<VerifyResetTokenResponse>>(
+      "/auth/verify-reset-token",
+      { params: { token } },
+    );
+    return unwrap(r);
+  },
+
+  async resetPassword(payload: ResetPasswordRequest): Promise<ResetPasswordResponse> {
+    const r = await apiClient.post<ApiEnvelope<ResetPasswordResponse>>(
+      "/auth/reset-password",
+      payload,
+    );
     return unwrap(r);
   },
 };

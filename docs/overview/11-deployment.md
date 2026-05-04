@@ -71,8 +71,8 @@ Talep Tarihi: ___________
 
 4. EK TALEPLER
    - SSL/TLS sertifikası: Let's Encrypt ile otomatik (ek talep yok)
-   - SMTP servisi: SendGrid free tier kullanılacak
-   - Email: dashboard@sporthink.com.tr (sender address) - opsiyonel
+   - SMTP servisi: Gmail SMTP relay (App Password ile) — bitirme ölçeğinde yeterli
+   - Email: dashboard@sporthink.com.tr (sender address) - opsiyonel; Gmail relay'de From=SMTP user zorunlu
 
 Tahmini Kullanıma Açılma: 25 Mayıs 2026
 ```
@@ -352,10 +352,16 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 SUPER_ADMIN_EMAIL=admin@sporthink.com.tr
 SUPER_ADMIN_PASSWORD=<güçlü-rastgele-şifre>
 
-# Email (SendGrid)
-SENDGRID_API_KEY=<sendgrid-api-key>
-EMAIL_FROM=dashboard@sporthink.com.tr
-EMAIL_FROM_NAME=Sporthink Dashboard
+# Email (Gmail SMTP / aiosmtplib)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=<gmail-adresi>
+SMTP_PASSWORD=<gmail-app-password>
+SMTP_USE_TLS=true
+MAIL_FROM=<gmail-adresi>     # Gmail relay'de SMTP_USER ile aynı olmak zorunda
+MAIL_FROM_NAME=Sporthink Dashboard
+INVITE_TOKEN_EXPIRE_HOURS=168
+RESET_TOKEN_EXPIRE_MINUTES=60
 
 # Upload Settings
 MAX_UPLOAD_SIZE_MB=50
