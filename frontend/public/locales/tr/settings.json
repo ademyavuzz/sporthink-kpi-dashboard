@@ -1,0 +1,48 @@
+{
+  "page_title": "Ayarlar",
+  "page_subtitle": "Profil bilgileriniz ve hesap güvenliği.",
+
+  "tab_profile": "Profil",
+  "tab_security": "Güvenlik",
+
+  "avatar_title": "Profil Resmi",
+  "avatar_hint": "PNG, JPG veya WEBP. Maksimum 2 MB. Yüklenen görsel 256×256 piksele küçültülür.",
+  "avatar_change": "Resmi değiştir",
+  "avatar_remove": "Kaldır",
+  "avatar_updated_title": "Profil resmi güncellendi",
+  "avatar_removed_title": "Profil resmi kaldırıldı",
+  "avatar_error_format": "Geçersiz format. PNG, JPG veya WEBP yükleyin.",
+  "avatar_error_size": "Dosya çok büyük (en fazla 2 MB).",
+
+  "profile_section_title": "Kişisel Bilgiler",
+  "profile_section_hint": "Ad, soyad ve iletişim bilgilerinizi güncelleyin. E-posta adresi yönetici tarafından değiştirilir.",
+  "profile_saved_title": "Bilgileriniz kaydedildi",
+  "profile_saved_message": "Profil bilgileriniz güncellendi.",
+
+  "field_first_name": "Ad",
+  "field_last_name": "Soyad",
+  "field_email": "E-posta",
+  "field_email_hint": "E-posta değiştirilemez. Değişim için yöneticinize başvurun.",
+  "field_phone": "Telefon",
+  "field_department": "Departman",
+  "field_job_title": "Görev",
+
+  "save_changes": "Kaydet",
+
+  "security_title": "Şifre Değiştir",
+  "security_hint": "Mevcut şifrenizi onaylayıp yeni şifrenizi belirleyin. En az 10 karakter olmalı.",
+  "security_logout_warning": "Şifre değişince tüm cihazlardan çıkış yaparsınız ve yeniden giriş gerekir.",
+
+  "field_current_password": "Mevcut şifre",
+  "field_new_password": "Yeni şifre",
+  "field_confirm_password": "Yeni şifre (tekrar)",
+  "new_password_placeholder": "En az 10 karakter",
+
+  "rule_min_length": "En az 10 karakter olmalı",
+  "rule_match": "İki şifre birebir aynı olmalı",
+  "passwords_dont_match": "Şifreler birbirine uymuyor",
+
+  "change_password": "Şifreyi değiştir",
+  "password_changed_title": "Şifre güncellendi",
+  "password_changed_message": "Yeni şifrenizle giriş yapmanız gerekiyor."
+}

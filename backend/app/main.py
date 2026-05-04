@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import api_router
 from app.config import settings
@@ -10,6 +12,9 @@ from app.core.exceptions import register_exception_handlers
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Upload klasörünü yoksa oluştur (avatar gibi alt klasörler runtime'da
+    # üretilir, ama parent dir mount sırasında var olmalı)
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -31,6 +36,16 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
+
+# Avatar ve diğer kullanıcı upload'ları statik servis edilir.
+# `/uploads/...` altında dosyalar; cookie/auth gerektirmez (avatar URL'leri
+# zaten kullanıcı bilgisinden gelir).
+Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads",
+    StaticFiles(directory=settings.upload_dir),
+    name="uploads",
+)
 
 app.include_router(api_router)
 

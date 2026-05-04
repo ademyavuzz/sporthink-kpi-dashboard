@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
+import { UserAvatar } from "@/components/feature/UserAvatar";
 import { Logo } from "@/components/layout/Logo";
 import { NAV_GROUPS, type NavItem } from "@/components/layout/nav-items";
 import { Button } from "@/components/ui/button";
@@ -98,11 +99,11 @@ export function Sidebar() {
         >
           {collapsed ? (
             <div className="flex justify-center" title={user.full_name}>
-              <UserAvatar name={user.full_name} email={user.email} />
+              <UserAvatar user={user} size="md" />
             </div>
           ) : (
             <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-2.5 py-2">
-              <UserAvatar name={user.full_name} email={user.email} />
+              <UserAvatar user={user} size="md" />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-[12px] font-semibold leading-tight">
                   {user.full_name}
@@ -170,18 +171,3 @@ function SidebarLink({
   );
 }
 
-function UserAvatar({ name, email }: { name: string; email: string }) {
-  const initials =
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase() || email[0]?.toUpperCase() || "?";
-  return (
-    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">
-      {initials}
-    </div>
-  );
-}

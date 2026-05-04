@@ -13,6 +13,7 @@
   "logout": "Log out",
   "active_role": "Active role",
   "account": "Account",
+  "my_profile": "My profile",
   "my_notifications": "My notifications",
 
   "theme_dark": "Dark",
@@ -36,7 +37,8 @@
     "user_management": "Users / Roles",
     "audit_logs": "Audit Logs",
     "channel_mapping": "Channel Mapping",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "settings": "Settings"
   },
 
   "nav_group": {

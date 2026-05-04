@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
+  Settings,
   Sparkles,
   ShoppingCart,
   Target,
@@ -73,6 +74,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "notifications", path: "/notifications", icon: Bell, permission: PERMISSIONS.DASHBOARD_VIEW },
       { id: "audit_logs", path: "/audit-logs", icon: Activity, permission: PERMISSIONS.LOGS_VIEW_AUDIT },
       { id: "user_management", path: "/users", icon: UserCog, permission: PERMISSIONS.USERS_VIEW },
+      { id: "settings", path: "/settings", icon: Settings, permission: PERMISSIONS.DASHBOARD_VIEW },
     ],
   },
 ] as const;

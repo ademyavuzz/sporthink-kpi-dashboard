@@ -71,3 +71,20 @@ export interface ResetPasswordResponse {
   success: boolean;
   email: string;
 }
+
+export interface MeUpdateRequest {
+  first_name?: string;
+  last_name?: string;
+  phone?: string | null;
+  department?: string | null;
+  job_title?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface AvatarResponse {
+  avatar_url: string | null;
+}
