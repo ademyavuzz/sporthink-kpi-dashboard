@@ -1,0 +1,42 @@
+{
+  "app_name": "Sporthink KPI Dashboard",
+  "app_description": "Pazarlama ve E-Ticaret Performans Paneli",
+
+  "save": "Kaydet",
+  "cancel": "İptal",
+  "close": "Kapat",
+  "loading": "Yükleniyor…",
+  "search": "Ara",
+  "yes": "Evet",
+  "no": "Hayır",
+
+  "logout": "Çıkış yap",
+  "active_role": "Aktif rol",
+
+  "theme_dark": "Koyu",
+  "theme_light": "Açık",
+
+  "lang_tr": "Türkçe",
+  "lang_en": "English",
+
+  "nav": {
+    "overview": "Genel Özet",
+    "traffic": "Trafik (GA4)",
+    "meta_ads": "Meta Ads",
+    "google_ads": "Google Ads",
+    "ecommerce": "E-Ticaret & Satış",
+    "campaigns": "Kampanya Analizi",
+    "funnel": "Funnel Analizi",
+    "cohort": "Cohort / Retention",
+    "products": "Ürün Performansı",
+    "import": "Veri Import",
+    "segments": "Segmentler & RFM",
+    "user_management": "Kullanıcı / Roller",
+    "audit_logs": "Denetim Kayıtları",
+    "channel_mapping": "Kanal Eşleme"
+  },
+
+  "page_overview_title": "Genel Özet",
+  "coming_soon": "Yakında",
+  "coming_soon_description": "Bu sayfa sonraki sprint'lerde implemente edilecek."
+}

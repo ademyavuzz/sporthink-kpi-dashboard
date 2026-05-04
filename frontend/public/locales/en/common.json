@@ -1,0 +1,42 @@
+{
+  "app_name": "Sporthink KPI Dashboard",
+  "app_description": "Marketing & E-commerce Performance Panel",
+
+  "save": "Save",
+  "cancel": "Cancel",
+  "close": "Close",
+  "loading": "Loading…",
+  "search": "Search",
+  "yes": "Yes",
+  "no": "No",
+
+  "logout": "Log out",
+  "active_role": "Active role",
+
+  "theme_dark": "Dark",
+  "theme_light": "Light",
+
+  "lang_tr": "Türkçe",
+  "lang_en": "English",
+
+  "nav": {
+    "overview": "Overview",
+    "traffic": "Traffic (GA4)",
+    "meta_ads": "Meta Ads",
+    "google_ads": "Google Ads",
+    "ecommerce": "E-commerce & Sales",
+    "campaigns": "Campaigns",
+    "funnel": "Funnel Analysis",
+    "cohort": "Cohort / Retention",
+    "products": "Products",
+    "import": "Data Import",
+    "segments": "Segments & RFM",
+    "user_management": "Users / Roles",
+    "audit_logs": "Audit Logs",
+    "channel_mapping": "Channel Mapping"
+  },
+
+  "page_overview_title": "Overview",
+  "coming_soon": "Coming soon",
+  "coming_soon_description": "This page will be implemented in later sprints."
+}

@@ -1,0 +1,97 @@
+{
+  "page_title": "Veri Import",
+  "page_subtitle": "CSV dosyalarınızı yükleyin ve veritabanına aktarın",
+
+  "tab_new": "Yeni Import",
+  "tab_history": "Geçmiş",
+
+  "wizard": {
+    "step_1": "1. Dosya Seç",
+    "step_2": "2. Önizle",
+    "step_3": "3. İşle",
+    "step_4": "4. Sonuç",
+
+    "select_data_type": "Veri kaynağı",
+    "select_data_type_placeholder": "Veri kaynağı seçin",
+    "select_file": "CSV dosyası seçin",
+    "drop_file_here": "Dosyayı buraya sürükleyin veya tıklayın",
+    "file_name": "Dosya adı",
+    "file_size": "Dosya boyutu",
+    "selected_file": "Seçili dosya",
+    "remove_file": "Dosyayı kaldır",
+
+    "btn_preview": "Önizle",
+    "btn_back": "Geri",
+    "btn_run_import": "İmport Et",
+    "btn_finish": "Tamam",
+    "btn_new_import": "Yeni Import",
+    "btn_download_errors": "Hataları İndir",
+
+    "preview_title": "Önizleme",
+    "preview_summary": "İlk {{previewed}} satır incelendi: {{valid}} geçerli, {{errors}} hatalı",
+    "preview_detected_headers": "Bulunan başlıklar ({{count}})",
+    "preview_missing_required": "Eksik zorunlu kolonlar ({{count}})",
+    "preview_unknown_headers": "Tanınmayan kolonlar ({{count}})",
+    "preview_unknown_warning": "Bu kolonlar veritabanına aktarılmayacak.",
+    "preview_blocked": "Eksik zorunlu kolonlar var; içeri aktarım yapılamaz. Doğru veri kaynağını seçtiğinizden emin olun.",
+    "preview_sample_rows": "Örnek satırlar ({{count}})",
+
+    "importing": "Veriler aktarılıyor…",
+    "importing_hint": "Büyük dosyalar birkaç saniye sürebilir.",
+
+    "result_success_title": "Aktarım tamamlandı",
+    "result_failed_title": "Aktarım başarısız",
+    "result_total_rows": "Toplam satır",
+    "result_valid_rows": "Geçerli",
+    "result_invalid_rows": "Hatalı",
+    "result_skipped_rows": "Atlandı (mevcut)",
+    "result_inserted_rows": "DB'ye yazılan",
+    "result_duration": "Süre",
+    "result_skipped_hint": "{{count}} satır zaten veritabanında mevcuttu, atlandı.",
+    "result_seconds": "{{count}} sn",
+    "result_errors_title": "İlk {{count}} hata",
+    "result_no_errors": "Hata yok"
+  },
+
+  "history": {
+    "title": "Geçmiş İmport'lar",
+    "empty": "Henüz import yapılmamış.",
+    "col_id": "ID",
+    "col_data_type": "Veri Kaynağı",
+    "col_file_name": "Dosya",
+    "col_status": "Durum",
+    "col_total_rows": "Satır",
+    "col_inserted": "Yazıldı",
+    "col_invalid": "Hatalı",
+    "col_duration": "Süre",
+    "col_created_at": "Tarih",
+    "col_actions": "İşlemler",
+    "btn_view": "Detay",
+    "btn_delete": "Sil",
+    "delete_confirm_title": "Import'u sil?",
+    "delete_confirm_body": "Bu import'a ait tüm raw satırlar (toplam {{rows}}) geri alınacak. Bu işlem geri alınamaz.",
+    "delete_confirm_yes": "Evet, sil",
+    "delete_success": "Import silindi"
+  },
+
+  "status": {
+    "pending": "Bekliyor",
+    "parsing": "Ayrıştırılıyor",
+    "validating": "Doğrulanıyor",
+    "committing": "Yazılıyor",
+    "completed": "Tamamlandı",
+    "failed": "Başarısız",
+    "cancelled": "İptal"
+  },
+
+  "errors": {
+    "no_file_selected": "Lütfen bir dosya seçin",
+    "no_data_type_selected": "Lütfen veri kaynağı seçin",
+    "file_not_csv": "Sadece CSV dosyası kabul edilir",
+    "load_data_types_failed": "Veri kaynakları yüklenemedi",
+    "preview_failed": "Önizleme oluşturulamadı",
+    "import_failed": "İmport başarısız",
+    "delete_failed": "Silme başarısız",
+    "history_load_failed": "Geçmiş yüklenemedi"
+  }
+}
