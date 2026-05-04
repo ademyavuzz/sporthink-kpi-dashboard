@@ -3,16 +3,25 @@ import {
   Check,
   KeyRound,
   Loader2,
+  Mail,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
+  Send,
   ShieldCheck,
   Trash2,
+  UserCheck,
+  UserPlus,
+  Users as UsersIcon,
+  UserX,
+  X as XClose,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PermissionPicker } from "@/components/feature/PermissionPicker";
+import { UserAvatar } from "@/components/feature/UserAvatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +34,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -59,23 +76,23 @@ import type {
 export default function UserManagementPage() {
   const { t } = useTranslation("admin");
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-semibold">{t("users.title")}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t("users.subtitle")}
-        </p>
-      </div>
+    <div className="container mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+      <header>
+        <h1 className="text-[22px] font-semibold tracking-tight text-foreground">
+          {t("users.title")}
+        </h1>
+        <p className="mt-1 text-sm text-text-muted">{t("users.subtitle")}</p>
+      </header>
 
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">{t("users.tab_users")}</TabsTrigger>
           <TabsTrigger value="roles">{t("users.tab_roles")}</TabsTrigger>
         </TabsList>
-        <TabsContent value="users" className="space-y-4">
+        <TabsContent value="users" className="mt-5 space-y-5">
           <UsersTab />
         </TabsContent>
-        <TabsContent value="roles" className="space-y-4">
+        <TabsContent value="roles" className="mt-5 space-y-5">
           <RolesTab />
         </TabsContent>
       </Tabs>
@@ -88,7 +105,7 @@ export default function UserManagementPage() {
 /* ====================================================================== */
 
 function UsersTab() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListItem | null>(null);
@@ -190,59 +207,64 @@ function UsersTab() {
 
   const roles = rolesQuery.data ?? [];
 
+  const totalUsers = (usersQuery.data ?? []).length;
+
+  const lang = i18n.language;
+
   return (
     <>
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px] space-y-1.5">
-          <Label htmlFor="search" className="text-xs">
-            {t("admin:users.search_label")}
-          </Label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("admin:users.search_placeholder")}
-              className="pl-8"
-            />
-          </div>
+      {/* Filter bar — tek satır */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+          <Input
+            id="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin:users.search_placeholder")}
+            className="h-10 pl-9"
+          />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("admin:users.filter_role")}</Label>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("admin:users.filter_all")}</SelectItem>
-              {roles.map((r) => (
-                <SelectItem key={r.id} value={String(r.id)}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="h-10 w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("admin:users.filter_all_roles")}</SelectItem>
+            {roles.map((r) => (
+              <SelectItem key={r.id} value={String(r.id)}>
+                {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Status segmented control */}
+        <div className="inline-flex h-10 items-center overflow-hidden rounded-lg border border-border bg-surface">
+          {(["all", "active", "inactive"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "h-full px-3 text-xs font-semibold transition-colors",
+                statusFilter === s
+                  ? "bg-primary text-primary-foreground"
+                  : "text-text-muted hover:text-foreground",
+              )}
+            >
+              {s === "all"
+                ? t("admin:users.filter_all")
+                : s === "active"
+                  ? t("admin:users.filter_active")
+                  : t("admin:users.filter_inactive")}
+            </button>
+          ))}
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("admin:users.filter_status")}</Label>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("admin:users.filter_all")}</SelectItem>
-              <SelectItem value="active">{t("admin:users.filter_active")}</SelectItem>
-              <SelectItem value="inactive">{t("admin:users.filter_inactive")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={() => setCreateOpen(true)} className="ml-auto">
-          <Plus className="h-4 w-4 mr-2" />
+
+        <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
+          <Plus className="size-4" />
           {t("admin:users.new_user")}
         </Button>
       </div>
@@ -253,100 +275,128 @@ function UsersTab() {
         </Alert>
       )}
 
-      <Card>
+      {/* Tablo / boş / skeleton */}
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">{t("admin:users.table_id")}</TableHead>
-                <TableHead>{t("admin:users.table_email")}</TableHead>
-                <TableHead>{t("admin:users.table_name")}</TableHead>
-                <TableHead>{t("admin:users.table_role")}</TableHead>
-                <TableHead>{t("admin:users.table_status")}</TableHead>
-                <TableHead>{t("admin:users.table_last_login")}</TableHead>
-                <TableHead className="text-right w-32">{t("admin:users.table_actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {usersQuery.isPending ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin inline" />
-                  </TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground text-sm"
-                  >
-                    {search || roleFilter !== "all" || statusFilter !== "all"
-                      ? t("admin:users.no_filtered_users")
-                      : t("admin:users.no_users")}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((u) => (
-                  <TableRow key={u.id} className={cn(!u.is_active && "opacity-60")}>
-                    <TableCell className="font-mono text-xs">{u.id}</TableCell>
-                    <TableCell className="font-mono text-xs">{u.email}</TableCell>
-                    <TableCell>
-                      {u.first_name} {u.last_name}
-                    </TableCell>
-                    <TableCell>
-                      <RoleBadge role={u.role} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={u.is_active}
-                          disabled={u.role?.is_system || updateMut.isPending}
-                          onCheckedChange={(checked) =>
-                            updateMut.mutate({
-                              id: u.id,
-                              payload: { is_active: checked },
-                            })
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {u.is_active ? t("admin:users.active") : t("admin:users.inactive")}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {u.last_login_at
-                        ? dayjs
-                            .utc(u.last_login_at)
-                            .tz("Europe/Istanbul")
-                            .format("DD.MM.YYYY HH:mm")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditUser(u)}
-                          aria-label={t("admin:users.edit_aria")}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={u.role?.is_system}
-                          onClick={() => setPendingDelete(u)}
-                          aria-label={t("admin:users.delete_aria")}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {usersQuery.isPending ? (
+            <UserTableSkeleton />
+          ) : filtered.length === 0 ? (
+            totalUsers === 0 ? (
+              <UsersEmptyState onInvite={() => setCreateOpen(true)} />
+            ) : (
+              <FilteredEmptyState
+                onClear={() => {
+                  setSearch("");
+                  setRoleFilter("all");
+                  setStatusFilter("all");
+                }}
+              />
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                    <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_user")}
+                    </TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_role")}
+                    </TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_status")}
+                    </TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_last_login")}
+                    </TableHead>
+                    <TableHead className="w-12 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_actions")}
+                    </TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((u) => {
+                    const neverLoggedIn = !u.last_login_at;
+                    return (
+                      <TableRow
+                        key={u.id}
+                        className={cn(
+                          "border-b border-border/40 last:border-b-0 hover:bg-muted/40",
+                          !u.is_active && "opacity-60",
+                        )}
+                      >
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-3">
+                            <UserAvatar user={u} size="md" />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {u.first_name} {u.last_name}
+                              </p>
+                              <p className="truncate text-xs text-text-muted">
+                                {u.email}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <RoleBadge role={u.role} />
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge tone={u.is_active ? "success" : "neutral"}>
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full",
+                                u.is_active ? "bg-success-500" : "bg-gray-400",
+                              )}
+                            />
+                            {u.is_active
+                              ? t("admin:users.active")
+                              : t("admin:users.inactive")}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell>
+                          {u.last_login_at ? (
+                            <span
+                              title={dayjs
+                                .utc(u.last_login_at)
+                                .tz("Europe/Istanbul")
+                                .format("DD.MM.YYYY HH:mm")}
+                              className="text-xs text-text-muted"
+                            >
+                              {dayjs
+                                .utc(u.last_login_at)
+                                .locale(lang)
+                                .fromNow()}
+                            </span>
+                          ) : (
+                            <StatusBadge tone="warning">
+                              {t("admin:users.never_logged_in")}
+                            </StatusBadge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <RowActionsMenu
+                            user={u}
+                            neverLoggedIn={neverLoggedIn}
+                            onEdit={() => setEditUser(u)}
+                            onResetPassword={() => resetPwMut.mutate(u.id)}
+                            onToggleActive={() =>
+                              updateMut.mutate({
+                                id: u.id,
+                                payload: { is_active: !u.is_active },
+                              })
+                            }
+                            onDelete={() => setPendingDelete(u)}
+                            disabled={updateMut.isPending || resetPwMut.isPending}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -354,10 +404,19 @@ function UsersTab() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("admin:users.invite_title")}</DialogTitle>
-            <DialogDescription>
-              {t("admin:users.invite_description")}
-            </DialogDescription>
+            <DialogTitle className="flex items-start gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <UserPlus className="size-4" />
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="text-base font-semibold">
+                  {t("admin:users.invite_title")}
+                </span>
+                <DialogDescription className="text-xs font-normal">
+                  {t("admin:users.invite_description")}
+                </DialogDescription>
+              </span>
+            </DialogTitle>
           </DialogHeader>
           <UserCreateForm
             roles={roles}
@@ -375,21 +434,33 @@ function UsersTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{t("admin:users.edit_title")}</DialogTitle>
-            <DialogDescription>
-              <code className="text-xs">{editUser?.email}</code>
-            </DialogDescription>
           </DialogHeader>
           {editUser && (
-            <UserEditForm
-              user={editUser}
-              roles={roles}
-              onSubmit={(payload) =>
-                updateMut.mutate({ id: editUser.id, payload })
-              }
-              onResetPassword={() => resetPwMut.mutate(editUser.id)}
-              loading={updateMut.isPending}
-              resetLoading={resetPwMut.isPending}
-            />
+            <>
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3">
+                <UserAvatar user={editUser} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {editUser.first_name} {editUser.last_name}
+                  </p>
+                  <p className="mt-0.5 inline-flex items-center gap-1 truncate text-xs text-text-muted">
+                    <Mail className="size-3" />
+                    {editUser.email}
+                  </p>
+                </div>
+                <RoleBadge role={editUser.role} />
+              </div>
+              <UserEditForm
+                user={editUser}
+                roles={roles}
+                onSubmit={(payload) =>
+                  updateMut.mutate({ id: editUser.id, payload })
+                }
+                onResetPassword={() => resetPwMut.mutate(editUser.id)}
+                loading={updateMut.isPending}
+                resetLoading={resetPwMut.isPending}
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -482,14 +553,264 @@ function RoleBadge({
   role: UserListItem["role"];
 }) {
   if (!role) return <Badge variant="outline">—</Badge>;
+  const color = role.color ?? null;
+  // Renkli badge — rol API'sinden gelen color, alpha overlay ile arkaplan
+  if (color) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none"
+        style={{ background: `${color}1f`, color: color }}
+      >
+        {role.is_system && <ShieldCheck className="size-3" />}
+        {role.name}
+      </span>
+    );
+  }
   return (
-    <Badge
-      variant={role.is_system ? "default" : "secondary"}
-      className="font-medium"
-    >
-      {role.is_system && <ShieldCheck className="h-3 w-3 mr-1" />}
+    <Badge variant={role.is_system ? "default" : "secondary"} className="font-medium">
+      {role.is_system && <ShieldCheck className="size-3 mr-1" />}
       {role.name}
     </Badge>
+  );
+}
+
+/* ---------- Yardımcı componentler ---------- */
+
+function RowActionsMenu({
+  user,
+  neverLoggedIn,
+  onEdit,
+  onResetPassword,
+  onToggleActive,
+  onDelete,
+  disabled,
+}: {
+  user: UserListItem;
+  neverLoggedIn: boolean;
+  onEdit: () => void;
+  onResetPassword: () => void;
+  onToggleActive: () => void;
+  onDelete: () => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation("admin");
+  const isSystem = user.role?.is_system === true;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("users.actions_aria")}
+          disabled={disabled}
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil />
+          {t("users.action_edit")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onResetPassword}>
+          {neverLoggedIn ? <Send /> : <KeyRound />}
+          {neverLoggedIn
+            ? t("users.action_resend_invite")
+            : t("users.action_reset_password")}
+        </DropdownMenuItem>
+        {!isSystem && (
+          <DropdownMenuItem onSelect={onToggleActive}>
+            {user.is_active ? <UserX /> : <UserCheck />}
+            {user.is_active
+              ? t("users.action_deactivate")
+              : t("users.action_activate")}
+          </DropdownMenuItem>
+        )}
+        {!isSystem && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+              <Trash2 />
+              {t("users.action_delete")}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function UserTableSkeleton() {
+  return (
+    <div className="divide-y divide-border/40">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-4">
+          <div className="size-10 shrink-0 rounded-full bg-muted/40 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 w-40 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-56 rounded bg-muted/30 animate-pulse" />
+          </div>
+          <div className="hidden h-5 w-20 rounded-full bg-muted/40 animate-pulse sm:block" />
+          <div className="hidden h-5 w-16 rounded-full bg-muted/40 animate-pulse md:block" />
+          <div className="hidden h-3 w-24 rounded bg-muted/30 animate-pulse lg:block" />
+          <div className="size-7 rounded-md bg-muted/30 animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UsersEmptyState({ onInvite }: { onInvite: () => void }) {
+  const { t } = useTranslation("admin");
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <div className="rounded-full bg-primary/10 p-4 text-primary">
+        <UsersIcon className="size-7" />
+      </div>
+      <p className="text-base font-semibold text-foreground">
+        {t("users.empty_title")}
+      </p>
+      <p className="max-w-sm text-sm text-text-muted">
+        {t("users.empty_body")}
+      </p>
+      <Button onClick={onInvite} className="mt-3 gap-1.5">
+        <Plus className="size-4" />
+        {t("users.empty_cta")}
+      </Button>
+    </div>
+  );
+}
+
+function FilteredEmptyState({ onClear }: { onClear: () => void }) {
+  const { t } = useTranslation("admin");
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+      <div className="rounded-full bg-muted p-3 text-text-muted">
+        <Search className="size-5" />
+      </div>
+      <p className="text-sm font-medium text-foreground">
+        {t("users.no_filtered_users")}
+      </p>
+      <p className="text-xs text-text-muted">{t("users.try_clear_filters")}</p>
+      <Button variant="outline" size="sm" onClick={onClear} className="mt-2 gap-1.5">
+        <XClose className="size-3.5" />
+        {t("users.clear_filters")}
+      </Button>
+    </div>
+  );
+}
+
+/* ---------- Roles tab helpers ---------- */
+
+function RoleIconTile({
+  color,
+  isSystem,
+}: {
+  color?: string | null;
+  isSystem: boolean;
+}) {
+  // Renkli kutucuk — color varsa onu, yoksa neutral
+  if (color) {
+    return (
+      <span
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg"
+        style={{ background: `${color}1f`, color: color }}
+      >
+        <ShieldCheck className="size-4" />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
+        isSystem
+          ? "bg-primary/10 text-primary"
+          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+      )}
+    >
+      <ShieldCheck className="size-4" />
+    </span>
+  );
+}
+
+function RoleActionsMenu({
+  role,
+  onEdit,
+  onDelete,
+}: {
+  role: RoleListItem;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation("admin");
+  const isSystem = role.is_system;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("users.actions_aria")}
+          disabled={isSystem}
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil />
+          {t("users.action_edit")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <Trash2 />
+          {t("users.action_delete")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function RolesTableSkeleton() {
+  return (
+    <div className="divide-y divide-border/40">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-4">
+          <div className="size-9 shrink-0 rounded-lg bg-muted/40 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 w-32 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-56 rounded bg-muted/30 animate-pulse" />
+          </div>
+          <div className="hidden h-5 w-12 rounded-full bg-muted/40 animate-pulse sm:block" />
+          <div className="hidden h-3 w-8 rounded bg-muted/30 animate-pulse md:block" />
+          <div className="size-7 rounded-md bg-muted/30 animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RolesEmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation("admin");
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <div className="rounded-full bg-primary/10 p-4 text-primary">
+        <ShieldCheck className="size-7" />
+      </div>
+      <p className="text-base font-semibold text-foreground">
+        {t("roles.empty_title")}
+      </p>
+      <p className="max-w-sm text-sm text-text-muted">
+        {t("roles.empty_body")}
+      </p>
+      <Button onClick={onCreate} className="mt-3 gap-1.5">
+        <Plus className="size-4" />
+        {t("roles.empty_cta")}
+      </Button>
+    </div>
   );
 }
 
@@ -518,6 +839,7 @@ function UserCreateForm({
   });
 
   const selectedRole = roles.find((r) => String(r.id) === roleId);
+  const canSubmit = email.trim() && first.trim() && last.trim() && roleId;
 
   return (
     <form
@@ -530,52 +852,68 @@ function UserCreateForm({
           role_id: Number(roleId),
         });
       }}
-      className="space-y-3"
+      className="space-y-5"
     >
-      <div className="space-y-1.5">
-        <Label htmlFor="email">{t("users.field_email")}</Label>
-        <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="off"
-        />
-      </div>
+      <FormField
+        label={t("users.field_email")}
+        htmlFor="email"
+        required
+        hint={t("users.invite_email_hint")}
+      >
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ornek@sporthink.com.tr"
+            required
+            autoComplete="off"
+            className="h-10 pl-9"
+          />
+        </div>
+      </FormField>
+
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="first">{t("users.field_first_name")}</Label>
+        <FormField label={t("users.field_first_name")} htmlFor="first" required>
           <Input
             id="first"
             value={first}
             onChange={(e) => setFirst(e.target.value)}
+            placeholder="Ahmet"
             required
+            className="h-10"
           />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="last">{t("users.field_last_name")}</Label>
+        </FormField>
+        <FormField label={t("users.field_last_name")} htmlFor="last" required>
           <Input
             id="last"
             value={last}
             onChange={(e) => setLast(e.target.value)}
+            placeholder="Demir"
             required
+            className="h-10"
           />
-        </div>
+        </FormField>
       </div>
-      <div className="space-y-1.5">
-        <Label>{t("users.field_role")}</Label>
+
+      <FormField label={t("users.field_role")} required>
         <Select value={roleId} onValueChange={setRoleId}>
-          <SelectTrigger>
+          <SelectTrigger className="h-10">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {roles.map((r) => (
               <SelectItem key={r.id} value={String(r.id)}>
                 <div className="flex items-center gap-2">
-                  {r.is_system && <ShieldCheck className="h-3 w-3" />}
-                  {r.name}
-                  <span className="text-xs text-muted-foreground">
+                  <span
+                    className="size-2.5 rounded-full"
+                    style={{ background: r.color ?? "#94a3b8" }}
+                  />
+                  {r.is_system && <ShieldCheck className="size-3 text-primary" />}
+                  <span className="font-medium">{r.name}</span>
+                  <span className="text-xs text-text-muted">
                     {t("users.permission_count", { count: r.permission_count })}
                   </span>
                 </div>
@@ -584,18 +922,63 @@ function UserCreateForm({
           </SelectContent>
         </Select>
         {selectedRole && (
-          <p className="text-xs text-muted-foreground">
-            {selectedRole.description ?? t("users.no_description")}
-          </p>
+          <div
+            className="mt-2 rounded-lg border bg-surface-2 px-3 py-2"
+            style={{
+              borderColor: `${selectedRole.color ?? "var(--border)"}40`,
+            }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">
+              {t("users.role_about")}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              {selectedRole.description ?? t("users.no_description")}
+            </p>
+          </div>
         )}
+      </FormField>
+
+      <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+        <p className="inline-flex items-start gap-2 text-[11px] text-text-muted">
+          <Send className="mt-0.5 size-3 shrink-0 text-primary" />
+          <span>{t("users.invite_footer_note")}</span>
+        </p>
       </div>
-      <DialogFooter className="pt-2">
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+
+      <DialogFooter className="border-t border-border pt-4">
+        <Button type="submit" disabled={loading || !canSubmit} className="gap-1.5">
+          {loading && <Loader2 className="size-4 animate-spin" />}
+          <Send className="size-4" />
           {t("users.invite_submit")}
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+/** Modal/dialog form alanı yardımcı componenti — label + required (*) + hint. */
+function FormField({
+  label,
+  htmlFor,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor} className="text-sm font-medium">
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
+      {children}
+      {hint && <p className="text-[11px] text-text-dim">{hint}</p>}
+    </div>
   );
 }
 
@@ -771,6 +1154,7 @@ function RolesTab() {
     mutationFn: (p: {
       name: string;
       description?: string;
+      color?: string;
       permissions: string[];
     }) => adminApi.createRole(p),
     onSuccess: () => {
@@ -788,7 +1172,12 @@ function RolesTab() {
       payload,
     }: {
       id: number;
-      payload: { name?: string; description?: string; permissions?: string[] };
+      payload: {
+        name?: string;
+        description?: string;
+        color?: string;
+        permissions?: string[];
+      };
     }) => adminApi.updateRole(id, payload),
     onSuccess: () => {
       setEditRole(null);
@@ -818,14 +1207,43 @@ function RolesTab() {
       setErrorMsg(err instanceof ApiError ? err.message : t("admin:roles.error_delete_failed")),
   });
 
+  // Search + stats
+  const [search, setSearch] = useState("");
+  const allRoles = q.data ?? [];
+
+  const filtered = useMemo(() => {
+    const lower = search.trim().toLowerCase();
+    if (!lower) return allRoles;
+    return allRoles.filter(
+      (r) =>
+        r.name.toLowerCase().includes(lower) ||
+        (r.description ?? "").toLowerCase().includes(lower),
+    );
+  }, [allRoles, search]);
+
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {t("admin:roles.subtitle")}
+      {/* Açıklama bandı */}
+      <div className="rounded-xl border border-border bg-surface-2 px-4 py-3">
+        <p className="inline-flex items-start gap-2 text-sm text-text-muted">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("admin:roles.subtitle")}</span>
         </p>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+      </div>
+
+      {/* Filter + Yeni rol */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin:roles.search_placeholder")}
+            className="h-10 pl-9"
+          />
+        </div>
+        <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
+          <Plus className="size-4" />
           {t("admin:roles.new_role")}
         </Button>
       </div>
@@ -836,82 +1254,98 @@ function RolesTab() {
         </Alert>
       )}
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">{t("admin:roles.table_id")}</TableHead>
-                <TableHead>{t("admin:roles.table_name")}</TableHead>
-                <TableHead>{t("admin:roles.table_description")}</TableHead>
-                <TableHead className="text-right">{t("admin:roles.table_users")}</TableHead>
-                <TableHead className="text-right">{t("admin:roles.table_permissions")}</TableHead>
-                <TableHead>{t("admin:roles.table_type")}</TableHead>
-                <TableHead className="text-right w-24">{t("admin:roles.table_actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {q.isPending ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin inline" />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                (q.data ?? []).map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs">{r.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {r.is_system && (
-                          <ShieldCheck className="h-4 w-4 text-primary" />
-                        )}
-                        <span className="font-medium">{r.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-md truncate">
-                      {r.description ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.user_count}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.permission_count}
-                    </TableCell>
-                    <TableCell>
-                      {r.is_system ? (
-                        <Badge>{t("admin:roles.type_system")}</Badge>
-                      ) : (
-                        <Badge variant="secondary">{t("admin:roles.type_custom")}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={r.is_system}
-                          onClick={() => setEditRole(r)}
-                          aria-label={t("admin:users.edit_aria")}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={r.is_system}
-                          onClick={() => setPendingDelete(r)}
-                          aria-label={t("admin:users.delete_aria")}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {q.isPending ? (
+            <RolesTableSkeleton />
+          ) : filtered.length === 0 ? (
+            allRoles.length === 0 ? (
+              <RolesEmptyState onCreate={() => setCreateOpen(true)} />
+            ) : (
+              <FilteredEmptyState onClear={() => setSearch("")} />
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                    <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:roles.table_role")}
+                    </TableHead>
+                    <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:roles.table_users")}
+                    </TableHead>
+                    <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:roles.table_permissions")}
+                    </TableHead>
+                    <TableHead className="w-12 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("admin:users.table_actions")}
+                    </TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r) => (
+                    <TableRow
+                      key={r.id}
+                      className="border-b border-border/40 last:border-b-0 hover:bg-muted/40"
+                    >
+                      <TableCell className="py-3">
+                        <div className="flex items-start gap-3">
+                          <RoleIconTile color={r.color} isSystem={r.is_system} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">
+                                {r.name}
+                              </p>
+                              {r.is_system ? (
+                                <StatusBadge tone="error" size="sm">
+                                  <ShieldCheck className="size-2.5" />
+                                  {t("admin:roles.type_system")}
+                                </StatusBadge>
+                              ) : (
+                                <StatusBadge tone="neutral" size="sm">
+                                  {t("admin:roles.type_custom")}
+                                </StatusBadge>
+                              )}
+                            </div>
+                            <p
+                              className={cn(
+                                "mt-0.5 line-clamp-1 text-xs",
+                                r.description ? "text-text-muted" : "text-text-dim",
+                              )}
+                              title={r.description ?? undefined}
+                            >
+                              {r.description ?? t("admin:users.no_description")}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {r.user_count > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-600 dark:bg-success-500/15 dark:text-success-500">
+                            <UsersIcon className="size-3" />
+                            {r.user_count.toLocaleString("tr-TR")}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-text-dim">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-text-muted">
+                        {r.permission_count}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <RoleActionsMenu
+                          role={r}
+                          onEdit={() => setEditRole(r)}
+                          onDelete={() => setPendingDelete(r)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -925,12 +1359,34 @@ function RolesTab() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editRole
-                ? t("admin:roles.edit_role_title", { name: editRole.name })
-                : t("admin:roles.new_role_title")}
+            <DialogTitle className="flex items-start gap-3">
+              <span
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                style={
+                  editRole?.color
+                    ? {
+                        background: `${editRole.color}1f`,
+                        color: editRole.color,
+                      }
+                    : undefined
+                }
+              >
+                <ShieldCheck className="size-5" />
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="text-base font-semibold">
+                  {editRole
+                    ? t("admin:roles.edit_role_title", { name: editRole.name })
+                    : t("admin:roles.new_role_title")}
+                </span>
+                <DialogDescription className="text-xs font-normal">
+                  {editRole
+                    ? t("admin:roles.edit_role_subtitle")
+                    : t("admin:roles.new_role_subtitle")}
+                </DialogDescription>
+              </span>
             </DialogTitle>
           </DialogHeader>
           <RoleForm
@@ -988,13 +1444,31 @@ function RolesTab() {
   );
 }
 
+/** Önceden tanımlı rol renk paleti — kullanıcı serbest hex de girebilir
+ * ama bu paletten seçim hızlı ve uyumlu görünüm verir. */
+const ROLE_COLOR_PRESETS = [
+  "#E63946", // rose (Süper Admin tonu)
+  "#2563EB", // blue
+  "#12B76A", // green
+  "#F79009", // amber
+  "#7A5AF8", // purple
+  "#0891B2", // cyan
+  "#EE46BC", // pink
+  "#667085", // gray
+] as const;
+
 function RoleForm({
   roleId,
   onSubmit,
   loading,
 }: {
   roleId: number | null;
-  onSubmit: (p: { name: string; description?: string; permissions: string[] }) => void;
+  onSubmit: (p: {
+    name: string;
+    description?: string;
+    color?: string;
+    permissions: string[];
+  }) => void;
   loading: boolean;
 }) {
   const { t } = useTranslation("admin");
@@ -1007,6 +1481,7 @@ function RoleForm({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [color, setColor] = useState<string>(ROLE_COLOR_PRESETS[0]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
@@ -1014,64 +1489,177 @@ function RoleForm({
   if (detailQuery.data && !initialized) {
     setName(detailQuery.data.name);
     setDescription(detailQuery.data.description ?? "");
+    setColor(detailQuery.data.color ?? ROLE_COLOR_PRESETS[0]);
     setPermissions(detailQuery.data.permissions);
     setInitialized(true);
   }
 
   if (roleId !== null && detailQuery.isPending) {
     return (
-      <div className="py-8 text-center">
-        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+      <div className="py-12 text-center">
+        <Loader2 className="size-6 animate-spin mx-auto text-text-muted" />
       </div>
     );
   }
+
+  const isEdit = roleId !== null;
+  const totalPerms = permissions.length;
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ name, description: description || undefined, permissions });
+        onSubmit({
+          name,
+          description: description || undefined,
+          color,
+          permissions,
+        });
       }}
-      className="space-y-4"
+      className="space-y-5"
     >
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="rname">{t("roles.field_name")}</Label>
-          <Input
-            id="rname"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("roles.field_name_placeholder")}
-            required
-          />
+      {/* Section 1: Rol Bilgileri */}
+      <SectionShell
+        icon={ShieldCheck}
+        title={t("roles.section_info")}
+        accentColor={color}
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FormField label={t("roles.field_name")} htmlFor="rname" required>
+            <Input
+              id="rname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("roles.field_name_placeholder")}
+              required
+              className="h-10"
+            />
+          </FormField>
+          <FormField label={t("roles.field_description")} htmlFor="rdesc">
+            <Textarea
+              id="rdesc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("roles.field_description_placeholder")}
+              rows={2}
+              className="resize-none"
+            />
+          </FormField>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="rdesc">{t("roles.field_description")}</Label>
-          <Textarea
-            id="rdesc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("roles.field_description_placeholder")}
-            rows={2}
-          />
-        </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <Label>{t("roles.field_permissions")}</Label>
+        {/* Color picker */}
+        <div className="mt-4 space-y-2">
+          <div className="flex items-baseline justify-between">
+            <Label className="text-sm font-medium">
+              {t("roles.field_color")}
+            </Label>
+            <span className="text-[11px] text-text-dim">
+              {t("roles.color_hint")}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {ROLE_COLOR_PRESETS.map((c) => {
+              const isActive = color === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  aria-label={c}
+                  aria-pressed={isActive}
+                  className={cn(
+                    "relative size-8 rounded-full transition-all",
+                    isActive ? "ring-2 ring-offset-2 ring-offset-background" : "hover:scale-110",
+                  )}
+                  style={{
+                    background: c,
+                    boxShadow: isActive ? `0 0 0 2px ${c}` : undefined,
+                  }}
+                >
+                  {isActive && (
+                    <Check
+                      className="absolute inset-0 m-auto size-4 text-white"
+                      strokeWidth={3}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* Section 2: İzinler */}
+      <SectionShell
+        icon={KeyRound}
+        title={t("roles.section_permissions")}
+        accentColor={color}
+        rightContent={
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+            style={{ background: `${color}1f`, color: color }}
+          >
+            <Check className="size-3" />
+            {t("roles.permissions_selected", { count: totalPerms })}
+          </span>
+        }
+      >
         <PermissionPicker
           selected={permissions}
           onChange={setPermissions}
           disabled={loading}
         />
-      </div>
+      </SectionShell>
 
-      <DialogFooter>
-        <Button type="submit" disabled={loading || !name}>
-          {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {roleId ? t("roles.update_submit") : t("roles.create_submit")}
+      <DialogFooter className="border-t border-border pt-4">
+        <Button
+          type="submit"
+          disabled={loading || !name}
+          className="gap-1.5"
+          style={{ background: color, color: "#fff" }}
+        >
+          {loading && <Loader2 className="size-4 animate-spin" />}
+          {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
+          {isEdit ? t("roles.update_submit") : t("roles.create_submit")}
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+/** Modal içi section — başlık + accent renkli ikon + opsiyonel sağ slot.
+ *  Border'sız, sadece üst başlık çizgisi ile sade görünüm. */
+function SectionShell({
+  icon: Icon,
+  title,
+  accentColor,
+  rightContent,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  accentColor?: string;
+  rightContent?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg"
+            style={{
+              background: accentColor ? `${accentColor}1f` : "var(--muted)",
+              color: accentColor ?? "var(--muted-foreground)",
+            }}
+          >
+            <Icon className="size-3.5" />
+          </span>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        </div>
+        {rightContent}
+      </header>
+      {children}
+    </section>
   );
 }
