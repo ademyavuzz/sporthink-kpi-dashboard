@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-api_router = APIRouter(prefix="/api/v1")
+from app.api.v1 import admin, auth, dashboard, imports
 
-# Sprint 2+ — router'lar burada include edilir:
-# from app.api.v1 import auth, users, roles, kpi, dashboard, imports
-# api_router.include_router(auth.router)
-# api_router.include_router(users.router)
-# ...
+api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(auth.router)
+api_router.include_router(imports.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(admin.router)
