@@ -150,3 +150,106 @@ class ProductsResponse(BaseModel):
     top_products: list[TopProductRow]
     by_category: list[DimensionBreakdown]
     by_brand: list[DimensionBreakdown]
+
+
+class CustomerOverviewRow(BaseModel):
+    """Top müşteri tablosu satırı."""
+
+    customer_id: str
+    customer_name: str | None
+    city: str | None
+    gender: str | None
+    age_group: str | None
+    total_orders: int
+    total_revenue: Decimal
+    last_order_date: date_type | None
+
+
+class CustomerFreqBucket(BaseModel):
+    """Sipariş frekansı dağılımı (1, 2, 3, 4, 5-9, 10+ kovaları)."""
+
+    bucket: str
+    customer_count: int
+
+
+class NewsletterCompare(BaseModel):
+    """Newsletter abone olan vs olmayan ortalamaları."""
+
+    is_subscriber: bool
+    customer_count: int
+    avg_orders: Decimal
+    avg_revenue: Decimal
+
+
+class CustomerDailyPoint(BaseModel):
+    """Gün bazlı yeni müşteri trendi."""
+
+    date: date_type
+    new_customers: int
+
+
+class ChannelPerformanceRow(BaseModel):
+    """Tek kanalın detay metrikleri."""
+
+    channel: str
+    revenue: Decimal
+    orders: int
+    sessions: int
+    conversion_rate: Decimal | None  # %
+    ad_spend: Decimal
+    ad_revenue: Decimal
+    roas: Decimal | None
+    customers: int  # distinct customer count
+    aov: Decimal | None  # avg order value
+
+
+class ChannelDailyPoint(BaseModel):
+    """Bir kanalın günlük cirosu (top kanallar için multi-series)."""
+
+    date: date_type
+    channel: str
+    revenue: Decimal
+
+
+class ChannelAnalysisResponse(BaseModel):
+    """`/dashboard/channel-analysis` — kanal performans sayfası."""
+
+    date_range: DateRange
+    # Üst KPI'lar
+    active_channels: KPIResult
+    top_channel_revenue: KPIResult
+    avg_roas: KPIResult
+    avg_conversion_rate: KPIResult
+    # Detaylı kanal tablosu
+    channels: list[ChannelPerformanceRow]
+    # Chart verileri
+    revenue_distribution: list[DimensionBreakdown]  # Donut için
+    roas_by_channel: list[DimensionBreakdown]  # Horizontal bar
+    conversion_by_channel: list[DimensionBreakdown]  # Horizontal bar
+    daily_revenue_trend: list[ChannelDailyPoint]  # Multi-series line
+
+
+class CustomersResponse(BaseModel):
+    """`/dashboard/customers` — Müşteri analizi sayfası.
+
+    KPI'lar + breakdown'lar + trend + top tablosu tek payload.
+    """
+
+    date_range: DateRange
+    # KPI'lar (üstte 6 kart)
+    total_customers: KPIResult
+    new_customers: KPIResult
+    repeat_rate: KPIResult
+    avg_customer_value: KPIResult
+    avg_orders_per_customer: KPIResult
+    newsletter_subscription_rate: KPIResult
+    # Breakdown'lar
+    by_gender: list[DimensionBreakdown]
+    by_age_group: list[DimensionBreakdown]
+    by_city: list[DimensionBreakdown]
+    order_frequency: list[CustomerFreqBucket]
+    newsletter_comparison: list[NewsletterCompare]
+    # Trend
+    daily_new_customers: list[CustomerDailyPoint]
+    # Top tablo
+    top_customers: list[CustomerOverviewRow]
