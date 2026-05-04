@@ -11,7 +11,6 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { dayjs } from "@/lib/dayjs";
@@ -30,11 +29,23 @@ const TYPE_ICON: Record<NotificationType, typeof Info> = {
   error: CircleAlert,
 };
 
-const TYPE_TONE: Record<NotificationType, string> = {
-  info: "text-brand-blue bg-brand-blue/10",
-  success: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
-  warning: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
-  error: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
+/** Tile (icon background) — solid soft tint per type. */
+const TYPE_TILE: Record<NotificationType, string> = {
+  info: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+  success:
+    "bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-500",
+  warning:
+    "bg-warning-50 text-warning-600 dark:bg-warning-500/10 dark:text-warning-500",
+  error:
+    "bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-500",
+};
+
+/** Left accent stripe for unread rows. */
+const TYPE_ACCENT: Record<NotificationType, string> = {
+  info: "bg-blue-500",
+  success: "bg-success-500",
+  warning: "bg-warning-500",
+  error: "bg-error-500",
 };
 
 type Filter = "all" | "unread" | NotificationType;
@@ -52,84 +63,103 @@ export default function NotificationsPage() {
 
   const [filter, setFilter] = useState<Filter>("all");
 
+  const counts = useMemo(() => {
+    const acc = { info: 0, success: 0, warning: 0, error: 0 };
+    for (const n of notifications) acc[n.type] += 1;
+    return acc;
+  }, [notifications]);
+
   const filtered = useMemo(() => {
     if (filter === "all") return notifications;
     if (filter === "unread") return notifications.filter((n) => !n.read);
     return notifications.filter((n) => n.type === filter);
   }, [notifications, filter]);
 
-  const filters: { id: Filter; label: string; count?: number }[] = [
+  const filters: { id: Filter; label: string; count: number }[] = [
     { id: "all", label: t("filter_all"), count: notifications.length },
     { id: "unread", label: t("filter_unread"), count: unread },
-    { id: "info", label: t("type_info") },
-    { id: "success", label: t("type_success") },
-    { id: "warning", label: t("type_warning") },
-    { id: "error", label: t("type_error") },
+    { id: "info", label: t("type_info"), count: counts.info },
+    { id: "success", label: t("type_success"), count: counts.success },
+    { id: "warning", label: t("type_warning"), count: counts.warning },
+    { id: "error", label: t("type_error"), count: counts.error },
   ];
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-6 px-6 py-6">
-      <PageHeader
-        title={t("page_title")}
-        subtitle={t("page_subtitle")}
-        actions={
-          <div className="flex items-center gap-2">
-            {unread > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => markAllRead()}
-                className="gap-1.5"
-              >
-                <CheckCheck className="size-4" />
-                {t("mark_all_read")}
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => clear()}
-                className="gap-1.5 text-text-muted hover:text-destructive"
-              >
-                <Trash2 className="size-4" />
-                {t("clear_all")}
-              </Button>
-            )}
-          </div>
-        }
-      />
-
-      <div className="flex flex-wrap gap-1.5">
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-              filter === f.id
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-surface text-text-muted hover:bg-muted",
-            )}
-          >
-            {f.label}
-            {f.count !== undefined && f.count > 0 && (
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-px text-[10px] font-semibold",
-                  filter === f.id
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-text-muted",
-                )}
-              >
-                {f.count}
-              </span>
-            )}
-          </button>
-        ))}
+    <div className="container mx-auto max-w-5xl space-y-5 px-6 py-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-title-sm font-semibold text-foreground">
+            {t("page_title")}
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">{t("page_subtitle")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {unread > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => markAllRead()}
+              className="gap-1.5"
+            >
+              <CheckCheck className="size-4" />
+              {t("mark_all_read")}
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => clear()}
+              className="gap-1.5 text-text-muted hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+              {t("clear_all")}
+            </Button>
+          )}
+        </div>
       </div>
 
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-1.5">
+        {filters.map((f) => {
+          const active = filter === f.id;
+          const isUnreadHighlight = f.id === "unread" && f.count > 0 && !active;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                active
+                  ? "border-primary bg-primary/10 text-primary"
+                  : isUnreadHighlight
+                    ? "border-primary/30 bg-primary/[0.04] text-primary"
+                    : "border-border bg-surface text-text-muted hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {f.label}
+              {f.count > 0 && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+                    active
+                      ? "bg-primary/20 text-primary"
+                      : isUnreadHighlight
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-text-muted",
+                  )}
+                >
+                  {f.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Body */}
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 px-6 py-16 text-center">
@@ -178,34 +208,59 @@ function NotificationRow({
   const Inner = (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-xl border bg-surface p-4 transition-all",
+        "group relative flex items-start gap-3 overflow-hidden rounded-xl border bg-card pl-4 pr-3 py-3.5 transition-all",
         n.read
-          ? "border-border"
-          : "border-primary/20 bg-primary/[0.03] shadow-xs",
+          ? "border-border hover:border-border/80"
+          : "border-primary/20 bg-primary/[0.025] shadow-xs",
       )}
     >
+      {/* Left accent stripe — unread only */}
+      {!n.read && (
+        <span
+          className={cn(
+            "absolute inset-y-0 left-0 w-1",
+            TYPE_ACCENT[n.type],
+          )}
+          aria-hidden
+        />
+      )}
+
+      {/* Type tile */}
       <span
         className={cn(
-          "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full",
-          TYPE_TONE[n.type],
+          "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
+          TYPE_TILE[n.type],
         )}
       >
         <Icon className="size-4" />
       </span>
 
-      <div className="flex flex-1 flex-col gap-1 min-w-0">
+      {/* Content */}
+      <div className="flex flex-1 flex-col gap-0.5 min-w-0">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold text-foreground">{n.title}</h3>
-          <time className="shrink-0 text-[11px] uppercase tracking-wide text-text-dim">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            {n.title}
+            {!n.read && (
+              <span
+                className="inline-block size-1.5 shrink-0 rounded-full bg-primary"
+                aria-hidden
+              />
+            )}
+          </h3>
+          <time
+            className="shrink-0 text-[11px] text-text-dim"
+            dateTime={new Date(n.createdAt).toISOString()}
+          >
             {dayjs(n.createdAt).locale(lang).fromNow()}
           </time>
         </div>
         {n.message && (
-          <p className="text-sm text-text-muted leading-relaxed">{n.message}</p>
+          <p className="text-sm leading-relaxed text-text-muted">{n.message}</p>
         )}
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      {/* Actions — appear on hover, always visible on touch */}
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         {!n.read && (
           <button
             type="button"
@@ -214,9 +269,11 @@ function NotificationRow({
               e.stopPropagation();
               onMarkRead();
             }}
-            className="rounded-md px-2 py-1 text-[11px] font-medium text-text-muted hover:bg-muted hover:text-foreground transition-colors"
+            aria-label={t("mark_read")}
+            title={t("mark_read")}
+            className="inline-flex size-7 items-center justify-center rounded-md text-text-muted hover:bg-muted hover:text-foreground transition-colors"
           >
-            {t("mark_read")}
+            <CheckCheck className="size-3.5" />
           </button>
         )}
         <button
@@ -227,7 +284,8 @@ function NotificationRow({
             onRemove();
           }}
           aria-label={t("remove")}
-          className="rounded-md p-1 text-text-muted hover:bg-muted hover:text-destructive transition-colors"
+          title={t("remove")}
+          className="inline-flex size-7 items-center justify-center rounded-md text-text-muted hover:bg-error-500/10 hover:text-error-600 transition-colors"
         >
           <Trash2 className="size-3.5" />
         </button>
