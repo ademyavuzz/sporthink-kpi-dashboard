@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     super_admin_email: str = "admin@sporthink.local"
     super_admin_password: str = "ChangeMe!1234567890"
 
+    # Import sistemi — dosya kalıcılığı ve dev seed klasörü
+    upload_dir: str = "/var/sporthink/uploads"
+    seed_data_dir: str = "/seed_data"
+    import_max_file_size_mb: int = 50
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
