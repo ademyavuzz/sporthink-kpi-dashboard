@@ -12,6 +12,8 @@
 
   "logout": "Çıkış yap",
   "active_role": "Aktif rol",
+  "account": "Hesap",
+  "my_notifications": "Bildirimlerim",
 
   "theme_dark": "Koyu",
   "theme_light": "Açık",
@@ -33,7 +35,14 @@
     "segments": "Segmentler & RFM",
     "user_management": "Kullanıcı / Roller",
     "audit_logs": "Denetim Kayıtları",
-    "channel_mapping": "Kanal Eşleme"
+    "channel_mapping": "Kanal Eşleme",
+    "notifications": "Bildirimler"
+  },
+
+  "nav_group": {
+    "dashboard": "Dashboard",
+    "data": "Veri",
+    "system": "Sistem"
   },
 
   "page_overview_title": "Genel Özet",

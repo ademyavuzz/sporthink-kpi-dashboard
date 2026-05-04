@@ -1,0 +1,28 @@
+{
+  "title": "Bildirimler",
+  "page_title": "Bildirimler",
+  "page_subtitle": "Önemli olaylar ve sistem bildirimleri burada toplanır.",
+
+  "unread_count": "{{count}} okunmamış",
+  "mark_read": "Okundu",
+  "mark_all_read": "Tümünü okundu işaretle",
+  "remove": "Sil",
+  "clear_all": "Tümünü temizle",
+
+  "view_all": "Tümünü görüntüle",
+  "view_all_more": "Tümünü görüntüle ({{count}})",
+
+  "empty_title": "Yeni bildirim yok",
+  "empty_body": "Önemli olaylar gerçekleştiğinde burada listelenecek.",
+
+  "filter_all": "Tümü",
+  "filter_unread": "Okunmamış",
+
+  "type_info": "Bilgi",
+  "type_success": "Başarılı",
+  "type_warning": "Uyarı",
+  "type_error": "Hata",
+
+  "welcome_title": "Hoş geldiniz, {{name}}",
+  "welcome_message": "Sporthink KPI Dashboard'a giriş yaptınız."
+}

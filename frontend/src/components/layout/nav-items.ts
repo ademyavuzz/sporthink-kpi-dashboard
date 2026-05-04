@@ -1,13 +1,17 @@
 import {
+  Activity,
   BarChart3,
+  Bell,
   Filter,
+  GitBranch,
   LayoutDashboard,
   Megaphone,
   Package,
-  ShoppingCart,
   Sparkles,
+  ShoppingCart,
   Target,
   TrendingUp,
+  UserCog,
   Upload,
   Users,
 } from "lucide-react";
@@ -22,20 +26,61 @@ export interface NavItem {
   permission: PermissionCode;
 }
 
+/** Sidebar'da nav item'larını gruplama anahtarı (i18n: `common.nav_group.<id>`). */
+export type NavGroupId = "dashboard" | "data" | "system";
+
+export interface NavGroup {
+  id: NavGroupId;
+  items: readonly NavItem[];
+}
+
 /**
- * 11 üst seviye nav item — mock'taki NAV_ITEMS sırasıyla birebir.
- * Sidebar bu listeyi kullanıcı izinleriyle filtreler.
+ * Üç bölüme ayrılmış sidebar nav grupları.
+ *
+ * - `dashboard`: KPI / analiz sayfaları
+ * - `data`: import, segmentler, kanal eşleme
+ * - `system`: bildirimler, denetim, kullanıcı/rol yönetimi
+ *
+ * Sidebar bu listeyi kullanıcı izinleriyle filtreler — boş kalan grup
+ * tamamen render dışı kalır.
  */
-export const NAV_ITEMS: readonly NavItem[] = [
-  { id: "overview", path: "/overview", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
-  { id: "traffic", path: "/traffic", icon: TrendingUp, permission: PERMISSIONS.TRAFFIC_VIEW },
-  { id: "meta_ads", path: "/meta-ads", icon: Megaphone, permission: PERMISSIONS.META_ADS_VIEW },
-  { id: "google_ads", path: "/google-ads", icon: Target, permission: PERMISSIONS.GOOGLE_ADS_VIEW },
-  { id: "ecommerce", path: "/ecommerce", icon: ShoppingCart, permission: PERMISSIONS.ECOMMERCE_VIEW },
-  { id: "campaigns", path: "/campaigns", icon: Sparkles, permission: PERMISSIONS.CAMPAIGNS_VIEW },
-  { id: "funnel", path: "/funnel", icon: Filter, permission: PERMISSIONS.FUNNEL_VIEW },
-  { id: "cohort", path: "/cohort", icon: BarChart3, permission: PERMISSIONS.COHORT_VIEW },
-  { id: "products", path: "/products", icon: Package, permission: PERMISSIONS.PRODUCTS_VIEW },
-  { id: "import", path: "/import", icon: Upload, permission: PERMISSIONS.IMPORTS_VIEW },
-  { id: "user_management", path: "/users", icon: Users, permission: PERMISSIONS.USERS_VIEW },
+export const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    id: "dashboard",
+    items: [
+      { id: "overview", path: "/overview", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "traffic", path: "/traffic", icon: TrendingUp, permission: PERMISSIONS.TRAFFIC_VIEW },
+      { id: "meta_ads", path: "/meta-ads", icon: Megaphone, permission: PERMISSIONS.META_ADS_VIEW },
+      { id: "google_ads", path: "/google-ads", icon: Target, permission: PERMISSIONS.GOOGLE_ADS_VIEW },
+      { id: "ecommerce", path: "/ecommerce", icon: ShoppingCart, permission: PERMISSIONS.ECOMMERCE_VIEW },
+      { id: "campaigns", path: "/campaigns", icon: Sparkles, permission: PERMISSIONS.CAMPAIGNS_VIEW },
+      { id: "funnel", path: "/funnel", icon: Filter, permission: PERMISSIONS.FUNNEL_VIEW },
+      { id: "cohort", path: "/cohort", icon: BarChart3, permission: PERMISSIONS.COHORT_VIEW },
+      { id: "products", path: "/products", icon: Package, permission: PERMISSIONS.PRODUCTS_VIEW },
+    ],
+  },
+  {
+    id: "data",
+    items: [
+      { id: "import", path: "/import", icon: Upload, permission: PERMISSIONS.IMPORTS_VIEW },
+      { id: "segments", path: "/segments", icon: Users, permission: PERMISSIONS.SEGMENTS_VIEW },
+      { id: "channel_mapping", path: "/channel-mappings", icon: GitBranch, permission: PERMISSIONS.SETTINGS_UPDATE },
+    ],
+  },
+  {
+    id: "system",
+    items: [
+      { id: "notifications", path: "/notifications", icon: Bell, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "audit_logs", path: "/audit-logs", icon: Activity, permission: PERMISSIONS.LOGS_VIEW_AUDIT },
+      { id: "user_management", path: "/users", icon: UserCog, permission: PERMISSIONS.USERS_VIEW },
+    ],
+  },
 ] as const;
+
+/**
+ * Geriye uyumluluk için flat liste — App.tsx ve mevcut filter mantığı bu
+ * listeyi kullanmaya devam edebilir.
+ */
+export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap(
+  (g) => g.items,
+);
