@@ -22,10 +22,13 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# target metadata: Sprint 2'de model'ler tanımlandığında buraya eklenir.
-#   from app.models.base import Base
-#   target_metadata = Base.metadata
-target_metadata = None
+# `app.models` üzerinden tüm ORM tabloları register et — autogenerate'in
+# diff'i doğru üretebilmesi için.
+from app.models import Base  # noqa: E402
+
+import app.models  # noqa: F401, E402  # tüm modelleri import et (registration)
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
