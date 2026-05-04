@@ -5,6 +5,8 @@ Bkz: docs/overview/05-rbac-security.md §5.4 token mimarisi
 """
 from __future__ import annotations
 
+from datetime import date as _date_type
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.user import UserResponse
@@ -84,16 +86,27 @@ class MeUpdateRequest(BaseModel):
     """Kullanıcının kendi profil alanlarını güncellemek için.
 
     Email değişmiyor (kimliği etkiler — admin gerekir). Tüm alanlar opsiyonel,
-    sadece gönderilen alanlar güncellenir.
+    sadece gönderilen alanlar güncellenir. Boş string ("") "alanı temizle"
+    anlamına gelir (örn. linkedin_url'i silmek için "").
     """
 
     model_config = ConfigDict(extra="forbid")
 
+    # Kişisel
     first_name: str | None = Field(None, min_length=1, max_length=100)
     last_name: str | None = Field(None, min_length=1, max_length=100)
     phone: str | None = Field(None, max_length=20)
     department: str | None = Field(None, max_length=100)
     job_title: str | None = Field(None, max_length=100)
+    # Genişletilmiş profil
+    bio: str | None = Field(None, max_length=500)
+    birth_date: _date_type | None = None
+    location: str | None = Field(None, max_length=100)
+    website_url: str | None = Field(None, max_length=255)
+    linkedin_url: str | None = Field(None, max_length=255)
+    twitter_url: str | None = Field(None, max_length=255)
+    github_url: str | None = Field(None, max_length=255)
+    instagram_url: str | None = Field(None, max_length=255)
 
 
 class ChangePasswordRequest(BaseModel):

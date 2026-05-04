@@ -30,6 +30,14 @@ async def update_me(
     phone: str | None = None,
     department: str | None = None,
     job_title: str | None = None,
+    bio: str | None = None,
+    birth_date: object | None = None,
+    location: str | None = None,
+    website_url: str | None = None,
+    linkedin_url: str | None = None,
+    twitter_url: str | None = None,
+    github_url: str | None = None,
+    instagram_url: str | None = None,
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> User:
@@ -50,11 +58,26 @@ async def update_me(
             setattr(user, field, cleaned or None)
             changed[field] = cleaned or None
 
+    def _set_date(field: str, new_value: object | None) -> None:
+        if new_value is None:
+            return
+        if getattr(user, field) != new_value:
+            setattr(user, field, new_value)
+            changed[field] = str(new_value)
+
     _set("first_name", first_name, allow_empty=False)
     _set("last_name", last_name, allow_empty=False)
     _set("phone", phone)
     _set("department", department)
     _set("job_title", job_title)
+    _set("bio", bio)
+    _set_date("birth_date", birth_date)
+    _set("location", location)
+    _set("website_url", website_url)
+    _set("linkedin_url", linkedin_url)
+    _set("twitter_url", twitter_url)
+    _set("github_url", github_url)
+    _set("instagram_url", instagram_url)
 
     if changed:
         await audit_log_repository.add(

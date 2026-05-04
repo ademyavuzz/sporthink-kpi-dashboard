@@ -14,6 +14,12 @@
   "avatar_error_format": "Geçersiz format. PNG, JPG veya WEBP yükleyin.",
   "avatar_error_size": "Dosya çok büyük (en fazla 2 MB).",
 
+  "crop_title": "Profil resmini düzenle",
+  "crop_subtitle": "Görüntülenecek alanı sürükleyerek seç ve yakınlaştırma çubuğu ile zoom yap.",
+  "crop_zoom": "Yakınlaştırma",
+  "crop_hint": "Daire içindeki bölge profil resminiz olarak kullanılır.",
+  "crop_confirm": "Kırp ve kaydet",
+
   "profile_section_title": "Kişisel Bilgiler",
   "profile_section_hint": "Ad, soyad ve iletişim bilgilerinizi güncelleyin. E-posta adresi yönetici tarafından değiştirilir.",
   "profile_saved_title": "Bilgileriniz kaydedildi",
@@ -26,6 +32,27 @@
   "field_phone": "Telefon",
   "field_department": "Departman",
   "field_job_title": "Görev",
+  "field_birth_date": "Doğum Tarihi",
+  "field_location": "Konum",
+  "field_bio": "Biyografi",
+  "field_website": "Web Sitesi",
+  "field_linkedin": "LinkedIn",
+  "field_twitter": "X (Twitter)",
+  "field_github": "GitHub",
+  "field_instagram": "Instagram",
+
+  "section_personal": "Kişisel Bilgiler",
+  "section_personal_hint": "Ad, soyad, iletişim ve konum bilgileri. E-posta yöneticiniz tarafından değiştirilir.",
+  "section_about": "Hakkımda",
+  "section_about_hint": "Kendinizi kısaca tanıtın. Maksimum 500 karakter.",
+  "section_social": "Sosyal Medya & Bağlantılar",
+  "section_social_hint": "Profilinizde görünen herkese açık bağlantılar. Tam URL girin (https:// ile başlamalı).",
+
+  "placeholder_location": "İstanbul, Türkiye",
+  "placeholder_bio": "Sporthink'te ne iş yapıyorsun? Hangi alanda uzmansın? Nelerle ilgilenirsin?",
+
+  "url_invalid": "Geçerli bir URL girin (https:// ile başlamalı).",
+  "unsaved_changes": "Kaydedilmemiş değişiklikleriniz var",
 
   "save_changes": "Kaydet",
 
