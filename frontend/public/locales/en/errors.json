@@ -1,0 +1,21 @@
+{
+  "AUTH_REQUIRED": "You need to sign in to continue.",
+  "TOKEN_EXPIRED": "Your session has expired. Please sign in again.",
+  "INVALID_CREDENTIALS": "Email or password is incorrect.",
+  "ACCOUNT_LOCKED": "Your account is temporarily locked due to repeated failed attempts. Please try again later.",
+
+  "PERMISSION_DENIED": "You don't have permission to perform this action.",
+  "RESOURCE_NOT_FOUND": "The requested record was not found.",
+  "VALIDATION_ERROR": "Form error. Please check the fields.",
+  "CONFLICT": "This record already exists.",
+  "RATE_LIMIT_EXCEEDED": "Too many requests. Please wait a moment.",
+
+  "INTERNAL_ERROR": "Something went wrong. Please try again.",
+  "NETWORK_ERROR": "Cannot reach the server. Check your connection.",
+
+  "form": {
+    "required": "This field is required.",
+    "email_invalid": "Enter a valid email address.",
+    "password_required": "Password is required."
+  }
+}

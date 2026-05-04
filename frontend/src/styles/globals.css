@@ -1,0 +1,251 @@
+@import "tailwindcss";
+
+/*
+ * Sporthink KPI Dashboard tema token'ları.
+ *
+ * Mock dosyası `Sporthink Dashboard.html` içindeki dark/light palet birebir
+ * burada CSS variable olarak yaşar. shadcn/ui semantik isimlendirmesi
+ * (background, foreground, primary, ...) korunur ki primitive'ler hem yerli
+ * hem dark mode'da doğru renderlasın.
+ *
+ * Dark mode strategy: class-based — `<html class="dark">` toggle (useThemeStore).
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* ─── shadcn semantic tokens ──────────────────────────────────────── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ─── chart palette (KPI tile, ApexCharts, vb.) ───────────────────── */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  /* Mock'tan accent grubu (sidebar, badge, vb. için) */
+  --color-brand: var(--brand);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-green: var(--brand-green);
+  --color-brand-amber: var(--brand-amber);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-cyan: var(--brand-cyan);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+
+  --font-sans:
+    "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  /* Light theme — mock THEMES.light */
+  --background: #f1f4f9;
+  --foreground: #0d1526;
+
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #edf0f7;
+
+  --card: #ffffff;
+  --card-foreground: #0d1526;
+
+  --popover: #ffffff;
+  --popover-foreground: #0d1526;
+
+  --primary: #e94560;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f8fafc;
+  --secondary-foreground: #0d1526;
+
+  --muted: #edf0f7;
+  --muted-foreground: #64748b;
+
+  --accent: #edf0f7;
+  --accent-foreground: #0d1526;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.12);
+  --ring: #e94560;
+
+  --brand: #e94560;
+  --brand-blue: #2563eb;
+  --brand-green: #059669;
+  --brand-amber: #d97706;
+  --brand-purple: #7c3aed;
+  --brand-cyan: #0891b2;
+
+  --chart-1: #e94560;
+  --chart-2: #2563eb;
+  --chart-3: #059669;
+  --chart-4: #d97706;
+  --chart-5: #7c3aed;
+  --chart-6: #0891b2;
+
+  color-scheme: light;
+}
+
+.dark {
+  /* Dark theme — mock THEMES.dark */
+  --background: #0d0f14;
+  --foreground: #e8eaf0;
+
+  --surface: #151821;
+  --surface-2: #1c2030;
+  --surface-3: #232840;
+
+  --card: #151821;
+  --card-foreground: #e8eaf0;
+
+  --popover: #151821;
+  --popover-foreground: #e8eaf0;
+
+  --primary: #e94560;
+  --primary-foreground: #ffffff;
+
+  --secondary: #1c2030;
+  --secondary-foreground: #e8eaf0;
+
+  --muted: #232840;
+  --muted-foreground: #8b92a8;
+
+  --accent: #232840;
+  --accent-foreground: #e8eaf0;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --text-muted: #8b92a8;
+  --text-dim: #5a6180;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #e94560;
+
+  --brand: #e94560;
+  --brand-blue: #3b82f6;
+  --brand-green: #10b981;
+  --brand-amber: #f59e0b;
+  --brand-purple: #8b5cf6;
+  --brand-cyan: #06b6d4;
+
+  --chart-1: #e94560;
+  --chart-2: #3b82f6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #8b5cf6;
+  --chart-6: #06b6d4;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 3px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease forwards;
+}
+.animate-slide-in {
+  animation: slide-in 0.3s ease forwards;
+}

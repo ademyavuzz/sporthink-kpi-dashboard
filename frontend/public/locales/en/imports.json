@@ -1,0 +1,97 @@
+{
+  "page_title": "Data Import",
+  "page_subtitle": "Upload CSV files and ingest them into the database",
+
+  "tab_new": "New Import",
+  "tab_history": "History",
+
+  "wizard": {
+    "step_1": "1. Select File",
+    "step_2": "2. Preview",
+    "step_3": "3. Process",
+    "step_4": "4. Result",
+
+    "select_data_type": "Data source",
+    "select_data_type_placeholder": "Choose a data source",
+    "select_file": "Choose CSV file",
+    "drop_file_here": "Drag & drop or click to select",
+    "file_name": "File name",
+    "file_size": "File size",
+    "selected_file": "Selected file",
+    "remove_file": "Remove file",
+
+    "btn_preview": "Preview",
+    "btn_back": "Back",
+    "btn_run_import": "Run Import",
+    "btn_finish": "Done",
+    "btn_new_import": "New Import",
+    "btn_download_errors": "Download Errors",
+
+    "preview_title": "Preview",
+    "preview_summary": "First {{previewed}} rows analyzed: {{valid}} valid, {{errors}} errors",
+    "preview_detected_headers": "Detected headers ({{count}})",
+    "preview_missing_required": "Missing required columns ({{count}})",
+    "preview_unknown_headers": "Unknown columns ({{count}})",
+    "preview_unknown_warning": "These columns will not be imported.",
+    "preview_blocked": "Required columns are missing; import cannot proceed. Make sure you selected the correct data source.",
+    "preview_sample_rows": "Sample rows ({{count}})",
+
+    "importing": "Importing data…",
+    "importing_hint": "Large files may take a few seconds.",
+
+    "result_success_title": "Import completed",
+    "result_failed_title": "Import failed",
+    "result_total_rows": "Total rows",
+    "result_valid_rows": "Valid",
+    "result_invalid_rows": "Invalid",
+    "result_skipped_rows": "Skipped (existing)",
+    "result_inserted_rows": "Inserted",
+    "result_duration": "Duration",
+    "result_skipped_hint": "{{count}} rows already existed in the database and were skipped.",
+    "result_seconds": "{{count}} s",
+    "result_errors_title": "First {{count}} errors",
+    "result_no_errors": "No errors"
+  },
+
+  "history": {
+    "title": "Import History",
+    "empty": "No imports yet.",
+    "col_id": "ID",
+    "col_data_type": "Data Source",
+    "col_file_name": "File",
+    "col_status": "Status",
+    "col_total_rows": "Rows",
+    "col_inserted": "Inserted",
+    "col_invalid": "Invalid",
+    "col_duration": "Duration",
+    "col_created_at": "Date",
+    "col_actions": "Actions",
+    "btn_view": "Details",
+    "btn_delete": "Delete",
+    "delete_confirm_title": "Delete import?",
+    "delete_confirm_body": "All raw rows ({{rows}}) belonging to this import will be removed. This cannot be undone.",
+    "delete_confirm_yes": "Yes, delete",
+    "delete_success": "Import deleted"
+  },
+
+  "status": {
+    "pending": "Pending",
+    "parsing": "Parsing",
+    "validating": "Validating",
+    "committing": "Committing",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+
+  "errors": {
+    "no_file_selected": "Please select a file",
+    "no_data_type_selected": "Please select a data source",
+    "file_not_csv": "Only CSV files are accepted",
+    "load_data_types_failed": "Failed to load data sources",
+    "preview_failed": "Failed to generate preview",
+    "import_failed": "Import failed",
+    "delete_failed": "Delete failed",
+    "history_load_failed": "Failed to load history"
+  }
+}
