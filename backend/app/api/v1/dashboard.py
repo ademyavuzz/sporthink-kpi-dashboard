@@ -24,8 +24,10 @@ from app.models import KPIPlatform, User
 from app.schemas import (
     CampaignAnalysisResponse,
     CampaignDetailResponse,
+    ChannelAnalysisResponse,
     CohortCell,
     CohortResponse,
+    CustomersResponse,
     DimensionBreakdown,
     EcommerceResponse,
     FunnelResponse,
@@ -37,7 +39,7 @@ from app.schemas import (
     TrafficResponse,
 )
 from app.schemas.kpi import DateRange, KPIResult
-from app.services import kpi_service
+from app.services import channel_service, customer_service, kpi_service
 from app.services.cache_service import cache
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -679,6 +681,134 @@ async def get_products(
         by_brand=[
             DimensionBreakdown(label=r["brand"], value=r["revenue"]) for r in by_brand
         ],
+    )
+    await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
+    return SuccessEnvelope(data=response)
+
+
+# ---------------------------------------------------------------------- #
+# /dashboard/customers
+# ---------------------------------------------------------------------- #
+
+
+@router.get(
+    "/customers",
+    response_model=SuccessEnvelope[CustomersResponse],
+    summary="Müşteri analizi — KPI + cinsiyet/yaş/şehir/frekans + top liste",
+)
+async def get_customers(
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[CustomersResponse]:
+    """Müşteri overview sayfası.
+
+    Yeni müşteri trendi ve "yeni müşteri" KPI'ı `date_from`/`date_to`
+    aralığına göredir; toplam/dağılım gibi statik metrikler tüm aktif
+    müşteri tabanını kapsar.
+    """
+    key = cache_keys.kpi_dashboard(
+        "customers", date_from=date_from, date_to=date_to
+    )
+    hit = await cache.get_json(key)
+    if hit is not None:
+        return SuccessEnvelope(data=CustomersResponse.model_validate(hit))
+
+    prev_from, prev_to = kpi_service.compute_comparison_period(
+        date_from, date_to, "sequential"
+    )
+
+    payload = await customer_service.calculate_customer_overview(
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        prev_from=prev_from,
+        prev_to=prev_to,
+    )
+
+    response = CustomersResponse(
+        date_range=_date_range_with_comparison(date_from, date_to, "sequential"),
+        **payload,
+    )
+    await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
+    return SuccessEnvelope(data=response)
+
+
+# ---------------------------------------------------------------------- #
+# /dashboard/channel-analysis
+# ---------------------------------------------------------------------- #
+
+
+@router.get(
+    "/channel-analysis",
+    response_model=SuccessEnvelope[ChannelAnalysisResponse],
+    summary="Kanal Analizi — KPI + ROAS/dönüşüm karşılaştırması + tablo",
+)
+async def get_channel_analysis(
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+    channels: list[str] | None = Query(None),
+    devices: list[str] | None = Query(None),
+    revenue_min: float | None = Query(None),
+    revenue_max: float | None = Query(None),
+    orders_min: int | None = Query(None),
+    orders_max: int | None = Query(None),
+    roas_min: float | None = Query(None),
+    roas_max: float | None = Query(None),
+    conversion_min: float | None = Query(None),
+    conversion_max: float | None = Query(None),
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[ChannelAnalysisResponse]:
+    """Kanal performans sayfası — doc 6. bölüm "Kanal Analizi" karşılığı.
+
+    `channels` / `devices` source data'ya pre-aggregation uygulanır.
+    Range filtreler (revenue/orders/roas/conversion) sonuç satırlarını
+    post-aggregation filtreler.
+    """
+    from decimal import Decimal as Dec
+
+    filter_payload = {
+        "ch": channels or None,
+        "dev": devices or None,
+        "rev_min": revenue_min,
+        "rev_max": revenue_max,
+        "ord_min": orders_min,
+        "ord_max": orders_max,
+        "roas_min": roas_min,
+        "roas_max": roas_max,
+        "conv_min": conversion_min,
+        "conv_max": conversion_max,
+    }
+    key = cache_keys.kpi_dashboard(
+        "channel-analysis",
+        date_from=date_from,
+        date_to=date_to,
+        extra_filters=filter_payload,
+    )
+    hit = await cache.get_json(key)
+    if hit is not None:
+        return SuccessEnvelope(data=ChannelAnalysisResponse.model_validate(hit))
+
+    payload = await channel_service.calculate_channel_overview(
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels or None,
+        devices=devices or None,
+        revenue_min=Dec(str(revenue_min)) if revenue_min is not None else None,
+        revenue_max=Dec(str(revenue_max)) if revenue_max is not None else None,
+        orders_min=orders_min,
+        orders_max=orders_max,
+        roas_min=Dec(str(roas_min)) if roas_min is not None else None,
+        roas_max=Dec(str(roas_max)) if roas_max is not None else None,
+        conversion_min=Dec(str(conversion_min)) if conversion_min is not None else None,
+        conversion_max=Dec(str(conversion_max)) if conversion_max is not None else None,
+    )
+    response = ChannelAnalysisResponse(
+        date_range=_date_range_with_comparison(date_from, date_to, "sequential"),
+        **payload,
     )
     await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
     return SuccessEnvelope(data=response)

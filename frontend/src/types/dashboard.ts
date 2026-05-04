@@ -261,6 +261,87 @@ export interface CampaignDetailResponse {
   daily_series: CampaignDailyPoint[];
 }
 
+// --- Channel Analysis ---
+
+export interface ChannelPerformanceRow {
+  channel: string;
+  revenue: string;
+  orders: number;
+  sessions: number;
+  conversion_rate: string | null;
+  ad_spend: string;
+  ad_revenue: string;
+  roas: string | null;
+  customers: number;
+  aov: string | null;
+}
+
+export interface ChannelDailyPoint {
+  date: string;
+  channel: string;
+  revenue: string;
+}
+
+export interface ChannelAnalysisResponse {
+  date_range: DateRange;
+  active_channels: KPIResult;
+  top_channel_revenue: KPIResult;
+  avg_roas: KPIResult;
+  avg_conversion_rate: KPIResult;
+  channels: ChannelPerformanceRow[];
+  revenue_distribution: DimensionBreakdown[];
+  roas_by_channel: DimensionBreakdown[];
+  conversion_by_channel: DimensionBreakdown[];
+  daily_revenue_trend: ChannelDailyPoint[];
+}
+
+// --- Customers ---
+
+export interface CustomerOverviewRow {
+  customer_id: string;
+  customer_name: string | null;
+  city: string | null;
+  gender: string | null;
+  age_group: string | null;
+  total_orders: number;
+  total_revenue: string;
+  last_order_date: string | null;
+}
+
+export interface CustomerFreqBucket {
+  bucket: string; // "1" | "2" | "3" | "4" | "5-9" | "10+"
+  customer_count: number;
+}
+
+export interface NewsletterCompare {
+  is_subscriber: boolean;
+  customer_count: number;
+  avg_orders: string;
+  avg_revenue: string;
+}
+
+export interface CustomerDailyPoint {
+  date: string;
+  new_customers: number;
+}
+
+export interface CustomersResponse {
+  date_range: DateRange;
+  total_customers: KPIResult;
+  new_customers: KPIResult;
+  repeat_rate: KPIResult;
+  avg_customer_value: KPIResult;
+  avg_orders_per_customer: KPIResult;
+  newsletter_subscription_rate: KPIResult;
+  by_gender: DimensionBreakdown[];
+  by_age_group: DimensionBreakdown[];
+  by_city: DimensionBreakdown[];
+  order_frequency: CustomerFreqBucket[];
+  newsletter_comparison: NewsletterCompare[];
+  daily_new_customers: CustomerDailyPoint[];
+  top_customers: CustomerOverviewRow[];
+}
+
 // --- Query params ---
 
 export interface DashboardQuery {

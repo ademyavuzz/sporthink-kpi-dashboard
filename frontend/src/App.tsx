@@ -18,6 +18,8 @@ const CampaignsPage = lazy(() => import("@/pages/dashboard/CampaignsPage"));
 const FunnelPage = lazy(() => import("@/pages/dashboard/FunnelPage"));
 const CohortPage = lazy(() => import("@/pages/dashboard/CohortPage"));
 const ProductsPage = lazy(() => import("@/pages/dashboard/ProductsPage"));
+const CustomersPage = lazy(() => import("@/pages/dashboard/CustomersPage"));
+const ChannelAnalysisPage = lazy(() => import("@/pages/dashboard/ChannelAnalysisPage"));
 const ImportPage = lazy(() => import("@/pages/import/ImportPage"));
 const ImportHistoryPage = lazy(() => import("@/pages/import/ImportHistoryPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
@@ -134,6 +136,22 @@ export default function App() {
           }
         />
         <Route
+          path="/customers"
+          element={
+            <ProtectedRoute permission="dashboard.view">
+              <CustomersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/channel-analysis"
+          element={
+            <ProtectedRoute permission="dashboard.view">
+              <ChannelAnalysisPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/import"
           element={
             <ProtectedRoute permission="imports.view">
@@ -214,6 +232,8 @@ export default function App() {
               "funnel",
               "cohort",
               "products",
+              "customers",
+              "channel_analysis",
               "import",
               "segments",
               "user_management",

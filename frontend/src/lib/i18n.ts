@@ -31,6 +31,7 @@ void i18n
       "dashboard",
       "notifications",
       "settings",
+      "filters",
     ],
     defaultNS: "common",
     backend: {

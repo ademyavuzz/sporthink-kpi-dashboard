@@ -5,6 +5,7 @@ import {
   Filter,
   GitBranch,
   LayoutDashboard,
+  LineChart as LineChartIcon,
   Megaphone,
   Package,
   Settings,
@@ -14,6 +15,7 @@ import {
   TrendingUp,
   UserCog,
   Upload,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -58,6 +60,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "funnel", path: "/funnel", icon: Filter, permission: PERMISSIONS.FUNNEL_VIEW },
       { id: "cohort", path: "/cohort", icon: BarChart3, permission: PERMISSIONS.COHORT_VIEW },
       { id: "products", path: "/products", icon: Package, permission: PERMISSIONS.PRODUCTS_VIEW },
+      { id: "customers", path: "/customers", icon: UserRound, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "channel_analysis", path: "/channel-analysis", icon: LineChartIcon, permission: PERMISSIONS.DASHBOARD_VIEW },
     ],
   },
   {
