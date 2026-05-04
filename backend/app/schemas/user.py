@@ -6,7 +6,7 @@ ORM model'i (`app.models.User`) doğrudan response'a dönülmez; bu modüldeki
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -36,6 +36,16 @@ class UserResponse(BaseModel):
     department: str | None = None
     job_title: str | None = None
     avatar_url: str | None = None
+
+    # Genişletilmiş profil alanları
+    bio: str | None = None
+    birth_date: date | None = None
+    location: str | None = None
+    website_url: str | None = None
+    linkedin_url: str | None = None
+    twitter_url: str | None = None
+    github_url: str | None = None
+    instagram_url: str | None = None
 
     is_active: bool
     last_login_at: datetime | None = None

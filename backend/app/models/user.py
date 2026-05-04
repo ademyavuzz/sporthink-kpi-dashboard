@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import (
@@ -31,6 +31,16 @@ class User(Base, AuditedMixin, SoftDeleteMixin):
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
     job_title: Mapped[str | None] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Genişletilmiş profil alanları (migration 0004)
+    bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    website_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    linkedin_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    twitter_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    github_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    instagram_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     role_id: Mapped[int | None] = mapped_column(
         BigIntUnsigned,

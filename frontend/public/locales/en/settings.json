@@ -14,6 +14,12 @@
   "avatar_error_format": "Unsupported format. Upload PNG, JPG, or WEBP.",
   "avatar_error_size": "File is too large (max 2 MB).",
 
+  "crop_title": "Edit profile picture",
+  "crop_subtitle": "Drag to choose the visible area and zoom with the slider.",
+  "crop_zoom": "Zoom",
+  "crop_hint": "The circular area becomes your profile picture.",
+  "crop_confirm": "Crop & save",
+
   "profile_section_title": "Personal Information",
   "profile_section_hint": "Update your name and contact details. Email address is managed by your administrator.",
   "profile_saved_title": "Your information was saved",
@@ -26,6 +32,27 @@
   "field_phone": "Phone",
   "field_department": "Department",
   "field_job_title": "Job title",
+  "field_birth_date": "Date of Birth",
+  "field_location": "Location",
+  "field_bio": "Bio",
+  "field_website": "Website",
+  "field_linkedin": "LinkedIn",
+  "field_twitter": "X (Twitter)",
+  "field_github": "GitHub",
+  "field_instagram": "Instagram",
+
+  "section_personal": "Personal Information",
+  "section_personal_hint": "Name, contact, and location details. Email is managed by your administrator.",
+  "section_about": "About",
+  "section_about_hint": "Tell others a little about yourself. Up to 500 characters.",
+  "section_social": "Social & Links",
+  "section_social_hint": "Public links shown on your profile. Use full URLs (must start with https://).",
+
+  "placeholder_location": "Istanbul, Turkey",
+  "placeholder_bio": "What do you do at Sporthink? What's your area of expertise? What are you interested in?",
+
+  "url_invalid": "Enter a valid URL (must start with https://).",
+  "unsaved_changes": "You have unsaved changes",
 
   "save_changes": "Save changes",
 

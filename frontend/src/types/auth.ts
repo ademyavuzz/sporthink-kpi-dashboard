@@ -21,6 +21,15 @@ export interface User {
   department: string | null;
   job_title: string | null;
   avatar_url: string | null;
+  // Genişletilmiş profil
+  bio?: string | null;
+  birth_date?: string | null; // YYYY-MM-DD
+  location?: string | null;
+  website_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  github_url?: string | null;
+  instagram_url?: string | null;
   is_active: boolean;
   last_login_at: string | null;
   role: RoleSummary | null;
@@ -78,6 +87,14 @@ export interface MeUpdateRequest {
   phone?: string | null;
   department?: string | null;
   job_title?: string | null;
+  bio?: string | null;
+  birth_date?: string | null;
+  location?: string | null;
+  website_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  github_url?: string | null;
+  instagram_url?: string | null;
 }
 
 export interface ChangePasswordRequest {
