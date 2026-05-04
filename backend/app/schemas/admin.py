@@ -65,6 +65,7 @@ class RoleSummaryAdmin(BaseModel):
     id: int
     name: str
     is_system: bool
+    color: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,6 +78,7 @@ class UserListItem(BaseModel):
     role_id: int
     role: RoleSummaryAdmin | None = None
     is_active: bool
+    avatar_url: str | None = None
     last_login_at: datetime | None = None
     created_at: datetime
     deleted_at: datetime | None = None
