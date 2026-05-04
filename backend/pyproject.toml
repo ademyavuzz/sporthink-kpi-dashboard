@@ -22,12 +22,30 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency injection pattern — Depends/Query/... default'larda olur.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Security",
+]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Async engine `lru_cache`'li — tüm async fixtures + testler tek event loop
+# paylaşmalı (aksi halde aiomysql connection'ı önceki loop'a bağlı kalır).
+# Tests için loop scope conftest'teki session-scoped event_loop fixture'ı ile sağlanıyor.
+asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
     "unit: unit tests",
