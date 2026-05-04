@@ -1,0 +1,237 @@
+"""User management, audit log, channel mapping, segment, saved view şemaları."""
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+# --- Role / Permission ---
+
+class PermissionItem(BaseModel):
+    code: str
+    module: str
+    action: str
+    description: str | None = None
+    category: str
+    category_label: str
+
+
+class RoleListItem(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    is_system: bool
+    user_count: int
+    permission_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class RoleDetail(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    is_system: bool
+    permissions: list[str]
+    user_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class RoleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str | None = None
+    color: str | None = Field(None, max_length=7)
+    icon: str | None = Field(None, max_length=20)
+    permissions: list[str] = Field(default_factory=list)
+
+
+class RoleUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    permissions: list[str] | None = None
+
+
+# --- User management ---
+
+class RoleSummaryAdmin(BaseModel):
+    id: int
+    name: str
+    is_system: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserListItem(BaseModel):
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    role_id: int
+    role: RoleSummaryAdmin | None = None
+    is_active: bool
+    last_login_at: datetime | None = None
+    created_at: datetime
+    deleted_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    first_name: str = Field(min_length=1)
+    last_name: str = Field(min_length=1)
+    role_id: int
+
+
+class UserUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    role_id: int | None = None
+    is_active: bool | None = None
+
+
+class UserCreateResponse(UserListItem):
+    """Yeni kullanıcı oluştuğunda dönen + geçici şifre."""
+    temp_password: str
+
+
+class AdminPasswordResetResponse(BaseModel):
+    """`POST /users/{id}/reset-password` cevabı."""
+    user_id: int
+    email: str
+    temp_password: str
+
+
+# --- Audit log ---
+
+class AuditLogItem(BaseModel):
+    id: int
+    action: str
+    user_id: int | None = None
+    user_email: str | None = None
+    resource_type: str | None = None
+    resource_id: str | None = None
+    ip_address: str | None = None
+    details: dict[str, Any] | None = None
+    created_at: str | None = None
+
+
+# --- Channel mapping ---
+
+class ChannelMappingItem(BaseModel):
+    id: int
+    source: str
+    medium: str
+    channel_group: str
+    is_auto_assigned: bool
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChannelMappingCreate(BaseModel):
+    source: str = Field(min_length=1, max_length=255)
+    medium: str = Field(min_length=1, max_length=100)
+    channel_group: str = Field(min_length=1, max_length=100)
+    notes: str | None = None
+
+
+class ChannelMappingUpdate(BaseModel):
+    channel_group: str | None = None
+    notes: str | None = None
+
+
+# --- Segment ---
+
+class SegmentItem(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    rules: dict[str, Any]
+    cached_count: int | None = None
+    cached_at: datetime | None = None
+    is_shared: bool
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SegmentCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    rules: dict[str, Any]
+    is_shared: bool = False
+
+
+class SegmentUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    rules: dict[str, Any] | None = None
+    is_shared: bool | None = None
+
+
+class SegmentPreviewResponse(BaseModel):
+    count: int
+    sample: list[dict[str, Any]]
+
+
+# --- Saved view ---
+
+class SavedViewItem(BaseModel):
+    id: int
+    page: str
+    name: str
+    description: str | None = None
+    filters: dict[str, Any]
+    is_default: bool
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SavedViewCreate(BaseModel):
+    page: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    filters: dict[str, Any]
+    is_default: bool = False
+
+
+class SavedViewUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    filters: dict[str, Any] | None = None
+    is_default: bool | None = None
+
+
+# --- RFM ---
+
+class RFMRow(BaseModel):
+    customer_id: str
+    customer_name: str | None = None
+    city: str | None = None
+    recency_days: int
+    frequency: int
+    monetary: str
+    r_score: int
+    f_score: int
+    m_score: int
+    segment: str
+
+
+class RFMResponse(BaseModel):
+    reference_date: date
+    rows: list[RFMRow]
+    distribution: dict[str, int]
