@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   DateRangePicker,
@@ -36,6 +37,7 @@ import {
  * filter store entegre edildiğinde Sprint 9'da güncellenir).
  */
 export default function OverviewPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useState<DateRangeValue>(() => ({
     preset: "custom",
     date_from: "2024-10-01",
@@ -59,7 +61,7 @@ export default function OverviewPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Genel Özet</h1>
+          <h1 className="text-2xl font-semibold">{t("overview.title")}</h1>
           <p className="text-sm text-muted-foreground">
             {dayjs(range.date_from).format("DD.MM.YYYY")} –{" "}
             {dayjs(range.date_to).format("DD.MM.YYYY")}
@@ -71,7 +73,7 @@ export default function OverviewPage() {
               setRange({ preset: "last_30", ...computePresetRange("last_30") })
             }
           >
-            Son 30 gün
+            {t("overview.preset_last_30")}
           </PresetButton>
           <PresetButton
             onClick={() =>
@@ -82,7 +84,7 @@ export default function OverviewPage() {
               })
             }
           >
-            Tüm dönem
+            {t("overview.preset_all")}
           </PresetButton>
           <DateRangePicker value={range} onChange={setRange} />
         </div>
@@ -111,7 +113,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Ciro & Sipariş Trendi</CardTitle>
+            <CardTitle>{t("overview.trend_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <LineChart
@@ -121,7 +123,7 @@ export default function OverviewPage() {
                 data
                   ? [
                       {
-                        name: "Ciro (₺)",
+                        name: t("overview.series_revenue"),
                         data: data.daily_series.map((p) => ({
                           x: dayjs(p.date).valueOf(),
                           y: toNumber(p.revenue) ?? 0,
@@ -129,7 +131,7 @@ export default function OverviewPage() {
                         formatter: formatCurrency,
                       },
                       {
-                        name: "Sipariş",
+                        name: t("overview.series_orders"),
                         data: data.daily_series.map((p) => ({
                           x: dayjs(p.date).valueOf(),
                           y: p.orders,
@@ -146,12 +148,12 @@ export default function OverviewPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Kanal Bazlı Ciro</CardTitle>
+            <CardTitle>{t("overview.channel_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <DonutChart
               loading={isLoading}
-              labels={data ? data.channels.map((c) => c.channel ?? "Diğer") : []}
+              labels={data ? data.channels.map((c) => c.channel ?? t("overview.channel_other")) : []}
               values={
                 data ? data.channels.map((c) => toNumber(c.revenue) ?? 0) : []
               }
@@ -165,7 +167,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Dönüşüm Hunisi</CardTitle>
+            <CardTitle>{t("overview.funnel_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <FunnelTable steps={data?.funnel ?? []} loading={isLoading} />
@@ -174,7 +176,7 @@ export default function OverviewPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Yeni vs Tekrarlayan Müşteri</CardTitle>
+            <CardTitle>{t("overview.new_returning_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <DonutChart
@@ -182,7 +184,9 @@ export default function OverviewPage() {
               labels={
                 data
                   ? data.new_vs_returning.map((c) =>
-                      c.customer_type === "new" ? "Yeni" : "Tekrarlayan",
+                      c.customer_type === "new"
+                        ? t("overview.customer_new")
+                        : t("overview.customer_returning"),
                     )
                   : []
               }
@@ -192,7 +196,7 @@ export default function OverviewPage() {
                   : []
               }
               valueFormatter={formatCurrency}
-              totalLabel="Toplam Ciro"
+              totalLabel={t("overview.total_revenue")}
             />
           </CardContent>
         </Card>
@@ -201,17 +205,17 @@ export default function OverviewPage() {
       {/* Top products */}
       <Card>
         <CardHeader>
-          <CardTitle>En Çok Satan Ürünler (Top 10)</CardTitle>
+          <CardTitle>{t("overview.top_products_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Ürün</TableHead>
-                <TableHead>Marka</TableHead>
-                <TableHead className="text-right">Adet</TableHead>
-                <TableHead className="text-right">Ciro</TableHead>
+                <TableHead>{t("overview.table_sku")}</TableHead>
+                <TableHead>{t("overview.table_product")}</TableHead>
+                <TableHead>{t("overview.table_brand")}</TableHead>
+                <TableHead className="text-right">{t("overview.table_units")}</TableHead>
+                <TableHead className="text-right">{t("overview.table_revenue")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

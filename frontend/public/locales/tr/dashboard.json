@@ -1,0 +1,23 @@
+{
+  "overview": {
+    "title": "Genel Özet",
+    "preset_last_30": "Son 30 gün",
+    "preset_all": "Tüm dönem",
+    "trend_card_title": "Ciro & Sipariş Trendi",
+    "channel_card_title": "Kanal Bazlı Ciro",
+    "funnel_card_title": "Dönüşüm Hunisi",
+    "new_returning_card_title": "Yeni vs Tekrarlayan Müşteri",
+    "top_products_card_title": "En Çok Satan Ürünler (Top 10)",
+    "series_revenue": "Ciro (₺)",
+    "series_orders": "Sipariş",
+    "customer_new": "Yeni",
+    "customer_returning": "Tekrarlayan",
+    "total_revenue": "Toplam Ciro",
+    "channel_other": "Diğer",
+    "table_sku": "SKU",
+    "table_product": "Ürün",
+    "table_brand": "Marka",
+    "table_units": "Adet",
+    "table_revenue": "Ciro"
+  }
+}

@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { PermissionPicker } from "@/components/feature/PermissionPicker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -57,19 +58,20 @@ import type {
 } from "@/types/admin";
 
 export default function UserManagementPage() {
+  const { t } = useTranslation("admin");
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold">Kullanıcı & Rol Yönetimi</h1>
+        <h1 className="text-2xl font-semibold">{t("users.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Kullanıcıları davet et, rol ata, izinleri yönet.
+          {t("users.subtitle")}
         </p>
       </div>
 
       <Tabs defaultValue="users">
         <TabsList>
-          <TabsTrigger value="users">Kullanıcılar</TabsTrigger>
-          <TabsTrigger value="roles">Roller</TabsTrigger>
+          <TabsTrigger value="users">{t("users.tab_users")}</TabsTrigger>
+          <TabsTrigger value="roles">{t("users.tab_roles")}</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UsersTab />
@@ -87,6 +89,7 @@ export default function UserManagementPage() {
 /* ====================================================================== */
 
 function UsersTab() {
+  const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListItem | null>(null);
@@ -142,7 +145,7 @@ function UsersTab() {
       void qc.invalidateQueries({ queryKey: ["users", "list"] });
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Kullanıcı oluşturulamadı"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_create_failed")),
   });
 
   const updateMut = useMutation({
@@ -163,7 +166,7 @@ function UsersTab() {
       void qc.invalidateQueries({ queryKey: ["users", "list"] });
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Güncelleme başarısız"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_update_failed")),
   });
 
   const deleteMut = useMutation({
@@ -173,7 +176,7 @@ function UsersTab() {
       void qc.invalidateQueries({ queryKey: ["users", "list"] });
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Silme başarısız"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_delete_failed")),
   });
 
   const resetPwMut = useMutation({
@@ -183,7 +186,7 @@ function UsersTab() {
       setResetResult(data);
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Şifre sıfırlama başarısız"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_reset_pw_failed")),
   });
 
   const roles = rolesQuery.data ?? [];
@@ -194,7 +197,7 @@ function UsersTab() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[200px] space-y-1.5">
           <Label htmlFor="search" className="text-xs">
-            Ara (e-posta veya ad)
+            {t("admin:users.search_label")}
           </Label>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -202,19 +205,19 @@ function UsersTab() {
               id="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ahmet@..."
+              placeholder={t("admin:users.search_placeholder")}
               className="pl-8"
             />
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Rol</Label>
+          <Label className="text-xs">{t("admin:users.filter_role")}</Label>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="all">{t("admin:users.filter_all")}</SelectItem>
               {roles.map((r) => (
                 <SelectItem key={r.id} value={String(r.id)}>
                   {r.name}
@@ -224,7 +227,7 @@ function UsersTab() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Durum</Label>
+          <Label className="text-xs">{t("admin:users.filter_status")}</Label>
           <Select
             value={statusFilter}
             onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
@@ -233,15 +236,15 @@ function UsersTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="active">Aktif</SelectItem>
-              <SelectItem value="inactive">Pasif</SelectItem>
+              <SelectItem value="all">{t("admin:users.filter_all")}</SelectItem>
+              <SelectItem value="active">{t("admin:users.filter_active")}</SelectItem>
+              <SelectItem value="inactive">{t("admin:users.filter_inactive")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Button onClick={() => setCreateOpen(true)} className="ml-auto">
           <Plus className="h-4 w-4 mr-2" />
-          Yeni Kullanıcı
+          {t("admin:users.new_user")}
         </Button>
       </div>
 
@@ -256,13 +259,13 @@ function UsersTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">ID</TableHead>
-                <TableHead>E-posta</TableHead>
-                <TableHead>Ad Soyad</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead>Son Giriş</TableHead>
-                <TableHead className="text-right w-32">İşlem</TableHead>
+                <TableHead className="w-12">{t("admin:users.table_id")}</TableHead>
+                <TableHead>{t("admin:users.table_email")}</TableHead>
+                <TableHead>{t("admin:users.table_name")}</TableHead>
+                <TableHead>{t("admin:users.table_role")}</TableHead>
+                <TableHead>{t("admin:users.table_status")}</TableHead>
+                <TableHead>{t("admin:users.table_last_login")}</TableHead>
+                <TableHead className="text-right w-32">{t("admin:users.table_actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -279,8 +282,8 @@ function UsersTab() {
                     className="text-center py-8 text-muted-foreground text-sm"
                   >
                     {search || roleFilter !== "all" || statusFilter !== "all"
-                      ? "Filtreye uyan kullanıcı yok."
-                      : "Henüz kullanıcı yok."}
+                      ? t("admin:users.no_filtered_users")
+                      : t("admin:users.no_users")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -307,7 +310,7 @@ function UsersTab() {
                           }
                         />
                         <span className="text-xs text-muted-foreground">
-                          {u.is_active ? "Aktif" : "Pasif"}
+                          {u.is_active ? t("admin:users.active") : t("admin:users.inactive")}
                         </span>
                       </div>
                     </TableCell>
@@ -325,7 +328,7 @@ function UsersTab() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditUser(u)}
-                          aria-label="Düzenle"
+                          aria-label={t("admin:users.edit_aria")}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -334,7 +337,7 @@ function UsersTab() {
                           size="sm"
                           disabled={u.role?.is_system}
                           onClick={() => setPendingDelete(u)}
-                          aria-label="Sil"
+                          aria-label={t("admin:users.delete_aria")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -352,9 +355,9 @@ function UsersTab() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Yeni Kullanıcı Davet Et</DialogTitle>
+            <DialogTitle>{t("admin:users.invite_title")}</DialogTitle>
             <DialogDescription>
-              Geçici şifre üretilir; kullanıcı ilk girişte değiştirir.
+              {t("admin:users.invite_description")}
             </DialogDescription>
           </DialogHeader>
           <UserCreateForm
@@ -372,7 +375,7 @@ function UsersTab() {
       <Dialog open={editUser !== null} onOpenChange={(o) => !o && setEditUser(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Kullanıcıyı Düzenle</DialogTitle>
+            <DialogTitle>{t("admin:users.edit_title")}</DialogTitle>
             <DialogDescription>
               <code className="text-xs">{editUser?.email}</code>
             </DialogDescription>
@@ -401,10 +404,10 @@ function UsersTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Check className="h-5 w-5 text-emerald-500" />
-              Kullanıcı Oluşturuldu
+              {t("admin:users.created_title")}
             </DialogTitle>
             <DialogDescription>
-              Geçici şifreyi kullanıcıya iletin. Bu şifre tekrar gösterilmez.
+              {t("admin:users.created_description")}
             </DialogDescription>
           </DialogHeader>
           {createdUser && (
@@ -426,10 +429,10 @@ function UsersTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-amber-500" />
-              Şifre Sıfırlandı
+              {t("admin:users.reset_pw_title")}
             </DialogTitle>
             <DialogDescription>
-              Yeni geçici şifre üretildi, tüm aktif oturumlar kapatıldı.
+              {t("admin:users.reset_pw_description")}
             </DialogDescription>
           </DialogHeader>
           {resetResult && (
@@ -449,15 +452,15 @@ function UsersTab() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kullanıcıyı sil?</DialogTitle>
+            <DialogTitle>{t("admin:users.delete_title")}</DialogTitle>
             <DialogDescription>
-              <strong>{pendingDelete?.email}</strong> pasifleştirilecek (soft
-              delete). Geri alınabilir.
+              <strong>{pendingDelete?.email}</strong>{" "}
+              {t("admin:users.delete_description_prefix")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingDelete(null)}>
-              İptal
+              {t("common:cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -467,7 +470,7 @@ function UsersTab() {
               {deleteMut.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Evet, sil
+              {t("admin:users.delete_yes")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -507,6 +510,7 @@ function UserCreateForm({
   }) => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation("admin");
   const [email, setEmail] = useState("");
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
@@ -532,7 +536,7 @@ function UserCreateForm({
       className="space-y-3"
     >
       <div className="space-y-1.5">
-        <Label htmlFor="email">E-posta</Label>
+        <Label htmlFor="email">{t("users.field_email")}</Label>
         <Input
           id="email"
           type="email"
@@ -544,7 +548,7 @@ function UserCreateForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="first">Ad</Label>
+          <Label htmlFor="first">{t("users.field_first_name")}</Label>
           <Input
             id="first"
             value={first}
@@ -553,7 +557,7 @@ function UserCreateForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="last">Soyad</Label>
+          <Label htmlFor="last">{t("users.field_last_name")}</Label>
           <Input
             id="last"
             value={last}
@@ -563,7 +567,7 @@ function UserCreateForm({
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>Rol</Label>
+        <Label>{t("users.field_role")}</Label>
         <Select value={roleId} onValueChange={setRoleId}>
           <SelectTrigger>
             <SelectValue />
@@ -575,7 +579,7 @@ function UserCreateForm({
                   {r.is_system && <ShieldCheck className="h-3 w-3" />}
                   {r.name}
                   <span className="text-xs text-muted-foreground">
-                    ({r.permission_count} izin)
+                    {t("users.permission_count", { count: r.permission_count })}
                   </span>
                 </div>
               </SelectItem>
@@ -584,14 +588,14 @@ function UserCreateForm({
         </Select>
         {selectedRole && (
           <p className="text-xs text-muted-foreground">
-            {selectedRole.description ?? "Açıklama yok"}
+            {selectedRole.description ?? t("users.no_description")}
           </p>
         )}
       </div>
       <DialogFooter className="pt-2">
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Davet Et
+          {t("users.invite_submit")}
         </Button>
       </DialogFooter>
     </form>
@@ -617,6 +621,7 @@ function UserEditForm({
   loading: boolean;
   resetLoading: boolean;
 }) {
+  const { t } = useTranslation(["admin", "common"]);
   const [first, setFirst] = useState(user.first_name);
   const [last, setLast] = useState(user.last_name);
   const [roleId, setRoleId] = useState<string>(String(user.role_id));
@@ -630,7 +635,7 @@ function UserEditForm({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="ef">Ad</Label>
+          <Label htmlFor="ef">{t("admin:users.field_first_name")}</Label>
           <Input
             id="ef"
             value={first}
@@ -639,7 +644,7 @@ function UserEditForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="el">Soyad</Label>
+          <Label htmlFor="el">{t("admin:users.field_last_name")}</Label>
           <Input
             id="el"
             value={last}
@@ -649,7 +654,7 @@ function UserEditForm({
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>Rol</Label>
+        <Label>{t("admin:users.field_role")}</Label>
         <Select
           value={roleId}
           onValueChange={setRoleId}
@@ -665,7 +670,7 @@ function UserEditForm({
                   {r.is_system && <ShieldCheck className="h-3 w-3" />}
                   {r.name}
                   <span className="text-xs text-muted-foreground">
-                    ({r.permission_count} izin)
+                    {t("admin:users.permission_count", { count: r.permission_count })}
                   </span>
                 </div>
               </SelectItem>
@@ -674,7 +679,7 @@ function UserEditForm({
         </Select>
         {user.role?.is_system && (
           <p className="text-xs text-amber-600 dark:text-amber-500">
-            Süper Admin'in rolü değiştirilemez.
+            {t("admin:users.system_role_warning")}
           </p>
         )}
       </div>
@@ -692,10 +697,10 @@ function UserEditForm({
           ) : (
             <KeyRound className="h-4 w-4 mr-2" />
           )}
-          Şifreyi Sıfırla
+          {t("admin:users.reset_password")}
         </Button>
         <p className="text-xs text-muted-foreground mt-1">
-          Yeni geçici şifre üretilir; tüm aktif oturumlar kapanır.
+          {t("admin:users.reset_password_hint")}
         </p>
       </div>
 
@@ -712,7 +717,7 @@ function UserEditForm({
           disabled={!dirty || loading}
         >
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Kaydet
+          {t("common:save")}
         </Button>
       </DialogFooter>
     </div>
@@ -728,6 +733,7 @@ function TempPasswordReveal({
   tempPassword: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("admin");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -752,13 +758,13 @@ function TempPasswordReveal({
     <>
       <div className="space-y-3">
         <div className="space-y-1">
-          <Label className="text-xs">E-posta</Label>
+          <Label className="text-xs">{t("users.field_email")}</Label>
           <code className="block bg-muted/50 p-2 rounded text-sm font-mono">
             {email}
           </code>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Geçici Şifre</Label>
+          <Label className="text-xs">{t("users.temp_password_label")}</Label>
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-muted/50 p-2 rounded text-sm font-mono select-all">
               {tempPassword}
@@ -774,7 +780,7 @@ function TempPasswordReveal({
         </div>
       </div>
       <DialogFooter>
-        <Button onClick={onClose}>Tamam</Button>
+        <Button onClick={onClose}>{t("users.ok")}</Button>
       </DialogFooter>
     </>
   );
@@ -785,6 +791,7 @@ function TempPasswordReveal({
 /* ====================================================================== */
 
 function RolesTab() {
+  const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editRole, setEditRole] = useState<RoleListItem | null>(null);
@@ -809,7 +816,7 @@ function RolesTab() {
       void qc.invalidateQueries({ queryKey: ["roles", "list"] });
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Rol oluşturulamadı"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:roles.error_create_failed")),
   });
 
   const updateRoleMut = useMutation({
@@ -827,7 +834,7 @@ function RolesTab() {
       void qc.invalidateQueries({ queryKey: ["roles", "detail"] });
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Güncelleme başarısız"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:roles.error_update_failed")),
   });
 
   const deleteMut = useMutation({
@@ -838,24 +845,25 @@ function RolesTab() {
       void qc.invalidateQueries({ queryKey: ["users", "list"] });
       if (data.deactivated_users > 0) {
         setErrorMsg(
-          `Rol silindi. ${data.deactivated_users} kullanıcı pasifleştirildi.`,
+          t("admin:roles.deleted_with_deactivations", {
+            count: data.deactivated_users,
+          }),
         );
       }
     },
     onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : "Rol silinemedi"),
+      setErrorMsg(err instanceof ApiError ? err.message : t("admin:roles.error_delete_failed")),
   });
 
   return (
     <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Roller, kullanıcıların hangi sayfalara erişebileceğini ve hangi
-          işlemleri yapabileceğini belirler.
+          {t("admin:roles.subtitle")}
         </p>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Yeni Rol
+          {t("admin:roles.new_role")}
         </Button>
       </div>
 
@@ -870,13 +878,13 @@ function RolesTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">ID</TableHead>
-                <TableHead>Rol Adı</TableHead>
-                <TableHead>Açıklama</TableHead>
-                <TableHead className="text-right">Kullanıcı</TableHead>
-                <TableHead className="text-right">İzin</TableHead>
-                <TableHead>Tip</TableHead>
-                <TableHead className="text-right w-24">İşlem</TableHead>
+                <TableHead className="w-12">{t("admin:roles.table_id")}</TableHead>
+                <TableHead>{t("admin:roles.table_name")}</TableHead>
+                <TableHead>{t("admin:roles.table_description")}</TableHead>
+                <TableHead className="text-right">{t("admin:roles.table_users")}</TableHead>
+                <TableHead className="text-right">{t("admin:roles.table_permissions")}</TableHead>
+                <TableHead>{t("admin:roles.table_type")}</TableHead>
+                <TableHead className="text-right w-24">{t("admin:roles.table_actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -909,9 +917,9 @@ function RolesTab() {
                     </TableCell>
                     <TableCell>
                       {r.is_system ? (
-                        <Badge>Sistem</Badge>
+                        <Badge>{t("admin:roles.type_system")}</Badge>
                       ) : (
-                        <Badge variant="secondary">Özel</Badge>
+                        <Badge variant="secondary">{t("admin:roles.type_custom")}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -921,7 +929,7 @@ function RolesTab() {
                           size="sm"
                           disabled={r.is_system}
                           onClick={() => setEditRole(r)}
-                          aria-label="Düzenle"
+                          aria-label={t("admin:users.edit_aria")}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -930,7 +938,7 @@ function RolesTab() {
                           size="sm"
                           disabled={r.is_system}
                           onClick={() => setPendingDelete(r)}
-                          aria-label="Sil"
+                          aria-label={t("admin:users.delete_aria")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -957,7 +965,9 @@ function RolesTab() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editRole ? `Rolü Düzenle: ${editRole.name}` : "Yeni Rol"}
+              {editRole
+                ? t("admin:roles.edit_role_title", { name: editRole.name })
+                : t("admin:roles.new_role_title")}
             </DialogTitle>
           </DialogHeader>
           <RoleForm
@@ -981,17 +991,22 @@ function RolesTab() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rolü sil?</DialogTitle>
+            <DialogTitle>{t("admin:roles.delete_title")}</DialogTitle>
             <DialogDescription>
-              <strong>{pendingDelete?.name}</strong> rolüne sahip{" "}
-              <strong>{pendingDelete?.user_count} kullanıcı</strong>{" "}
-              <strong>pasifleştirilecek</strong> ve aktif oturumları
-              kapatılacak. Bu işlem geri alınamaz.
+              <strong>{pendingDelete?.name}</strong>{" "}
+              {t("admin:roles.delete_description_users")}{" "}
+              <strong>
+                {t("admin:roles.delete_description_users_count", {
+                  count: pendingDelete?.user_count ?? 0,
+                })}
+              </strong>{" "}
+              <strong>{t("admin:roles.delete_description_action")}</strong>{" "}
+              {t("admin:roles.delete_description_suffix")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingDelete(null)}>
-              İptal
+              {t("common:cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -1001,7 +1016,7 @@ function RolesTab() {
               {deleteMut.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Evet, rolü sil
+              {t("admin:roles.delete_yes")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1019,6 +1034,7 @@ function RoleForm({
   onSubmit: (p: { name: string; description?: string; permissions: string[] }) => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation("admin");
   // Edit modunda backend'den rol detayını çek
   const detailQuery = useQuery({
     queryKey: ["roles", "detail", roleId],
@@ -1057,29 +1073,29 @@ function RoleForm({
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="rname">Rol Adı</Label>
+          <Label htmlFor="rname">{t("roles.field_name")}</Label>
           <Input
             id="rname"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="örn: Pazarlama Müdürü"
+            placeholder={t("roles.field_name_placeholder")}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="rdesc">Açıklama (opsiyonel)</Label>
+          <Label htmlFor="rdesc">{t("roles.field_description")}</Label>
           <Textarea
             id="rdesc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Bu rolün amacı..."
+            placeholder={t("roles.field_description_placeholder")}
             rows={2}
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label>İzinler</Label>
+        <Label>{t("roles.field_permissions")}</Label>
         <PermissionPicker
           selected={permissions}
           onChange={setPermissions}
@@ -1090,7 +1106,7 @@ function RoleForm({
       <DialogFooter>
         <Button type="submit" disabled={loading || !name}>
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {roleId ? "Güncelle" : "Oluştur"}
+          {roleId ? t("roles.update_submit") : t("roles.create_submit")}
         </Button>
       </DialogFooter>
     </form>
