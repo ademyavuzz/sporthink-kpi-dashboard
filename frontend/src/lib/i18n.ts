@@ -22,7 +22,7 @@ void i18n
     lng: initialLang,
     fallbackLng: "tr",
     supportedLngs: ["tr", "en"],
-    ns: ["common", "auth", "errors", "imports"],
+    ns: ["common", "auth", "errors", "imports", "admin", "dashboard"],
     defaultNS: "common",
     backend: {
       loadPath: "/locales/{{lng}}/{{ns}}.json",

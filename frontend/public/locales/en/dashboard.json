@@ -1,0 +1,23 @@
+{
+  "overview": {
+    "title": "Overview",
+    "preset_last_30": "Last 30 days",
+    "preset_all": "All time",
+    "trend_card_title": "Revenue & Orders Trend",
+    "channel_card_title": "Revenue by Channel",
+    "funnel_card_title": "Conversion Funnel",
+    "new_returning_card_title": "New vs Returning Customers",
+    "top_products_card_title": "Top-Selling Products (Top 10)",
+    "series_revenue": "Revenue (₺)",
+    "series_orders": "Orders",
+    "customer_new": "New",
+    "customer_returning": "Returning",
+    "total_revenue": "Total Revenue",
+    "channel_other": "Other",
+    "table_sku": "SKU",
+    "table_product": "Product",
+    "table_brand": "Brand",
+    "table_units": "Units",
+    "table_revenue": "Revenue"
+  }
+}

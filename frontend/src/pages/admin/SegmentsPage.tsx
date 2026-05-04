@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,25 +40,25 @@ import type {
   SegmentRuleOp,
 } from "@/types/admin";
 
-const FIELD_OPTIONS: { value: SegmentRuleField; label: string }[] = [
-  { value: "total_revenue", label: "Toplam Ciro (₺)" },
-  { value: "total_orders", label: "Toplam Sipariş" },
-  { value: "city", label: "Şehir" },
-  { value: "gender", label: "Cinsiyet" },
-  { value: "age_group", label: "Yaş Grubu" },
-  { value: "registration_source", label: "Kayıt Kaynağı" },
-  { value: "is_newsletter_subscriber", label: "Bülten Abonesi" },
-];
+const FIELD_LABEL_KEYS: Record<SegmentRuleField, string> = {
+  total_revenue: "field_total_revenue",
+  total_orders: "field_total_orders",
+  city: "field_city",
+  gender: "field_gender",
+  age_group: "field_age_group",
+  registration_source: "field_registration_source",
+  is_newsletter_subscriber: "field_newsletter",
+};
 
-const OP_OPTIONS: { value: SegmentRuleOp; label: string }[] = [
+const OP_LABELS: { value: SegmentRuleOp; label: string; i18nKey?: string }[] = [
   { value: "==", label: "=" },
   { value: "!=", label: "≠" },
   { value: ">", label: ">" },
   { value: ">=", label: "≥" },
   { value: "<", label: "<" },
   { value: "<=", label: "≤" },
-  { value: "IN", label: "İçinde" },
-  { value: "LIKE", label: "İçeriyor" },
+  { value: "IN", label: "IN", i18nKey: "op_in" },
+  { value: "LIKE", label: "LIKE", i18nKey: "op_like" },
 ];
 
 const RFM_COLORS: Record<string, string> = {
@@ -71,19 +72,20 @@ const RFM_COLORS: Record<string, string> = {
 };
 
 export default function SegmentsPage() {
+  const { t } = useTranslation("admin");
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold">Segmentler</h1>
+        <h1 className="text-2xl font-semibold">{t("segments.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Visual rule builder ile özel segmentler ve RFM-bazlı hazır segmentler.
+          {t("segments.subtitle")}
         </p>
       </div>
 
       <Tabs defaultValue="custom">
         <TabsList>
-          <TabsTrigger value="custom">Özel Segmentler</TabsTrigger>
-          <TabsTrigger value="rfm">RFM Analizi</TabsTrigger>
+          <TabsTrigger value="custom">{t("segments.tab_custom")}</TabsTrigger>
+          <TabsTrigger value="rfm">{t("segments.tab_rfm")}</TabsTrigger>
         </TabsList>
         <TabsContent value="custom" className="space-y-4">
           <CustomSegmentsTab />
@@ -97,6 +99,7 @@ export default function SegmentsPage() {
 }
 
 function CustomSegmentsTab() {
+  const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -124,7 +127,7 @@ function CustomSegmentsTab() {
       <div className="flex justify-end">
         <Button onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Yeni Segment
+          {t("admin:segments.new_segment")}
         </Button>
       </div>
 
@@ -133,24 +136,24 @@ function CustomSegmentsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ad</TableHead>
-                <TableHead>Açıklama</TableHead>
-                <TableHead>Müşteri Sayısı</TableHead>
-                <TableHead>Paylaşılan</TableHead>
-                <TableHead className="text-right">İşlem</TableHead>
+                <TableHead>{t("admin:segments.table_name")}</TableHead>
+                <TableHead>{t("admin:segments.table_description")}</TableHead>
+                <TableHead>{t("admin:segments.table_customer_count")}</TableHead>
+                <TableHead>{t("admin:segments.table_shared")}</TableHead>
+                <TableHead className="text-right">{t("admin:segments.table_actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {q.isPending ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
-                    Yükleniyor…
+                    {t("common:loading")}
                   </TableCell>
                 </TableRow>
               ) : (q.data ?? []).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Henüz segment yok.
+                    {t("admin:segments.no_segments")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -164,7 +167,7 @@ function CustomSegmentsTab() {
                       {s.cached_count !== null ? formatCount(s.cached_count) : "—"}
                     </TableCell>
                     <TableCell>
-                      {s.is_shared ? <Badge>Paylaşılan</Badge> : "—"}
+                      {s.is_shared ? <Badge>{t("admin:segments.shared_badge")}</Badge> : "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -186,7 +189,7 @@ function CustomSegmentsTab() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Yeni Segment</DialogTitle>
+            <DialogTitle>{t("admin:segments.new_segment")}</DialogTitle>
           </DialogHeader>
           <SegmentBuilder
             onSubmit={(p) => createMut.mutate(p)}
@@ -205,6 +208,7 @@ function SegmentBuilder({
   onSubmit: (p: SegmentCreate) => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation(["admin", "common"]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [logic, setLogic] = useState<"AND" | "OR">("AND");
@@ -213,6 +217,24 @@ function SegmentBuilder({
   ]);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  const fieldOptions = useMemo(
+    () =>
+      (Object.keys(FIELD_LABEL_KEYS) as SegmentRuleField[]).map((field) => ({
+        value: field,
+        label: t(`admin:segments.${FIELD_LABEL_KEYS[field]}`),
+      })),
+    [t],
+  );
+
+  const opOptions = useMemo(
+    () =>
+      OP_LABELS.map((o) => ({
+        value: o.value,
+        label: o.i18nKey ? t(`admin:segments.${o.i18nKey}`) : o.label,
+      })),
+    [t],
+  );
 
   function updateRule(idx: number, patch: Partial<SegmentLeafRule>) {
     setRules((rs) => rs.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -243,30 +265,30 @@ function SegmentBuilder({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label>Ad</Label>
+          <Label>{t("admin:segments.field_name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label>Açıklama</Label>
+          <Label>{t("admin:segments.field_description")}</Label>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label>Mantık</Label>
+        <Label>{t("admin:segments.field_logic")}</Label>
         <Select value={logic} onValueChange={(v) => setLogic(v as "AND" | "OR")}>
           <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="AND">VE (Tümü)</SelectItem>
-            <SelectItem value="OR">VEYA (Herhangi)</SelectItem>
+            <SelectItem value="AND">{t("admin:segments.logic_and")}</SelectItem>
+            <SelectItem value="OR">{t("admin:segments.logic_or")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label>Kurallar</Label>
+        <Label>{t("admin:segments.rules_label")}</Label>
         {rules.map((rule, idx) => (
           <div key={idx} className="grid grid-cols-[1fr_120px_1fr_auto] gap-2 items-center">
             <Select
@@ -277,7 +299,7 @@ function SegmentBuilder({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {FIELD_OPTIONS.map((o) => (
+                {fieldOptions.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
@@ -292,7 +314,7 @@ function SegmentBuilder({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {OP_OPTIONS.map((o) => (
+                {opOptions.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
@@ -308,7 +330,7 @@ function SegmentBuilder({
                   value: !isNaN(num) && v !== "" && /^[-\d.]+$/.test(v) ? num : v,
                 });
               }}
-              placeholder="Değer"
+              placeholder={t("admin:segments.rule_value_placeholder")}
             />
             <Button type="button" variant="ghost" size="sm" onClick={() => removeRule(idx)}>
               <Trash2 className="h-4 w-4" />
@@ -317,18 +339,18 @@ function SegmentBuilder({
         ))}
         <Button type="button" variant="outline" size="sm" onClick={addRule}>
           <Plus className="h-4 w-4 mr-1" />
-          Kural ekle
+          {t("admin:segments.add_rule")}
         </Button>
       </div>
 
       <div className="flex items-center gap-3 py-2">
         <Button type="button" variant="outline" onClick={handlePreview} disabled={previewLoading}>
           {previewLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Önizle
+          {t("admin:segments.preview")}
         </Button>
         {previewCount !== null && (
           <span className="text-sm">
-            <strong>{formatCount(previewCount)}</strong> müşteri eşleşiyor
+            <strong>{formatCount(previewCount)}</strong> {t("admin:segments.preview_count")}
           </span>
         )}
       </div>
@@ -345,7 +367,7 @@ function SegmentBuilder({
           disabled={loading || !name}
         >
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Kaydet
+          {t("common:save")}
         </Button>
       </DialogFooter>
     </div>
@@ -353,6 +375,7 @@ function SegmentBuilder({
 }
 
 function RFMTab() {
+  const { t } = useTranslation("admin");
   const q = useQuery({
     queryKey: ["rfm"],
     queryFn: () => adminApi.getRFM(),
@@ -365,7 +388,7 @@ function RFMTab() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Hazır Segment Dağılımı</CardTitle>
+          <CardTitle>{t("segments.rfm_distribution_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {q.isPending ? (
@@ -392,22 +415,22 @@ function RFMTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>RFM Tablosu (En Yüksek Monetary 1000)</CardTitle>
+          <CardTitle>{t("segments.rfm_table_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto max-h-[500px]">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead>Müşteri</TableHead>
-                  <TableHead>Şehir</TableHead>
-                  <TableHead className="text-right">R Skoru</TableHead>
-                  <TableHead className="text-right">F Skoru</TableHead>
-                  <TableHead className="text-right">M Skoru</TableHead>
-                  <TableHead className="text-right">Recency (gün)</TableHead>
-                  <TableHead className="text-right">Frequency</TableHead>
-                  <TableHead className="text-right">Monetary</TableHead>
-                  <TableHead>Segment</TableHead>
+                  <TableHead>{t("segments.rfm_customer")}</TableHead>
+                  <TableHead>{t("segments.rfm_city")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_r_score")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_f_score")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_m_score")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_recency")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_frequency")}</TableHead>
+                  <TableHead className="text-right">{t("segments.rfm_monetary")}</TableHead>
+                  <TableHead>{t("segments.rfm_segment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
