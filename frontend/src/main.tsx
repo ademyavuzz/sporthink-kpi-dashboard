@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
+import { AuthBootstrap } from "./components/common/AuthBootstrap";
 import { PageLoader } from "./components/common/PageLoader";
 import { ThemeSync } from "./components/common/ThemeSync";
 // i18n + dayjs config side-effect imports (store-aware kurulum).
@@ -26,9 +27,11 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeSync>
         <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <App />
-          </Suspense>
+          <AuthBootstrap>
+            <Suspense fallback={<PageLoader />}>
+              <App />
+            </Suspense>
+          </AuthBootstrap>
         </BrowserRouter>
       </ThemeSync>
     </QueryClientProvider>
