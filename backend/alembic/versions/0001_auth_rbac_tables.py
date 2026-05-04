@@ -18,7 +18,7 @@ Create Date: 2026-05-03
 
 from typing import Sequence, Union
 
-revision: str = "0001"
+revision: str = "0001_auth_rbac_tables"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

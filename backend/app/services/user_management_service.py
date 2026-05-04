@@ -1,8 +1,9 @@
-"""Kullanıcı yönetimi: CRUD + davet (SendGrid placeholder).
+"""Kullanıcı yönetimi: CRUD + davet (Gmail SMTP üzerinden mail).
 
-`/users` endpoint'leri bu servisi kullanır. Süper Admin yeni kullanıcı davet
-ettiğinde geçici şifre üretilir, kullanıcıya email ile gönderilir (SendGrid
-yapılandırılmamışsa log'a yazılır — dev modunda yeterli).
+Süper Admin yeni kullanıcı davet ettiğinde, kullanıcı **kendi şifresini**
+davet linkinden belirler — geçici şifre artık üretilmez. Backend'de
+güvenli bir placeholder hash atanır (login imkânsız), ardından
+`password_reset_service.create_invitation` ile davet maili tetiklenir.
 
 Tüm değişiklikler audit_log'a yazılır.
 """
@@ -10,29 +11,28 @@ from __future__ import annotations
 
 import logging
 import secrets
-import string
 from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.core.exceptions import ConflictError, ResourceNotFoundError, ValidationError
 from app.core.security import hash_password
 from app.models import Role, User
 from app.repositories import audit_log_repository
+from app.services import password_reset_service
 
 logger = logging.getLogger(__name__)
 
 
-def generate_temp_password(length: int = 14) -> str:
-    """Davet için geçici şifre — kullanıcı ilk login'de değiştirir.
+def _generate_placeholder_password() -> str:
+    """Davet edilen kullanıcı için login'i imkânsız kılan rastgele hash kaynağı.
 
-    Min 10 karakter (CLAUDE.md), büyük/küçük/rakam/sembol içerir.
+    Kullanıcı asla bu şifreyi öğrenmez ve davet linkinden kendi şifresini
+    kurana kadar login edemez. ~256-bit entropi.
     """
-    alphabet = string.ascii_letters + string.digits + "!@#$"
-    return "".join(secrets.choice(alphabet) for _ in range(length))
+    return secrets.token_urlsafe(32)
 
 
 async def list_users(db: AsyncSession, *, include_deleted: bool = False) -> list[User]:
@@ -54,31 +54,31 @@ async def create_user(
     last_name: str,
     role_id: int,
     actor: User,
+    lang: str = "tr",
     ip: str | None = None,
     user_agent: str | None = None,
-) -> tuple[User, str]:
-    """Yeni kullanıcı oluştur + geçici şifre döndür.
+) -> User:
+    """Yeni kullanıcı + davet maili.
 
-    Returns: (user, temp_password). Şifre çağıran tarafa loglanır
-    (production'da SendGrid email akışına bağlanır).
+    Akış: placeholder şifre ile user yaratılır → audit log → davet token + mail.
+    Frontend'e dönen response'ta şifre yok; sadece `invitation_sent: true`.
     """
     email = email.strip().lower()
 
     # Duplicate kontrolü
     existing = await db.execute(select(User).where(User.email == email))
     if existing.scalar_one_or_none() is not None:
-        raise ConflictError(
-            "EMAIL_ALREADY_EXISTS", params={"email": email}
-        )
+        raise ConflictError("EMAIL_ALREADY_EXISTS", params={"email": email})
 
     role = await db.get(Role, role_id)
     if role is None:
-        raise ValidationError("Invalid role", field="role_id", params={"role_id": role_id})
+        raise ValidationError(
+            "Invalid role", field="role_id", params={"role_id": role_id}
+        )
 
-    temp_pw = generate_temp_password()
     user = User(
         email=email,
-        password_hash=hash_password(temp_pw),
+        password_hash=hash_password(_generate_placeholder_password()),
         first_name=first_name,
         last_name=last_name,
         role_id=role_id,
@@ -102,18 +102,17 @@ async def create_user(
     # fetch edilmez — commit sonrası lazy-load greenlet hatası verir. Refresh
     # ile zorla okuyup commit edelim.
     await db.refresh(user, attribute_names=["created_at", "updated_at"])
-    await db.commit()
 
-    if settings.sendgrid_api_key:
-        logger.info("user_invite_email_queued email=%s", email)
-    else:
-        logger.warning(
-            "user_invite_no_sendgrid email=%s temp_password=%s (dev only)",
-            email,
-            temp_pw,
-        )
-
-    return user, temp_pw
+    # Davet token + mail (Celery task'a delegate edilir, db.commit içeride).
+    await password_reset_service.create_invitation(
+        db,
+        user=user,
+        inviter=actor,
+        role_name=role.name,
+        lang=lang,
+        ip=ip,
+    )
+    return user
 
 
 async def update_user(
@@ -198,6 +197,50 @@ async def soft_delete_user(
         details={"email": user.email},
     )
     await db.commit()
+
+
+async def admin_send_password_reset(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    actor: User,
+    lang: str = "tr",
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> User:
+    """Süper Admin kullanıcının şifresini sıfırlamak için reset linki gönderir.
+
+    Aktif refresh token'lar `consume_token_and_set_password` içinde, yani
+    kullanıcı yeni şifreyi belirleyince revoke edilir — burada erken revoke
+    yapmıyoruz ki kullanıcı reset link'e tıklayana kadar mevcut oturumu
+    kesilmesin (Süper Admin yanlışlıkla butona basmış olabilir).
+    """
+    user = await db.get(User, user_id)
+    if user is None or user.deleted_at is not None:
+        raise ResourceNotFoundError(params={"user_id": user_id})
+
+    await audit_log_repository.add(
+        db,
+        action="password.admin_reset_requested",
+        user_id=actor.id,
+        user_email=actor.email,
+        resource_type="user",
+        resource_id=str(user.id),
+        ip_address=ip,
+        user_agent=user_agent,
+        details={"target_email": user.email},
+    )
+
+    # `request_password_reset` token üretir, önceki aktifleri revoke eder
+    # ve Celery üzerinden mail tetikler. Kullanıcı yeni şifreyi belirleyince
+    # tüm refresh tokenları o aşamada revoke olur.
+    await password_reset_service.request_password_reset(
+        db,
+        email=user.email,
+        lang=lang,
+        ip=ip,
+    )
+    return user
 
 
 async def list_audit_logs(

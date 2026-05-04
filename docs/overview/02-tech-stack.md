@@ -391,13 +391,15 @@ Tüm production trafiği HTTPS üzerinden geçer. HTTP istekleri otomatik olarak
 
 Her `main` branch'e push otomatik olarak production deployment tetikler. Feature branch'lerde sadece lint ve test çalışır.
 
-### 2.6.5 SendGrid / Mailgun (E-posta)
+### 2.6.5 Gmail SMTP (E-posta)
 
-**Tercih:** SendGrid free tier (aylık 100 e-posta yeterli) veya alternatif olarak Mailgun.
+**Tercih:** Gmail SMTP relay (`smtp.gmail.com:587`, STARTTLS) — Gmail App Password ile.
 
-**Gerekçe:** Şifre sıfırlama linklerinin güvenilir şekilde teslim edilmesi gerekir. Kendi SMTP sunucusu kurmak (Postfix vb.) DKIM, SPF, DMARC kayıtları gerektirir; spam klasörüne düşme riski yüksektir.
+**Gerekçe:** Bitirme projesi ölçeğinde (50 eşzamanlı kullanıcı, ~birkaç davet/şifre sıfırlama maili/gün) Gmail SMTP yeterlidir; günlük relay limiti ~500 mail/gün. Ücretsiz, ek altyapı gerektirmez ve Gmail'in deliverability altyapısını kullanır.
 
-Profesyonel SMTP servisleri bu konfigürasyonları otomatik yönetir, deliverability oranı %95+ seviyededir.
+**Sınırlar:** Gmail SMTP kişisel hesap için tasarlanmıştır; production scale (binlerce kullanıcı) için SendGrid/Mailgun/Postmark gibi profesyonel servislere taşınır. Gmail relay'de `From` adresi SMTP user ile aynı olmak zorundadır (relay zorunluluğu).
+
+**Backend:** `aiosmtplib` (async SMTP istemcisi) Celery task içinden çağrılır. Mail gönderimi request akışını bekletmez.
 
 ## 2.7 Diğer Kütüphaneler
 
@@ -467,7 +469,7 @@ Tüm seçimlerin tek sayfada görünür özeti:
 | SSL | Let's Encrypt | latest | Free, auto-renew |
 | Container | Docker + Compose | 27+ / 2.30+ | Reproducible deployments |
 | CI/CD | GitHub Actions | n/a | Native GitHub integration |
-| Email | SendGrid free tier | n/a | Reliable deliverability |
+| Email | Gmail SMTP + aiosmtplib | n/a | Free relay, async send (Celery task) |
 | Python | CPython | 3.12 | Stable, performant |
 | Node.js | Node | 22 LTS | Frontend build (production'da gerek yok) |
 | OS (Production) | Ubuntu | 24.04 LTS | Long-term support |

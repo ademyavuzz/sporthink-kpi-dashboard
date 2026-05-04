@@ -7,6 +7,8 @@
   "PERMISSION_DENIED": "You don't have permission to perform this action.",
   "RESOURCE_NOT_FOUND": "The requested record was not found.",
   "VALIDATION_ERROR": "Form error. Please check the fields.",
+  "INVALID_OR_EXPIRED_TOKEN": "Link is invalid or has expired.",
+  "EMAIL_ALREADY_EXISTS": "This email is already registered.",
   "CONFLICT": "This record already exists.",
   "RATE_LIMIT_EXCEEDED": "Too many requests. Please wait a moment.",
 

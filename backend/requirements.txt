@@ -32,8 +32,8 @@ httpx==0.28.1
 # --- Rate limiting ---
 slowapi==0.1.9
 
-# --- E-posta ---
-sendgrid==6.11.0
+# --- E-posta (Gmail SMTP / aiosmtplib) ---
+aiosmtplib==3.0.2
 
 # --- Logging ---
 structlog==24.4.0

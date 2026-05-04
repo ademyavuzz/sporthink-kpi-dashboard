@@ -7,6 +7,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 const OverviewPage = lazy(() => import("@/pages/dashboard/OverviewPage"));
 const TrafficPage = lazy(() => import("@/pages/dashboard/TrafficPage"));
 const MetaAdsPage = lazy(() => import("@/pages/dashboard/MetaAdsPage"));
@@ -41,6 +43,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
 
       <Route

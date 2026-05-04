@@ -41,4 +41,33 @@ export interface MeResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+  remember_me?: boolean;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+  lang?: "tr" | "en";
+}
+
+export interface ForgotPasswordResponse {
+  sent: boolean;
+}
+
+export type ResetTokenPurpose = "invite" | "reset";
+
+export interface VerifyResetTokenResponse {
+  valid: boolean;
+  purpose: ResetTokenPurpose;
+  user_email: string;
+  first_name: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  email: string;
 }

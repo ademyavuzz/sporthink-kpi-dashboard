@@ -47,7 +47,7 @@ from app.models.order import (
     OrderStatus,
 )
 from app.models.order_item import OrderItem
-from app.models.password_reset_token import PasswordResetToken
+from app.models.password_reset_token import PasswordResetToken, TokenPurpose
 from app.models.permission import Permission
 from app.models.product import Product, ProductGender
 from app.models.refresh_token import RefreshToken
@@ -99,6 +99,7 @@ __all__ = [
     "OrderPaymentMethod",
     "OrderStatus",
     "PasswordResetToken",
+    "TokenPurpose",
     "Permission",
     "Product",
     "ProductGender",

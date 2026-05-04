@@ -15,29 +15,43 @@ from app.config import settings
 from app.dependencies import get_current_user, get_db
 from app.models import User
 from app.schemas import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     MeResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     SuccessEnvelope,
     TokenResponse,
     UserResponse,
+    VerifyResetTokenResponse,
 )
-from app.services import auth_service
+from app.services import auth_service, password_reset_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 REFRESH_COOKIE_NAME = "sporthink_refresh"
 
 
-def _set_refresh_cookie(response: Response, token: str, max_age_seconds: int) -> None:
-    response.set_cookie(
-        key=REFRESH_COOKIE_NAME,
-        value=token,
-        max_age=max_age_seconds,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
-        path="/api/v1/auth",
-    )
+def _set_refresh_cookie(
+    response: Response, token: str, max_age_seconds: int | None
+) -> None:
+    """Refresh token cookie set eder.
+
+    `max_age_seconds=None` → session cookie (browser kapanınca silinir,
+    "Beni hatırla" işaretlenmediğinde böyledir).
+    """
+    kwargs: dict = {
+        "key": REFRESH_COOKIE_NAME,
+        "value": token,
+        "httponly": True,
+        "secure": settings.is_production,
+        "samesite": "lax",
+        "path": "/api/v1/auth",
+    }
+    if max_age_seconds is not None:
+        kwargs["max_age"] = max_age_seconds
+    response.set_cookie(**kwargs)
 
 
 def _clear_refresh_cookie(response: Response) -> None:
@@ -74,7 +88,9 @@ async def login(
         ip=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    refresh_max_age = settings.refresh_token_expire_days * 24 * 3600
+    refresh_max_age = (
+        settings.refresh_token_expire_days * 24 * 3600 if body.remember_me else None
+    )
     _set_refresh_cookie(response, refresh_jwt, refresh_max_age)
 
     return SuccessEnvelope(
@@ -169,4 +185,85 @@ async def me(
             user=UserResponse.model_validate(current_user),
             permissions=perms,
         )
+    )
+
+
+def _mask_email(email: str) -> str:
+    """`adem.yavuz@gmail.com` → `ad***@gmail.com` — token verify response'da."""
+    try:
+        local, domain = email.split("@", 1)
+    except ValueError:
+        return email
+    if len(local) <= 2:
+        return f"{local[0]}***@{domain}"
+    return f"{local[:2]}***@{domain}"
+
+
+@router.post(
+    "/forgot-password",
+    response_model=SuccessEnvelope[ForgotPasswordResponse],
+    summary="Şifre sıfırlama linki email ile gönderir",
+)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[ForgotPasswordResponse]:
+    """Email enum'unu sızdırmamak için yanıt her zaman aynı (`{sent: true}`).
+
+    Kullanıcı yoksa ya da pasifse sessizce no-op olur — saldırgan response'tan
+    email kayıtlı mı anlayamaz. Audit log'a yine yazılır.
+    """
+    await password_reset_service.request_password_reset(
+        db,
+        email=body.email,
+        lang=body.lang,
+        ip=_client_ip(request),
+    )
+    return SuccessEnvelope(data=ForgotPasswordResponse(sent=True))
+
+
+@router.get(
+    "/verify-reset-token",
+    response_model=SuccessEnvelope[VerifyResetTokenResponse],
+    summary="Davet/sıfırlama token'ı geçerli mi?",
+)
+async def verify_reset_token(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[VerifyResetTokenResponse]:
+    """Frontend reset sayfası mount olunca çağırır — token bozuk veya süresi
+    dolmuşsa kullanıcıya hata mesajı gösterir."""
+    row, user = await password_reset_service.verify_token(db, token)
+    return SuccessEnvelope(
+        data=VerifyResetTokenResponse(
+            valid=True,
+            purpose=row.purpose.value,
+            user_email=_mask_email(user.email),
+            first_name=user.first_name,
+        )
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=SuccessEnvelope[ResetPasswordResponse],
+    summary="Token ile yeni şifre belirler (davet veya sıfırlama)",
+)
+async def reset_password(
+    body: ResetPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[ResetPasswordResponse]:
+    """Token'ı yakar (used_at), yeni şifreyi hash'leyip kaydeder, tüm
+    aktif refresh token'ları revoke eder. Kullanıcı yeniden login olmalıdır.
+    """
+    user = await password_reset_service.consume_token_and_set_password(
+        db,
+        token=body.token,
+        new_password=body.new_password,
+        ip=_client_ip(request),
+    )
+    return SuccessEnvelope(
+        data=ResetPasswordResponse(success=True, email=user.email)
     )

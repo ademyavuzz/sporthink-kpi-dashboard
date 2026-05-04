@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
-  Copy,
   KeyRound,
   Loader2,
   Pencil,
@@ -395,7 +394,7 @@ function UsersTab() {
         </DialogContent>
       </Dialog>
 
-      {/* CREATED — temp password */}
+      {/* CREATED — invitation email sent */}
       <Dialog
         open={createdUser !== null}
         onOpenChange={(o) => !o && setCreatedUser(null)}
@@ -407,20 +406,19 @@ function UsersTab() {
               {t("admin:users.created_title")}
             </DialogTitle>
             <DialogDescription>
-              {t("admin:users.created_description")}
+              {t("admin:users.invite_sent_description")}
             </DialogDescription>
           </DialogHeader>
           {createdUser && (
-            <TempPasswordReveal
+            <EmailSentNotice
               email={createdUser.email}
-              tempPassword={createdUser.temp_password}
               onClose={() => setCreatedUser(null)}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* PASSWORD RESET — temp password */}
+      {/* PASSWORD RESET — reset email sent */}
       <Dialog
         open={resetResult !== null}
         onOpenChange={(o) => !o && setResetResult(null)}
@@ -432,13 +430,12 @@ function UsersTab() {
               {t("admin:users.reset_pw_title")}
             </DialogTitle>
             <DialogDescription>
-              {t("admin:users.reset_pw_description")}
+              {t("admin:users.reset_email_sent_description")}
             </DialogDescription>
           </DialogHeader>
           {resetResult && (
-            <TempPasswordReveal
+            <EmailSentNotice
               email={resetResult.email}
-              tempPassword={resetResult.temp_password}
               onClose={() => setResetResult(null)}
             />
           )}
@@ -724,36 +721,14 @@ function UserEditForm({
   );
 }
 
-function TempPasswordReveal({
+function EmailSentNotice({
   email,
-  tempPassword,
   onClose,
 }: {
   email: string;
-  tempPassword: string;
   onClose: () => void;
 }) {
   const { t } = useTranslation("admin");
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(tempPassword);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API yoksa fallback
-      const ta = document.createElement("textarea");
-      ta.value = tempPassword;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <>
       <div className="space-y-3">
@@ -763,21 +738,9 @@ function TempPasswordReveal({
             {email}
           </code>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t("users.temp_password_label")}</Label>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-muted/50 p-2 rounded text-sm font-mono select-all">
-              {tempPassword}
-            </code>
-            <Button variant="outline" size="sm" onClick={handleCopy}>
-              {copied ? (
-                <Check className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t("users.email_sent_hint")}
+        </p>
       </div>
       <DialogFooter>
         <Button onClick={onClose}>{t("users.ok")}</Button>
