@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
@@ -12,12 +13,12 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useSidebarStore } from "@/stores/useSidebarStore";
 
 /**
- * Sol sidebar — gruplandırılmış nav (Dashboard / Veri / Sistem) + collapse.
+ * Sol sidebar — TailAdmin pattern: 290px / 90px, bg-white / dark:bg-gray-900.
  *
- * - 3 grup, her grup uppercase mini etiket altında
- * - Aktif state'te sol kenarda 3px primary aksent bar
- * - Boş kalan grup tamamen render dışı (izin yoksa)
- * - Collapsed mode'da grup etiketleri gizlenir, sadece ikonlar görünür
+ * - 3 grup, her grup uppercase mini etiket altında (`text-gray-400`)
+ * - Aktif state'te `bg-primary/10 text-primary` (rose tonu)
+ * - Permission-aware filtreleme — boş kalan grup tamamen render dışı
+ * - Collapsed mode'da 90px, sadece ikonlar + tooltip
  *
  * `frontend/CLAUDE.md` §17 row 16: permission kontrolü UX içindir,
  * güvenlik backend'de.
@@ -25,10 +26,15 @@ import { useSidebarStore } from "@/stores/useSidebarStore";
 export function Sidebar() {
   const { t } = useTranslation("common");
   const { has } = usePermissions();
-  const collapsed = useSidebarStore((s) => s.collapsed);
+  const collapsedSticky = useSidebarStore((s) => s.collapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const user = useAuthStore((s) => s.user);
   const role = user?.role ?? null;
+
+  // Hover ile geçici genişleme — collapsed iken üzerine gelince açılır,
+  // çıkınca tekrar kapanır. `collapsedSticky` kullanıcının kalıcı tercihi.
+  const [hovered, setHovered] = useState(false);
+  const collapsed = collapsedSticky && !hovered;
 
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
@@ -36,16 +42,29 @@ export function Sidebar() {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <aside
+    <div
+      onMouseEnter={() => collapsedSticky && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
-        "relative z-10 flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-border bg-surface transition-[width] duration-200",
-        collapsed ? "w-[68px]" : "w-64",
+        "relative z-10 h-full flex-shrink-0 transition-[width] duration-200",
+        // Layout slotu: sticky tercihe göre — hover ile genişleme içerik
+        // pushlanmasın diye burada sabit kalır.
+        collapsedSticky ? "w-[90px]" : "w-[290px]",
       )}
     >
+    <aside
+      className={cn(
+        "absolute inset-y-0 left-0 flex h-full flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-900",
+        collapsed ? "w-[90px]" : "w-[290px]",
+        // Hover-açılım iken yumuşak overlay shadow
+        collapsedSticky && hovered && "shadow-xl",
+      )}
+    >
+      {/* Header — logo + collapse toggle (TopBar h-16 ile birebir hizalı) */}
       <div
         className={cn(
-          "flex items-center justify-between border-b border-border",
-          collapsed ? "px-3 py-4" : "px-4 py-4",
+          "flex h-16 flex-shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-800",
+          collapsed ? "px-3" : "px-6",
         )}
       >
         <Logo small={collapsed} />
@@ -54,7 +73,7 @@ export function Sidebar() {
           size="icon-sm"
           onClick={toggle}
           aria-label="toggle-sidebar"
-          className="text-text-muted"
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           {collapsed ? <ChevronRight /> : <ChevronLeft />}
         </Button>
@@ -62,24 +81,28 @@ export function Sidebar() {
 
       <nav
         className={cn(
-          "flex-1 overflow-y-auto py-3",
-          collapsed ? "px-2" : "px-3",
+          "flex-1 overflow-y-auto py-4",
+          collapsed ? "px-3" : "px-5",
         )}
       >
         {groups.map((group, gi) => (
           <div
             key={group.id}
-            className={cn(gi > 0 && (collapsed ? "mt-3" : "mt-5"))}
+            className={cn(gi > 0 && (collapsed ? "mt-6" : "mt-7"))}
           >
-            {!collapsed && (
-              <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-dim">
+            {!collapsed ? (
+              <div className="mb-3 px-2 text-xs font-medium uppercase tracking-[0.05em] text-gray-400 dark:text-gray-500">
                 {t(`nav_group.${group.id}`)}
               </div>
+            ) : (
+              gi > 0 && (
+                <div
+                  className="mx-2 mb-4 h-px bg-gray-200 dark:bg-gray-800"
+                  aria-hidden
+                />
+              )
             )}
-            {collapsed && gi > 0 && (
-              <div className="mx-2 mb-3 h-px bg-border" aria-hidden />
-            )}
-            <ul className="flex flex-col gap-0.5">
+            <ul className="flex flex-col gap-1">
               {group.items.map((item) => (
                 <li key={item.id}>
                   <SidebarLink item={item} collapsed={collapsed} />
@@ -93,8 +116,8 @@ export function Sidebar() {
       {role && user && (
         <div
           className={cn(
-            "border-t border-border",
-            collapsed ? "px-2 py-3" : "px-3 py-3",
+            "border-t border-gray-200 dark:border-gray-800",
+            collapsed ? "px-3 py-4" : "px-5 py-4",
           )}
         >
           {collapsed ? (
@@ -102,14 +125,14 @@ export function Sidebar() {
               <UserAvatar user={user} size="md" />
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-2.5 py-2">
+            <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-white/[0.03]">
               <UserAvatar user={user} size="md" />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-[12px] font-semibold leading-tight">
+                <span className="truncate text-[13px] font-medium leading-tight text-gray-800 dark:text-white/90">
                   {user.full_name}
                 </span>
                 <span
-                  className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-none"
+                  className="mt-1 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-none"
                   style={{
                     background: `${role.color ?? "var(--primary)"}1f`,
                     color: role.color ?? "var(--primary)",
@@ -127,6 +150,7 @@ export function Sidebar() {
         </div>
       )}
     </aside>
+    </div>
   );
 }
 
@@ -145,29 +169,16 @@ function SidebarLink({
       title={collapsed ? t(`nav.${item.id}`) : undefined}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-2.5 rounded-md text-[13px] transition-colors",
-          collapsed
-            ? "h-10 justify-center px-0"
-            : "h-9 px-3",
+          "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
+          collapsed ? "h-11 justify-center px-0" : "h-11 px-3",
           isActive
-            ? "bg-primary/10 font-semibold text-primary"
-            : "text-text-muted hover:bg-muted hover:text-foreground",
+            ? "bg-primary/10 text-primary"
+            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white",
         )
       }
     >
-      {({ isActive }) => (
-        <>
-          {isActive && !collapsed && (
-            <span
-              aria-hidden
-              className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary"
-            />
-          )}
-          <Icon className="size-[18px] flex-shrink-0" />
-          {!collapsed && <span className="truncate">{t(`nav.${item.id}`)}</span>}
-        </>
-      )}
+      <Icon className="size-[22px] flex-shrink-0" />
+      {!collapsed && <span className="truncate">{t(`nav.${item.id}`)}</span>}
     </NavLink>
   );
 }
-

@@ -9,7 +9,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { dayjs } from "@/lib/dayjs";
 import { cn } from "@/lib/utils";
@@ -57,19 +56,18 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
           aria-label={t("notifications:title")}
-          className="relative text-text-muted hover:text-foreground"
+          className="relative inline-flex size-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
         >
           <Bell className="size-[18px]" />
           {unread > 0 && (
-            <span className="absolute right-1 top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground ring-2 ring-surface">
+            <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-white dark:ring-gray-900">
               {unread > 99 ? "99+" : unread}
             </span>
           )}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent
         align="end"

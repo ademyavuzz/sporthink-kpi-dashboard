@@ -21,15 +21,12 @@ export function Logo({ small, className }: LogoProps) {
 
   if (small) {
     return (
-      <div
-        className={cn(
-          "flex size-9 items-center justify-center rounded-lg bg-primary font-extrabold text-base text-primary-foreground select-none",
-          className,
-        )}
-        aria-label="Sporthink"
-      >
-        S
-      </div>
+      <img
+        src="/favicon.png"
+        alt="Sporthink"
+        draggable={false}
+        className={cn("size-9 select-none", className)}
+      />
     );
   }
 
