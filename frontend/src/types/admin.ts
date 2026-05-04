@@ -6,6 +6,7 @@ export interface RoleSummaryAdmin {
   id: number;
   name: string;
   is_system: boolean;
+  color?: string | null;
 }
 
 export interface UserListItem {
@@ -16,6 +17,7 @@ export interface UserListItem {
   role_id: number;
   role: RoleSummaryAdmin | null;
   is_active: boolean;
+  avatar_url?: string | null;
   last_login_at: string | null;
   created_at: string;
   deleted_at: string | null;

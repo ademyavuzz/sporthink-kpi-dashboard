@@ -400,9 +400,13 @@ def _user_to_item(u: User, role: Role | None = None) -> UserListItem:
         last_name=u.last_name,
         role_id=u.role_id,
         role=None if role is None else type("RoleSummary", (), {
-            "id": role.id, "name": role.name, "is_system": role.is_system,
+            "id": role.id,
+            "name": role.name,
+            "is_system": role.is_system,
+            "color": role.color,
         })(),  # type: ignore
         is_active=u.is_active,
+        avatar_url=u.avatar_url,
         last_login_at=u.last_login_at,
         created_at=u.created_at,
         deleted_at=u.deleted_at,
