@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
@@ -26,15 +25,10 @@ import { useSidebarStore } from "@/stores/useSidebarStore";
 export function Sidebar() {
   const { t } = useTranslation("common");
   const { has } = usePermissions();
-  const collapsedSticky = useSidebarStore((s) => s.collapsed);
+  const collapsed = useSidebarStore((s) => s.collapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const user = useAuthStore((s) => s.user);
   const role = user?.role ?? null;
-
-  // Hover ile geçici genişleme — collapsed iken üzerine gelince açılır,
-  // çıkınca tekrar kapanır. `collapsedSticky` kullanıcının kalıcı tercihi.
-  const [hovered, setHovered] = useState(false);
-  const collapsed = collapsedSticky && !hovered;
 
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
@@ -42,22 +36,10 @@ export function Sidebar() {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <div
-      onMouseEnter={() => collapsedSticky && setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={cn(
-        "relative z-10 h-full flex-shrink-0 transition-[width] duration-200",
-        // Layout slotu: sticky tercihe göre — hover ile genişleme içerik
-        // pushlanmasın diye burada sabit kalır.
-        collapsedSticky ? "w-[90px]" : "w-[290px]",
-      )}
-    >
     <aside
       className={cn(
-        "absolute inset-y-0 left-0 flex h-full flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-900",
+        "relative z-10 flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-900",
         collapsed ? "w-[90px]" : "w-[290px]",
-        // Hover-açılım iken yumuşak overlay shadow
-        collapsedSticky && hovered && "shadow-xl",
       )}
     >
       {/* Header — logo + collapse toggle (TopBar h-16 ile birebir hizalı) */}
@@ -143,7 +125,6 @@ export function Sidebar() {
         </div>
       )}
     </aside>
-    </div>
   );
 }
 
