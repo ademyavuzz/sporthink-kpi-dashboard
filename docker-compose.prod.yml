@@ -1,0 +1,133 @@
+# Production override — `docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d`
+# Tek host VDS deployment için (`docs/overview/11`).
+#
+# Farklar (dev → prod):
+# - MySQL bind 127.0.0.1 (sadece localhost'tan erişim — Nginx üzerinden proxy yok)
+# - Redis bind 127.0.0.1
+# - Backend uvicorn yerine gunicorn + uvicorn worker (4 worker)
+# - Frontend Vite dev server yerine production build → Nginx serve
+# - Nginx servisi reverse proxy + SSL termination
+# - Volume'lar named (data persistence)
+# - Backup için günlük cron container
+
+services:
+  mysql:
+    restart: unless-stopped
+    ports: !reset []
+    expose:
+      - "3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sporthink_dashboard}
+      MYSQL_USER: ${MYSQL_USER:-sporthink}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+  redis:
+    restart: unless-stopped
+    ports: !reset []
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  backend:
+    restart: unless-stopped
+    ports: !reset []
+    expose:
+      - "8000"
+    command: gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 --timeout 120 --access-logfile - --error-logfile -
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_CACHE_URL: ${REDIS_CACHE_URL}
+      REDIS_BROKER_URL: ${REDIS_BROKER_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      UPLOAD_DIR: /var/sporthink/uploads
+    volumes:
+      - upload_data:/var/sporthink/uploads
+      - ./backend:/app:ro
+
+  celery_worker:
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_CACHE_URL: ${REDIS_CACHE_URL}
+      REDIS_BROKER_URL: ${REDIS_BROKER_URL}
+    volumes:
+      - upload_data:/var/sporthink/uploads
+      - ./backend:/app:ro
+
+  frontend:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    command: |
+      sh -c "echo 'Frontend nginx serves built dist/'; nginx -g 'daemon off;'"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/frontend.conf:/etc/nginx/conf.d/default.conf:ro
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sporthink.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - certbot_webroot:/var/www/certbot
+    depends_on:
+      - backend
+      - frontend
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["letsencrypt"]
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    entrypoint: ["sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done"]
+
+  mysql_backup:
+    image: mysql:8.4
+    restart: unless-stopped
+    profiles: ["backup"]
+    depends_on:
+      - mysql
+    volumes:
+      - ./backups:/backups
+    environment:
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while :; do
+          ts=$$(date +%Y%m%d_%H%M%S)
+          mysqldump -h mysql -u root --single-transaction --routines --triggers \
+            ${MYSQL_DATABASE:-sporthink_dashboard} | gzip > /backups/db_$$ts.sql.gz
+          # 14 günden eski yedekleri sil
+          find /backups -name 'db_*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  mysql_data:
+  redis_data:
+  upload_data:
+  certbot_webroot:
