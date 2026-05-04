@@ -132,17 +132,10 @@ export function Sidebar() {
                   {user.full_name}
                 </span>
                 <span
-                  className="mt-1 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-none"
-                  style={{
-                    background: `${role.color ?? "var(--primary)"}1f`,
-                    color: role.color ?? "var(--primary)",
-                  }}
+                  className="mt-0.5 truncate text-[11px] leading-tight text-gray-500 dark:text-gray-400"
+                  title={user.email}
                 >
-                  <span
-                    className="size-1 rounded-full"
-                    style={{ background: role.color ?? "var(--primary)" }}
-                  />
-                  {role.name}
+                  {user.email}
                 </span>
               </div>
             </div>
