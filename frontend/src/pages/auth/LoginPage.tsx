@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api/auth";
 import { ApiError, NetworkError } from "@/lib/api/client";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useLanguageStore, type Lang } from "@/stores/useLanguageStore";
@@ -67,6 +68,20 @@ export default function LoginPage() {
         user: tokens.user,
         accessToken: tokens.access_token,
         permissions: me.permissions,
+      });
+      const firstName = tokens.user.first_name || tokens.user.email;
+      const welcomeTitle =
+        lang === "tr"
+          ? `Hoş geldiniz, ${firstName}`
+          : `Welcome, ${firstName}`;
+      const welcomeMessage =
+        lang === "tr"
+          ? "Sporthink KPI Dashboard'a giriş yaptınız."
+          : "You're signed in to Sporthink KPI Dashboard.";
+      notify({
+        type: "success",
+        title: welcomeTitle,
+        message: welcomeMessage,
       });
       const from = (location.state as LocationState | null)?.from ?? "/";
       navigate(from, { replace: true });

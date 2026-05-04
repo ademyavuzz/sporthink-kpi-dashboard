@@ -1,0 +1,28 @@
+{
+  "title": "Notifications",
+  "page_title": "Notifications",
+  "page_subtitle": "Important events and system messages collect here.",
+
+  "unread_count": "{{count}} unread",
+  "mark_read": "Mark read",
+  "mark_all_read": "Mark all as read",
+  "remove": "Remove",
+  "clear_all": "Clear all",
+
+  "view_all": "View all",
+  "view_all_more": "View all ({{count}})",
+
+  "empty_title": "No notifications yet",
+  "empty_body": "Important events will appear here as they happen.",
+
+  "filter_all": "All",
+  "filter_unread": "Unread",
+
+  "type_info": "Info",
+  "type_success": "Success",
+  "type_warning": "Warning",
+  "type_error": "Error",
+
+  "welcome_title": "Welcome, {{name}}",
+  "welcome_message": "You're signed in to Sporthink KPI Dashboard."
+}

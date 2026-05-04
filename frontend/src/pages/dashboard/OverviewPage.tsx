@@ -10,6 +10,7 @@ import {
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -58,37 +59,34 @@ export default function OverviewPage() {
   const isLoading = overviewQuery.isPending;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold">{t("overview.title")}</h1>
-          <p className="text-sm text-muted-foreground">
-            {dayjs(range.date_from).format("DD.MM.YYYY")} –{" "}
-            {dayjs(range.date_to).format("DD.MM.YYYY")}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PresetButton
-            onClick={() =>
-              setRange({ preset: "last_30", ...computePresetRange("last_30") })
-            }
-          >
-            {t("overview.preset_last_30")}
-          </PresetButton>
-          <PresetButton
-            onClick={() =>
-              setRange({
-                preset: "custom",
-                date_from: "2024-10-01",
-                date_to: "2025-03-31",
-              })
-            }
-          >
-            {t("overview.preset_all")}
-          </PresetButton>
-          <DateRangePicker value={range} onChange={setRange} />
-        </div>
-      </div>
+    <div className="container mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+      <PageHeader
+        title={t("overview.title")}
+        subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")}`}
+        actions={
+          <>
+            <PresetButton
+              onClick={() =>
+                setRange({ preset: "last_30", ...computePresetRange("last_30") })
+              }
+            >
+              {t("overview.preset_last_30")}
+            </PresetButton>
+            <PresetButton
+              onClick={() =>
+                setRange({
+                  preset: "custom",
+                  date_from: "2024-10-01",
+                  date_to: "2025-03-31",
+                })
+              }
+            >
+              {t("overview.preset_all")}
+            </PresetButton>
+            <DateRangePicker value={range} onChange={setRange} />
+          </>
+        }
+      />
 
       {/* KPI grid: 2 / 3 / 5 sütun */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">

@@ -12,6 +12,8 @@
 
   "logout": "Log out",
   "active_role": "Active role",
+  "account": "Account",
+  "my_notifications": "My notifications",
 
   "theme_dark": "Dark",
   "theme_light": "Light",
@@ -33,7 +35,14 @@
     "segments": "Segments & RFM",
     "user_management": "Users / Roles",
     "audit_logs": "Audit Logs",
-    "channel_mapping": "Channel Mapping"
+    "channel_mapping": "Channel Mapping",
+    "notifications": "Notifications"
+  },
+
+  "nav_group": {
+    "dashboard": "Dashboard",
+    "data": "Data",
+    "system": "System"
   },
 
   "page_overview_title": "Overview",

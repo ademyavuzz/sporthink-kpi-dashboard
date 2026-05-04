@@ -24,6 +24,7 @@ const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage")
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ChannelMappingPage = lazy(() => import("@/pages/admin/ChannelMappingPage"));
 const SegmentsPage = lazy(() => import("@/pages/admin/SegmentsPage"));
+const NotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
 const ForbiddenPage = lazy(() => import("@/pages/error/ForbiddenPage"));
 const NotFoundPage = lazy(() => import("@/pages/error/NotFoundPage"));
 
@@ -177,6 +178,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute permission="dashboard.view">
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {NAV_ITEMS.filter(
           (n) =>
@@ -195,6 +204,7 @@ export default function App() {
               "user_management",
               "audit_logs",
               "channel_mapping",
+              "notifications",
             ].includes(n.id),
         ).map((n) => (
           <Route
