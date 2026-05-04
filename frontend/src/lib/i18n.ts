@@ -30,6 +30,7 @@ void i18n
       "admin",
       "dashboard",
       "notifications",
+      "settings",
     ],
     defaultNS: "common",
     backend: {

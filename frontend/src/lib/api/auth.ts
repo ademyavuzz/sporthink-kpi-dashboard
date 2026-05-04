@@ -1,13 +1,17 @@
 import { apiClient, unwrap } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api";
 import type {
+  AvatarResponse,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   LoginRequest,
   MeResponse,
+  MeUpdateRequest,
   ResetPasswordRequest,
   ResetPasswordResponse,
   TokenResponse,
+  User,
   VerifyResetTokenResponse,
 } from "@/types/auth";
 
@@ -57,6 +61,37 @@ export const authApi = {
   async resetPassword(payload: ResetPasswordRequest): Promise<ResetPasswordResponse> {
     const r = await apiClient.post<ApiEnvelope<ResetPasswordResponse>>(
       "/auth/reset-password",
+      payload,
+    );
+    return unwrap(r);
+  },
+
+  async updateMe(payload: MeUpdateRequest): Promise<User> {
+    const r = await apiClient.patch<ApiEnvelope<User>>("/auth/me", payload);
+    return unwrap(r);
+  },
+
+  async uploadAvatar(file: File): Promise<AvatarResponse> {
+    const form = new FormData();
+    form.append("file", file);
+    const r = await apiClient.post<ApiEnvelope<AvatarResponse>>(
+      "/auth/me/avatar",
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return unwrap(r);
+  },
+
+  async removeAvatar(): Promise<AvatarResponse> {
+    const r = await apiClient.delete<ApiEnvelope<AvatarResponse>>(
+      "/auth/me/avatar",
+    );
+    return unwrap(r);
+  },
+
+  async changePassword(payload: ChangePasswordRequest): Promise<{ success: boolean }> {
+    const r = await apiClient.post<ApiEnvelope<{ success: boolean }>>(
+      "/auth/me/change-password",
       payload,
     );
     return unwrap(r);

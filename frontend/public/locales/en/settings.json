@@ -1,0 +1,48 @@
+{
+  "page_title": "Settings",
+  "page_subtitle": "Your profile information and account security.",
+
+  "tab_profile": "Profile",
+  "tab_security": "Security",
+
+  "avatar_title": "Profile Picture",
+  "avatar_hint": "PNG, JPG, or WEBP. Maximum 2 MB. Uploaded image is resized to 256×256 pixels.",
+  "avatar_change": "Change picture",
+  "avatar_remove": "Remove",
+  "avatar_updated_title": "Profile picture updated",
+  "avatar_removed_title": "Profile picture removed",
+  "avatar_error_format": "Unsupported format. Upload PNG, JPG, or WEBP.",
+  "avatar_error_size": "File is too large (max 2 MB).",
+
+  "profile_section_title": "Personal Information",
+  "profile_section_hint": "Update your name and contact details. Email address is managed by your administrator.",
+  "profile_saved_title": "Your information was saved",
+  "profile_saved_message": "Profile information updated.",
+
+  "field_first_name": "First name",
+  "field_last_name": "Last name",
+  "field_email": "Email",
+  "field_email_hint": "Email cannot be changed. Contact your administrator to update it.",
+  "field_phone": "Phone",
+  "field_department": "Department",
+  "field_job_title": "Job title",
+
+  "save_changes": "Save changes",
+
+  "security_title": "Change Password",
+  "security_hint": "Confirm your current password and choose a new one. Must be at least 10 characters.",
+  "security_logout_warning": "Changing your password signs you out of all devices and you'll need to log in again.",
+
+  "field_current_password": "Current password",
+  "field_new_password": "New password",
+  "field_confirm_password": "Confirm new password",
+  "new_password_placeholder": "At least 10 characters",
+
+  "rule_min_length": "At least 10 characters",
+  "rule_match": "Both fields must match exactly",
+  "passwords_dont_match": "Passwords do not match",
+
+  "change_password": "Change password",
+  "password_changed_title": "Password updated",
+  "password_changed_message": "Please sign in with your new password."
+}

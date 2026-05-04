@@ -28,6 +28,7 @@ pandas==2.2.3
 openpyxl==3.1.5
 aiofiles==24.1.0
 httpx==0.28.1
+Pillow==11.0.0  # avatar upload (resize + format dönüşüm)
 
 # --- Rate limiting ---
 slowapi==0.1.9

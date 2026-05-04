@@ -8,17 +8,21 @@ client `withCredentials: true` ile bu cookie'yi otomatik gönderir.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.dependencies import get_current_user, get_db
 from app.models import User
 from app.schemas import (
+    AvatarResponse,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
     MeResponse,
+    MeUpdateRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
     SuccessEnvelope,
@@ -26,7 +30,7 @@ from app.schemas import (
     UserResponse,
     VerifyResetTokenResponse,
 )
-from app.services import auth_service, password_reset_service
+from app.services import auth_service, password_reset_service, profile_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -186,6 +190,102 @@ async def me(
             permissions=perms,
         )
     )
+
+
+@router.patch(
+    "/me",
+    response_model=SuccessEnvelope[UserResponse],
+    summary="Kendi profil bilgilerini güncelle",
+)
+async def update_me(
+    body: MeUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[UserResponse]:
+    """Email değişmiyor — admin işidir. Diğer profil alanları (ad, soyad,
+    telefon, departman, görev) güncellenebilir."""
+    user = await profile_service.update_me(
+        db,
+        current_user,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        phone=body.phone,
+        department=body.department,
+        job_title=body.job_title,
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return SuccessEnvelope(data=UserResponse.model_validate(user))
+
+
+@router.post(
+    "/me/avatar",
+    response_model=SuccessEnvelope[AvatarResponse],
+    summary="Profil resmi yükle (PNG/JPG/WEBP, max 2MB)",
+)
+async def upload_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[AvatarResponse]:
+    content = await file.read()
+    user = await profile_service.upload_avatar(
+        db,
+        current_user,
+        content=content,
+        content_type=file.content_type,
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return SuccessEnvelope(data=AvatarResponse(avatar_url=user.avatar_url))
+
+
+@router.delete(
+    "/me/avatar",
+    response_model=SuccessEnvelope[AvatarResponse],
+    summary="Profil resmini kaldır",
+)
+async def remove_avatar(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[AvatarResponse]:
+    user = await profile_service.remove_avatar(
+        db,
+        current_user,
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return SuccessEnvelope(data=AvatarResponse(avatar_url=user.avatar_url))
+
+
+@router.post(
+    "/me/change-password",
+    response_model=SuccessEnvelope[ChangePasswordResponse],
+    summary="Kendi şifreni değiştir (mevcut şifre doğrulamasıyla)",
+)
+async def change_password(
+    body: ChangePasswordRequest,
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[ChangePasswordResponse]:
+    """Başarılı olunca tüm aktif refresh tokenlar revoke edilir; refresh
+    cookie de temizlenir. Frontend'in kullanıcıyı login sayfasına yönlendirmesi
+    beklenir."""
+    await profile_service.change_password(
+        db,
+        current_user,
+        current_password=body.current_password,
+        new_password=body.new_password,
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    _clear_refresh_cookie(response)
+    return SuccessEnvelope(data=ChangePasswordResponse(success=True))
 
 
 def _mask_email(email: str) -> str:

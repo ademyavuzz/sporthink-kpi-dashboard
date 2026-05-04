@@ -5,9 +5,13 @@
 """
 
 from app.schemas.auth import (
+    AvatarResponse,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
+    MeUpdateRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
     TokenResponse,
@@ -59,6 +63,7 @@ from app.schemas.kpi import (
 from app.schemas.user import MeResponse, RoleSummary, UserResponse
 
 __all__ = [
+    "AvatarResponse",
     "CampaignAdMetrics",
     "CampaignAnalysisResponse",
     "CampaignDailyPoint",
@@ -66,6 +71,8 @@ __all__ = [
     "CampaignEcomSummary",
     "CampaignMetric",
     "CampaignTopProduct",
+    "ChangePasswordRequest",
+    "ChangePasswordResponse",
     "ChannelMetric",
     "CohortCell",
     "CohortResponse",
@@ -91,6 +98,7 @@ __all__ = [
     "KPISummary",
     "LoginRequest",
     "MeResponse",
+    "MeUpdateRequest",
     "MetaAdsResponse",
     "OverviewResponse",
     "ProductsResponse",

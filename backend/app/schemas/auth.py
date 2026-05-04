@@ -78,3 +78,40 @@ class ResetPasswordRequest(BaseModel):
 class ResetPasswordResponse(BaseModel):
     success: bool = True
     email: str
+
+
+class MeUpdateRequest(BaseModel):
+    """Kullanıcının kendi profil alanlarını güncellemek için.
+
+    Email değişmiyor (kimliği etkiler — admin gerekir). Tüm alanlar opsiyonel,
+    sadece gönderilen alanlar güncellenir.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    first_name: str | None = Field(None, min_length=1, max_length=100)
+    last_name: str | None = Field(None, min_length=1, max_length=100)
+    phone: str | None = Field(None, max_length=20)
+    department: str | None = Field(None, max_length=100)
+    job_title: str | None = Field(None, max_length=100)
+
+
+class ChangePasswordRequest(BaseModel):
+    """Kullanıcının kendi şifresini değiştirmek için.
+
+    Mevcut şifre doğrulanmadan yeni şifre kabul edilmez. Başarılı olunca
+    tüm aktif refresh token'lar revoke edilir; kullanıcı yeniden login olur.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
+
+
+class ChangePasswordResponse(BaseModel):
+    success: bool = True
+
+
+class AvatarResponse(BaseModel):
+    avatar_url: str | None

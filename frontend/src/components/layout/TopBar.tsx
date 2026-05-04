@@ -1,8 +1,9 @@
-import { ChevronDown, LogOut, Mail, Moon, Sun, UserRound } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Mail, Moon, Settings, Sun, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { NotificationBell } from "@/components/feature/NotificationBell";
+import { UserAvatar } from "@/components/feature/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -47,11 +48,6 @@ export function TopBar() {
     }
   };
 
-  const initials =
-    user?.first_name && user?.last_name
-      ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
-      : user?.email[0]?.toUpperCase() ?? "?";
-
   return (
     <header className="sticky top-0 z-9 flex h-14 flex-shrink-0 items-center gap-2 border-b border-border bg-surface px-4">
       <div className="flex-1" />
@@ -92,9 +88,7 @@ export function TopBar() {
               type="button"
               className="ml-1 inline-flex h-9 items-center gap-2 rounded-full border border-border bg-surface-2 py-1 pl-1 pr-3 transition-colors hover:bg-muted"
             >
-              <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                {initials}
-              </span>
+              <UserAvatar user={user} size="sm" className="ring-0" />
               <span className="hidden flex-col leading-tight md:flex">
                 <span className="text-[12px] font-semibold">{user.full_name}</span>
                 <span className="text-[10px] text-text-muted">
@@ -131,8 +125,16 @@ export function TopBar() {
               )}
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/notifications")}>
+            <DropdownMenuItem onSelect={() => navigate("/settings/profile")}>
               <UserRound />
+              {t("my_profile")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/settings")}>
+              <Settings />
+              {t("nav.settings")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/notifications")}>
+              <Bell />
               {t("my_notifications")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />

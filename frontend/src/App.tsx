@@ -25,6 +25,9 @@ const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ChannelMappingPage = lazy(() => import("@/pages/admin/ChannelMappingPage"));
 const SegmentsPage = lazy(() => import("@/pages/admin/SegmentsPage"));
 const NotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
+const SettingsLayout = lazy(() => import("@/pages/settings/SettingsLayout"));
+const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
+const SecurityPage = lazy(() => import("@/pages/settings/SecurityPage"));
 const ForbiddenPage = lazy(() => import("@/pages/error/ForbiddenPage"));
 const NotFoundPage = lazy(() => import("@/pages/error/NotFoundPage"));
 
@@ -186,6 +189,18 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute permission="dashboard.view">
+              <SettingsLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/settings/profile" replace />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="security" element={<SecurityPage />} />
+        </Route>
 
         {NAV_ITEMS.filter(
           (n) =>
@@ -205,6 +220,7 @@ export default function App() {
               "audit_logs",
               "channel_mapping",
               "notifications",
+              "settings",
             ].includes(n.id),
         ).map((n) => (
           <Route

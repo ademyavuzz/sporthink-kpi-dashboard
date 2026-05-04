@@ -13,6 +13,7 @@
   "logout": "Çıkış yap",
   "active_role": "Aktif rol",
   "account": "Hesap",
+  "my_profile": "Profilim",
   "my_notifications": "Bildirimlerim",
 
   "theme_dark": "Koyu",
@@ -36,7 +37,8 @@
     "user_management": "Kullanıcı / Roller",
     "audit_logs": "Denetim Kayıtları",
     "channel_mapping": "Kanal Eşleme",
-    "notifications": "Bildirimler"
+    "notifications": "Bildirimler",
+    "settings": "Ayarlar"
   },
 
   "nav_group": {

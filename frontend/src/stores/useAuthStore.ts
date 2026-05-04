@@ -15,6 +15,11 @@ interface AuthState {
   setAccessToken: (token: string) => void;
   /** /me sonrası izinleri yükle. */
   setPermissions: (permissions: PermissionCode[]) => void;
+  /** Profil güncellemesi sonrası user objesini tazele (TopBar/Sidebar
+   *  anında yansır). */
+  setUser: (user: User) => void;
+  /** Sadece avatar URL'ini tazele (PATCH yapmadan). */
+  setAvatarUrl: (avatarUrl: string | null) => void;
   /** Logout. */
   clearAuth: () => void;
 }
@@ -41,6 +46,11 @@ export const useAuthStore = create<AuthState>()(
         set({ user, accessToken, permissions: permissions ?? [] }),
       setAccessToken: (accessToken) => set({ accessToken }),
       setPermissions: (permissions) => set({ permissions }),
+      setUser: (user) => set({ user }),
+      setAvatarUrl: (avatarUrl) =>
+        set((s) =>
+          s.user ? { user: { ...s.user, avatar_url: avatarUrl } } : s,
+        ),
       clearAuth: () => set({ user: null, accessToken: null, permissions: [] }),
     }),
     {
