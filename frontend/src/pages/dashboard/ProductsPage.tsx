@@ -19,7 +19,9 @@ import {
   toNumber,
 } from "@/lib/format";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import { cn } from "@/lib/utils";
+
+import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function ProductsPage() {
   const [range, setRange] = useDashboardRange();
@@ -37,10 +39,10 @@ export default function ProductsPage() {
   const isLoading = q.isPending;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader title="Ürün Performansı" range={range} onChangeRange={setRange} />
 
-      <div className="grid grid-cols-2 gap-3 max-w-md">
+      <div className="grid max-w-md grid-cols-2 gap-3">
         {isLoading ? (
           <>
             <KPICardSkeleton />
@@ -103,58 +105,102 @@ export default function ProductsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>En Çok Satan Ürünler (Top 20)</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
+              <colgroup>
+                <col className="w-[60px]" />
+                <col className="w-[140px]" />
+                <col />
+                <col className="w-[160px]" />
+                <col className="w-[110px]" />
+                <col className="w-[140px]" />
+              </colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Ürün</TableHead>
-                  <TableHead>Marka</TableHead>
-                  <TableHead className="text-right">Adet</TableHead>
-                  <TableHead className="text-right">Ciro</TableHead>
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    #
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    SKU
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Ürün
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Marka
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Adet
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Ciro
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading
-                  ? Array.from({ length: 8 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={6}>
-                          <div className="h-5 bg-muted rounded animate-pulse" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : (data?.top_products ?? []).map((p, i) => (
-                      <TableRow key={p.sku}>
-                        <TableCell className="text-muted-foreground tabular-nums">
-                          {i + 1}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                        <TableCell
-                          className="max-w-[300px] truncate"
+                {isLoading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={6} className="px-4 py-3.5">
+                        <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (data?.top_products ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="py-12 text-center text-sm text-text-muted"
+                    >
+                      —
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  (data?.top_products ?? []).map((p, i) => (
+                    <TableRow
+                      key={p.sku}
+                      className={cn(
+                        "border-b border-border/60 transition-colors",
+                        i % 2 === 1 && "bg-surface-2/40",
+                        "hover:bg-primary/[0.04]",
+                      )}
+                    >
+                      <TableCell className="px-4 py-3.5 text-sm font-semibold tabular-nums text-text-muted">
+                        {i + 1}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
+                        {p.sku}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm">
+                        <span
+                          className="block truncate font-medium text-foreground"
                           title={p.product_name ?? ""}
                         >
                           {p.product_name ?? "—"}
-                        </TableCell>
-                        <TableCell>{p.brand ?? "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCount(p.units_sold)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCurrency(p.revenue)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                        {p.brand ?? <span className="text-text-dim">—</span>}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                        {formatCount(p.units_sold)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
+                        {formatCurrency(p.revenue)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
