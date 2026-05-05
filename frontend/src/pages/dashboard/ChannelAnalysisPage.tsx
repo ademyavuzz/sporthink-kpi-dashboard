@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   DateRangePicker,
@@ -38,6 +39,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useFiltersStore } from "@/stores/useFiltersStore";
 
+import { PageShell } from "./_shared";
+
 export default function ChannelAnalysisPage() {
   const { t } = useTranslation(["dashboard"]);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,15 +52,18 @@ export default function ChannelAnalysisPage() {
     date_to: "2025-03-31",
   }));
 
-  // Filter store'dan tüm aktif filtreleri al
-  const filters = useFiltersStore((s) => ({
-    selected_channels: s.selected_channels,
-    selected_devices: s.selected_devices,
-    revenue_range: s.revenue_range,
-    orders_range: s.orders_range,
-    roas_range: s.roas_range,
-    conversion_range: s.conversion_range,
-  }));
+  // Filter store'dan tüm aktif filtreleri al — `useShallow` ile gereksiz
+  // re-render'ları önle (object selector her render yeni referans üretir).
+  const filters = useFiltersStore(
+    useShallow((s) => ({
+      selected_channels: s.selected_channels,
+      selected_devices: s.selected_devices,
+      revenue_range: s.revenue_range,
+      orders_range: s.orders_range,
+      roas_range: s.roas_range,
+      conversion_range: s.conversion_range,
+    })),
+  );
 
   const q = useQuery({
     queryKey: [
@@ -137,7 +143,7 @@ export default function ChannelAnalysisPage() {
   }, [data]);
 
   return (
-    <div className="container mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+    <PageShell>
       <PageHeader
         title={t("dashboard:channel_analysis.title")}
         subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")}`}
@@ -274,7 +280,7 @@ export default function ChannelAnalysisPage() {
       </div>
 
       {/* Detaylı kanal tablosu */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">
             {t("dashboard:channel_analysis.table_title")}
@@ -282,34 +288,45 @@ export default function ChannelAnalysisPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
+              <colgroup>
+                <col className="w-[160px]" />
+                <col className="w-[130px]" />
+                <col className="w-[100px]" />
+                <col className="w-[110px]" />
+                <col className="w-[110px]" />
+                <col className="w-[120px]" />
+                <col className="w-[100px]" />
+                <col className="w-[110px]" />
+                <col className="w-[110px]" />
+              </colgroup>
               <TableHeader>
-                <TableRow className="bg-surface-2 hover:bg-surface-2">
-                  <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_channel")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_revenue")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_orders")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_sessions")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_conversion")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_ad_spend")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_roas")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_aov")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:channel_analysis.col_customers")}
                   </TableHead>
                 </TableRow>
@@ -318,7 +335,7 @@ export default function ChannelAnalysisPage() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={9}>
+                      <TableCell colSpan={9} className="px-4 py-3.5">
                         <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                       </TableCell>
                     </TableRow>
@@ -327,59 +344,103 @@ export default function ChannelAnalysisPage() {
                   <TableRow>
                     <TableCell
                       colSpan={9}
-                      className="py-8 text-center text-text-muted"
+                      className="py-12 text-center text-sm text-text-muted"
                     >
                       {t("dashboard:channel_analysis.empty")}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.channels.map((c) => (
-                    <TableRow key={c.channel}>
-                      <TableCell className="font-medium">{c.channel}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">
-                        {formatCurrency(c.revenue)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCount(c.orders)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-text-muted">
-                        {formatCount(c.sessions)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {c.conversion_rate !== null
-                          ? formatPercent(c.conversion_rate, 2)
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-text-muted">
-                        {Number(c.ad_spend) > 0
-                          ? formatCurrency(c.ad_spend)
-                          : "—"}
-                      </TableCell>
-                      <TableCell
+                  data.channels.map((c, idx) => {
+                    const roasNum = c.roas !== null ? Number(c.roas) : null;
+                    const roasTone =
+                      roasNum === null
+                        ? "neutral"
+                        : roasNum >= 4
+                          ? "success"
+                          : roasNum >= 1
+                            ? "info"
+                            : "error";
+                    return (
+                      <TableRow
+                        key={c.channel}
                         className={cn(
-                          "text-right tabular-nums font-medium",
-                          c.roas !== null &&
-                            Number(c.roas) >= 4 &&
-                            "text-emerald-600 dark:text-emerald-400",
+                          "border-b border-border/60 transition-colors",
+                          idx % 2 === 1 && "bg-surface-2/40",
+                          "hover:bg-primary/[0.04]",
                         )}
                       >
-                        {c.roas !== null ? formatMultiplier(c.roas) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-text-muted">
-                        {c.aov !== null ? formatCurrency(c.aov) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCount(c.customers)}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell className="px-4 py-3.5 text-sm font-semibold text-foreground">
+                          {c.channel}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
+                          {formatCurrency(c.revenue)}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                          {formatCount(c.orders)}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                          {formatCount(c.sessions)}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                          {c.conversion_rate !== null
+                            ? formatPercent(c.conversion_rate, 2)
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                          {Number(c.ad_spend) > 0
+                            ? formatCurrency(c.ad_spend)
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right">
+                          {roasNum !== null ? (
+                            <RoasPill tone={roasTone} value={roasNum} />
+                          ) : (
+                            <span className="text-text-dim">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                          {c.aov !== null ? formatCurrency(c.aov) : "—"}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                          {formatCount(c.customers)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
+  );
+}
+
+function RoasPill({
+  tone,
+  value,
+}: {
+  tone: "success" | "info" | "error" | "neutral";
+  value: number;
+}) {
+  const cls = {
+    success:
+      "bg-success-50 text-success-700 ring-success-100 dark:bg-success-500/10 dark:text-success-500 dark:ring-success-500/20",
+    info: "bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20",
+    error:
+      "bg-error-50 text-error-700 ring-error-100 dark:bg-error-500/10 dark:text-error-500 dark:ring-error-500/20",
+    neutral: "bg-muted text-text-muted",
+  }[tone];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset",
+        cls,
+      )}
+    >
+      {formatMultiplier(value)}
+    </span>
   );
 }
 
