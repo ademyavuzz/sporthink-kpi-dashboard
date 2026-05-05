@@ -297,7 +297,7 @@ export default function CustomersPage() {
       </Card>
 
       {/* Top 20 müşteri tablosu */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">
             {t("dashboard:customers.top_customers_title")}
@@ -305,28 +305,37 @@ export default function CustomersPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
+              <colgroup>
+                <col className="w-[60px]" />
+                <col />
+                <col className="w-[140px]" />
+                <col className="w-[200px]" />
+                <col className="w-[100px]" />
+                <col className="w-[140px]" />
+                <col className="w-[140px]" />
+              </colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10 text-[11px] uppercase tracking-wider text-text-dim">
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     #
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_customer")}
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_city")}
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_demographics")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_orders")}
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_revenue")}
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider text-text-dim">
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
                     {t("dashboard:customers.col_last_order")}
                   </TableHead>
                 </TableRow>
@@ -335,31 +344,45 @@ export default function CustomersPage() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={7} className="px-4 py-3.5">
                         <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : !data || data.top_customers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-text-muted">
+                    <TableCell
+                      colSpan={7}
+                      className="py-12 text-center text-sm text-text-muted"
+                    >
                       {t("dashboard:customers.empty_top")}
                     </TableCell>
                   </TableRow>
                 ) : (
                   data.top_customers.map((c, i) => (
-                    <TableRow key={c.customer_id}>
-                      <TableCell className="text-text-muted tabular-nums text-xs">
+                    <TableRow
+                      key={c.customer_id}
+                      className={cn(
+                        "border-b border-border/60 transition-colors",
+                        i % 2 === 1 && "bg-surface-2/40",
+                        "hover:bg-primary/[0.04]",
+                      )}
+                    >
+                      <TableCell className="px-4 py-3.5 text-sm font-semibold tabular-nums text-text-muted">
                         {i + 1}
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{c.customer_name ?? "—"}</div>
+                      <TableCell className="px-3 py-3.5">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {c.customer_name ?? "—"}
+                        </div>
                         <div className="font-mono text-[11px] text-text-dim">
                           {c.customer_id}
                         </div>
                       </TableCell>
-                      <TableCell>{c.city ?? "—"}</TableCell>
-                      <TableCell className="text-xs text-text-muted">
+                      <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                        {c.city ?? <span className="text-text-dim">—</span>}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-xs text-text-muted">
                         {[
                           c.gender ? GENDER_LABEL[c.gender] ?? c.gender : null,
                           c.age_group,
@@ -367,13 +390,13 @@ export default function CustomersPage() {
                           .filter(Boolean)
                           .join(" · ") || "—"}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
                         {formatCount(c.total_orders)}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
                         {formatCurrency(c.total_revenue)}
                       </TableCell>
-                      <TableCell className="text-xs text-text-muted">
+                      <TableCell className="px-3 py-3.5 text-xs text-text-muted">
                         {c.last_order_date
                           ? dayjs(c.last_order_date).format("DD.MM.YYYY")
                           : "—"}
