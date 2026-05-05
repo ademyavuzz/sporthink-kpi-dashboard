@@ -24,12 +24,14 @@ import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import {
   formatAxisCurrency,
-  formatAxisNumber,
   formatCount,
   formatCurrency,
   formatPercent,
   toNumber,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+import { PageShell } from "./_shared";
 
 /**
  * Overview Page — 9 KPI + revenue trend + kanal donut + funnel + top products.
@@ -59,7 +61,7 @@ export default function OverviewPage() {
   const isLoading = overviewQuery.isPending;
 
   return (
-    <div className="container mx-auto max-w-[1400px] space-y-6 px-6 py-6">
+    <PageShell>
       <PageHeader
         title={t("overview.title")}
         subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")}`}
@@ -201,53 +203,87 @@ export default function OverviewPage() {
       </div>
 
       {/* Top products */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>{t("overview.top_products_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("overview.table_sku")}</TableHead>
-                <TableHead>{t("overview.table_product")}</TableHead>
-                <TableHead>{t("overview.table_brand")}</TableHead>
-                <TableHead className="text-right">{t("overview.table_units")}</TableHead>
-                <TableHead className="text-right">{t("overview.table_revenue")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={5}>
-                        <div className="h-5 bg-muted rounded animate-pulse" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : (data?.top_products ?? []).map((p) => (
-                    <TableRow key={p.sku}>
-                      <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                      <TableCell
-                        className="max-w-[300px] truncate"
-                        title={p.product_name ?? ""}
+          <div className="overflow-x-auto">
+            <Table className="table-fixed">
+              <colgroup>
+                <col className="w-[140px]" />
+                <col />
+                <col className="w-[160px]" />
+                <col className="w-[110px]" />
+                <col className="w-[140px]" />
+              </colgroup>
+              <TableHeader>
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    {t("overview.table_sku")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    {t("overview.table_product")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    {t("overview.table_brand")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    {t("overview.table_units")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    {t("overview.table_revenue")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={5} className="px-4 py-3.5">
+                          <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : (data?.top_products ?? []).map((p, idx) => (
+                      <TableRow
+                        key={p.sku}
+                        className={cn(
+                          "border-b border-border/60 transition-colors",
+                          idx % 2 === 1 && "bg-surface-2/40",
+                          "hover:bg-primary/[0.04]",
+                        )}
                       >
-                        {p.product_name ?? "—"}
-                      </TableCell>
-                      <TableCell>{p.brand ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCount(p.units_sold)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCurrency(p.revenue)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
+                        <TableCell className="px-4 py-3.5 font-mono text-xs text-text-muted">
+                          {p.sku}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-sm">
+                          <span
+                            className="block truncate font-medium text-foreground"
+                            title={p.product_name ?? ""}
+                          >
+                            {p.product_name ?? "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                          {p.brand ?? (
+                            <span className="text-text-dim">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                          {formatCount(p.units_sold)}
+                        </TableCell>
+                        <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
+                          {formatCurrency(p.revenue)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
 
@@ -260,8 +296,9 @@ function PresetButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent transition-colors"
+      className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-semibold text-text-muted hover:bg-muted hover:text-foreground transition-colors"
     >
       {children}
     </button>
@@ -293,26 +330,30 @@ function FunnelTable({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {steps.map((s) => {
         const pct = (s.count / max) * 100;
         const drop = s.drop_from_previous_pct;
         return (
-          <div key={s.step} className="space-y-1">
+          <div key={s.step} className="space-y-1.5">
             <div className="flex items-baseline justify-between text-sm">
-              <span className="font-medium">{s.label_tr}</span>
+              <span className="font-semibold text-foreground">
+                {s.label_tr}
+              </span>
               <div className="flex items-center gap-3">
-                <span className="tabular-nums">{formatCount(s.count)}</span>
+                <span className="tabular-nums font-medium text-foreground">
+                  {formatCount(s.count)}
+                </span>
                 {drop !== null && (
-                  <span className="text-xs text-rose-600">
+                  <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-error-600 dark:text-error-500">
                     ↓ {formatPercent(drop, 1)}
                   </span>
                 )}
               </div>
             </div>
-            <div className="h-7 bg-muted/40 rounded overflow-hidden">
+            <div className="h-7 overflow-hidden rounded-md bg-muted/40">
               <div
-                className="h-full bg-primary/80 rounded transition-all"
+                className="h-full rounded-md bg-primary transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
