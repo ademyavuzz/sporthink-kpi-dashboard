@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function EcommercePage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "ecom", range.date_from, range.date_to],
@@ -38,7 +40,7 @@ export default function EcommercePage() {
 
   return (
     <PageShell>
-      <DashboardHeader title="E-Ticaret" range={range} onChangeRange={setRange} />
+      <DashboardHeader title={t("ecom.title")} range={range} onChangeRange={setRange} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         {isLoading
@@ -58,7 +60,7 @@ export default function EcommercePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Günlük Ciro & Sipariş</CardTitle>
+          <CardTitle>{t("ecom.trend_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <LineChart
@@ -68,7 +70,7 @@ export default function EcommercePage() {
               data
                 ? [
                     {
-                      name: "Ciro (₺)",
+                      name: t("ecom.series_revenue"),
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: toNumber(p.revenue) ?? 0,
@@ -76,7 +78,7 @@ export default function EcommercePage() {
                       formatter: formatCurrency,
                     },
                     {
-                      name: "Sipariş",
+                      name: t("ecom.series_orders"),
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: p.orders,
@@ -94,12 +96,18 @@ export default function EcommercePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Kanal Bazlı Ciro</CardTitle>
+            <CardTitle>{t("ecom.by_channel_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <DonutChart
               loading={isLoading}
-              labels={data ? data.by_channel.map((c) => c.channel ?? "Diğer") : []}
+              labels={
+                data
+                  ? data.by_channel.map(
+                      (c) => c.channel ?? t("overview.channel_other"),
+                    )
+                  : []
+              }
               values={
                 data ? data.by_channel.map((c) => toNumber(c.revenue) ?? 0) : []
               }
@@ -110,7 +118,7 @@ export default function EcommercePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Yeni vs Tekrarlayan Müşteri</CardTitle>
+            <CardTitle>{t("ecom.new_vs_returning_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <DonutChart
@@ -118,7 +126,9 @@ export default function EcommercePage() {
               labels={
                 data
                   ? data.new_vs_returning.map((c) =>
-                      c.customer_type === "new" ? "Yeni" : "Tekrarlayan",
+                      c.customer_type === "new"
+                        ? t("ecom.customer_new")
+                        : t("ecom.customer_returning"),
                     )
                   : []
               }
@@ -128,7 +138,7 @@ export default function EcommercePage() {
                   : []
               }
               valueFormatter={formatCurrency}
-              totalLabel="Toplam Ciro"
+              totalLabel={t("ecom.total_revenue")}
             />
           </CardContent>
         </Card>
@@ -136,7 +146,7 @@ export default function EcommercePage() {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>En Çok Harcayan Müşteriler (Top 20)</CardTitle>
+          <CardTitle>{t("ecom.top_customers_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -153,25 +163,25 @@ export default function EcommercePage() {
               <TableHeader>
                 <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
                   <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Müşteri ID
+                    {t("ecom.col_customer_id")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Ad
+                    {t("ecom.col_name")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Şehir
+                    {t("ecom.col_city")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Cinsiyet
+                    {t("ecom.col_gender")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Yaş Grubu
+                    {t("ecom.col_age_group")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Sipariş
+                    {t("ecom.col_orders")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Ciro
+                    {t("ecom.col_revenue")}
                   </TableHead>
                 </TableRow>
               </TableHeader>

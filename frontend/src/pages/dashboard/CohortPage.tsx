@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -18,6 +19,7 @@ const MAX_OFFSET = 12;
  * her zaman %100 (taban).
  */
 export default function CohortPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "cohort", range.date_from, range.date_to],
@@ -51,23 +53,21 @@ export default function CohortPage() {
   return (
     <PageShell>
       <DashboardHeader
-        title="Cohort / Retention"
+        title={t("cohort.title")}
         range={range}
         onChangeRange={setRange}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Retention Heatmap — Kayıt Ayı × Ay Sonra Aktivite
-          </CardTitle>
+          <CardTitle>{t("cohort.heatmap_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="h-64 animate-pulse rounded bg-muted/40" />
           ) : matrix.cohorts.length === 0 ? (
             <p className="py-12 text-center text-sm text-text-muted">
-              Bu tarih aralığında cohort verisi yok.
+              {t("cohort.empty")}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -75,10 +75,10 @@ export default function CohortPage() {
                 <thead>
                   <tr>
                     <th className="sticky left-0 z-10 border-b border-border bg-surface-2 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-dim">
-                      Cohort
+                      {t("cohort.col_cohort")}
                     </th>
                     <th className="border-b border-border bg-surface-2 px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-dim">
-                      Boyut
+                      {t("cohort.col_size")}
                     </th>
                     {Array.from({ length: MAX_OFFSET + 1 }).map((_, i) => (
                       <th
@@ -150,7 +150,7 @@ export default function CohortPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Cohort Boyutları</CardTitle>
+          <CardTitle>{t("cohort.sizes_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -167,14 +167,14 @@ export default function CohortPage() {
                   <p className="text-2xl font-semibold tabular-nums text-foreground">
                     {formatCount(size)}{" "}
                     <span className="text-xs font-normal text-text-muted">
-                      müşteri
+                      {t("cohort.customers_suffix")}
                     </span>
                   </p>
                   {(() => {
                     const m1 = matrix.map.get(cohort)?.get(1);
                     return m1 ? (
                       <p className="text-xs text-text-muted">
-                        M1 retention:{" "}
+                        {t("cohort.m1_retention_label")}{" "}
                         <span className="font-semibold text-foreground">
                           {formatPercent(m1.pct, 1)}
                         </span>

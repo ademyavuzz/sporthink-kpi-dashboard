@@ -3,6 +3,7 @@
  * tarih aralığı state pattern'i.
  */
 import { type Dispatch, type ReactNode, type SetStateAction, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   DateRangePicker,
@@ -41,6 +42,7 @@ export function DashboardHeader({
   onChangeRange,
   actions,
 }: DashboardHeaderProps) {
+  const { t } = useTranslation("dashboard");
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
@@ -63,7 +65,7 @@ export function DashboardHeader({
             onChangeRange({ preset: "last_30", ...computePresetRange("last_30") })
           }
         >
-          Son 30 gün
+          {t("overview.preset_last_30")}
         </PresetButton>
         <PresetButton
           onClick={() =>
@@ -74,7 +76,7 @@ export function DashboardHeader({
             })
           }
         >
-          Tüm dönem
+          {t("overview.preset_all")}
         </PresetButton>
         <DateRangePicker value={range} onChange={onChangeRange} />
         {actions}

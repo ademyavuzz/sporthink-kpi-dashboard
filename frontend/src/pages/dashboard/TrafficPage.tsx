@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
@@ -11,6 +12,7 @@ import { formatAxisNumber, toNumber } from "@/lib/format";
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function TrafficPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "traffic", range.date_from, range.date_to],
@@ -27,7 +29,7 @@ export default function TrafficPage() {
 
   return (
     <PageShell>
-      <DashboardHeader title="Trafik (GA4)" range={range} onChangeRange={setRange} />
+      <DashboardHeader title={t("traffic.title")} range={range} onChangeRange={setRange} />
 
       {/* 7 KPI */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
@@ -48,7 +50,7 @@ export default function TrafficPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Günlük Oturum Trendi</CardTitle>
+          <CardTitle>{t("traffic.trend_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <LineChart
@@ -57,7 +59,7 @@ export default function TrafficPage() {
               data
                 ? [
                     {
-                      name: "Oturum",
+                      name: t("traffic.series_sessions"),
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: p.sessions,
@@ -74,7 +76,7 @@ export default function TrafficPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Kanal Dağılımı (Oturum)</CardTitle>
+            <CardTitle>{t("traffic.by_channel_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <BarChart
@@ -85,20 +87,22 @@ export default function TrafficPage() {
                 data
                   ? [
                       {
-                        name: "Oturum",
+                        name: t("traffic.series_sessions"),
                         data: data.by_channel.map((c) => toNumber(c.value) ?? 0),
                       },
                     ]
                   : []
               }
-              valueFormatter={(v) => `${formatAxisNumber(v)} oturum`}
+              valueFormatter={(v) =>
+                `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`
+              }
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Cihaz Dağılımı</CardTitle>
+            <CardTitle>{t("traffic.by_device_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <BarChart
@@ -108,13 +112,15 @@ export default function TrafficPage() {
                 data
                   ? [
                       {
-                        name: "Oturum",
+                        name: t("traffic.series_sessions"),
                         data: data.by_device.map((d) => toNumber(d.value) ?? 0),
                       },
                     ]
                   : []
               }
-              valueFormatter={(v) => `${formatAxisNumber(v)} oturum`}
+              valueFormatter={(v) =>
+                `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`
+              }
             />
           </CardContent>
         </Card>
@@ -122,7 +128,7 @@ export default function TrafficPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Şehir Bazlı Trafik (Top 15)</CardTitle>
+          <CardTitle>{t("traffic.by_city_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <BarChart
@@ -134,13 +140,15 @@ export default function TrafficPage() {
               data
                 ? [
                     {
-                      name: "Oturum",
+                      name: t("traffic.series_sessions"),
                       data: data.by_city.map((c) => toNumber(c.value) ?? 0),
                     },
                   ]
                 : []
             }
-            valueFormatter={(v) => `${formatAxisNumber(v)} oturum`}
+            valueFormatter={(v) =>
+              `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`
+            }
           />
         </CardContent>
       </Card>

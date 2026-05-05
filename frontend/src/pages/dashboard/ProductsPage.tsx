@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function ProductsPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "products", range.date_from, range.date_to],
@@ -40,7 +42,7 @@ export default function ProductsPage() {
 
   return (
     <PageShell>
-      <DashboardHeader title="Ürün Performansı" range={range} onChangeRange={setRange} />
+      <DashboardHeader title={t("products.title")} range={range} onChangeRange={setRange} />
 
       <div className="grid max-w-md grid-cols-2 gap-3">
         {isLoading ? (
@@ -56,7 +58,7 @@ export default function ProductsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Kategori Bazlı Ciro</CardTitle>
+            <CardTitle>{t("products.by_category_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <BarChart
@@ -68,7 +70,7 @@ export default function ProductsPage() {
                 data
                   ? [
                       {
-                        name: "Ciro",
+                        name: t("products.series_revenue"),
                         data: data.by_category.map((c) => toNumber(c.value) ?? 0),
                       },
                     ]
@@ -81,7 +83,7 @@ export default function ProductsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Marka Bazlı Ciro</CardTitle>
+            <CardTitle>{t("products.by_brand_card_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <BarChart
@@ -93,7 +95,7 @@ export default function ProductsPage() {
                 data
                   ? [
                       {
-                        name: "Ciro",
+                        name: t("products.series_revenue"),
                         data: data.by_brand.map((b) => toNumber(b.value) ?? 0),
                       },
                     ]
@@ -107,7 +109,7 @@ export default function ProductsPage() {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>En Çok Satan Ürünler (Top 20)</CardTitle>
+          <CardTitle>{t("products.top_products_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -123,22 +125,22 @@ export default function ProductsPage() {
               <TableHeader>
                 <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
                   <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    #
+                    {t("products.col_rank")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    SKU
+                    {t("products.col_sku")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Ürün
+                    {t("products.col_product")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Marka
+                    {t("products.col_brand")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Adet
+                    {t("products.col_units")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Ciro
+                    {t("products.col_revenue")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
