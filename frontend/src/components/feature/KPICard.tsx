@@ -75,8 +75,12 @@ interface KPICardProps {
   loading?: boolean;
   /** Sıkışık layout için (sm: 4-6 sütun) - daha kısa padding ve değer. */
   compact?: boolean;
+  /** Hero variant — Genel Özet'te ana 3 metrik için daha büyük tipografi. */
+  hero?: boolean;
   /** İkon override — verilmezse `kpi.kpi_id`'ye göre otomatik seçilir. */
   icon?: IconCmp;
+  /** Mini trend için son N gün (örn. son 14 gün). Verilmezse sparkline gösterilmez. */
+  sparkline?: number[];
 }
 
 /**
@@ -94,17 +98,20 @@ export function KPICard({
   kpi,
   loading,
   compact,
+  hero,
   icon,
+  sparkline,
 }: KPICardProps) {
-  if (loading) return <KPICardSkeleton compact={compact} />;
+  // Backend `kpi_id` üzerinden i18n key çözeriz; sözlükte yoksa
+  // backward-compat için backend'den gelen `label_tr`'a düşeriz.
+  const { t } = useTranslation("dashboard");
+
+  if (loading) return <KPICardSkeleton compact={compact} hero={hero} />;
 
   const Icon = icon ?? pickIcon(kpi.kpi_id);
   const value = formatKPIValue(kpi.value, kpi.unit);
   const change = formatChange(kpi.change_percentage);
   const TrendIcon = kpi.direction === "down" ? ArrowDown : ArrowUp;
-  // Backend `kpi_id` üzerinden i18n key çözeriz; sözlükte yoksa
-  // backward-compat için backend'den gelen `label_tr`'a düşeriz.
-  const { t } = useTranslation("dashboard");
   const label = t(`kpi.${kpi.kpi_id}`, { defaultValue: kpi.label_tr });
 
   return (
@@ -113,17 +120,17 @@ export function KPICard({
         "gap-0 py-0 transition-colors hover:border-gray-300 dark:hover:border-gray-700",
       )}
     >
-      <CardContent className={cn(compact ? "p-5" : "p-5 md:p-6")}>
+      <CardContent className={cn(hero ? "p-6" : compact ? "p-5" : "p-5 md:p-6")}>
         <div
           className={cn(
             "inline-flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800",
-            compact ? "size-11" : "size-12",
+            hero ? "size-12" : compact ? "size-11" : "size-12",
           )}
         >
           <Icon
             className={cn(
               "text-gray-800 dark:text-white/90",
-              compact ? "size-5" : "size-[22px]",
+              hero ? "size-[22px]" : compact ? "size-5" : "size-[22px]",
             )}
           />
         </div>
@@ -139,7 +146,7 @@ export function KPICard({
             <p
               className={cn(
                 "mt-2 font-bold tabular-nums text-gray-800 dark:text-white/90 leading-tight",
-                compact ? "text-[24px]" : "text-[28px]",
+                hero ? "text-[34px]" : compact ? "text-[24px]" : "text-[28px]",
               )}
             >
               {value}
@@ -160,24 +167,84 @@ export function KPICard({
             </span>
           )}
         </div>
+
+        {sparkline && sparkline.length >= 2 && (
+          <Sparkline values={sparkline} positive={kpi.is_positive} />
+        )}
       </CardContent>
     </Card>
   );
 }
 
-export function KPICardSkeleton({ compact }: { compact?: boolean } = {}) {
+/**
+ * Mini inline SVG line — son N günün trendini gösterir. Sıfır D3 / chart lib
+ * bağımlılığı; yalnızca path string'i. ApexCharts'ı KPI grid başına 9 instance
+ * spawn etmekten kaçınmak için minimal SVG. */
+function Sparkline({
+  values,
+  positive,
+}: {
+  values: number[];
+  positive: boolean;
+}) {
+  const w = 120;
+  const h = 32;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const stepX = w / (values.length - 1);
+  const points = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const pathLine = "M " + points.join(" L ");
+  const pathArea = `${pathLine} L ${w},${h} L 0,${h} Z`;
+  const stroke = positive ? "#16a34a" : "#dc2626";
+  const fill = positive
+    ? "rgba(22,163,74,0.10)"
+    : "rgba(220,38,38,0.10)";
+  return (
+    <svg
+      className="mt-3 block w-full"
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path d={pathArea} fill={fill} />
+      <path
+        d={pathLine}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function KPICardSkeleton({
+  compact,
+  hero,
+}: { compact?: boolean; hero?: boolean } = {}) {
   return (
     <Card className="gap-0 py-0">
-      <CardContent className={cn(compact ? "p-5" : "p-5 md:p-6")}>
+      <CardContent className={cn(hero ? "p-6" : compact ? "p-5" : "p-5 md:p-6")}>
         <div
           className={cn(
             "rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse",
-            compact ? "size-11" : "size-12",
+            hero ? "size-12" : compact ? "size-11" : "size-12",
           )}
         />
         <div className="mt-5 space-y-2">
           <div className="h-3.5 w-20 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
-          <div className="h-7 w-28 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+          <div
+            className={cn(
+              "rounded bg-gray-100 dark:bg-gray-800 animate-pulse",
+              hero ? "h-9 w-36" : "h-7 w-28",
+            )}
+          />
         </div>
       </CardContent>
     </Card>
