@@ -18,7 +18,8 @@
     "table_product": "Ürün",
     "table_brand": "Marka",
     "table_units": "Adet",
-    "table_revenue": "Ciro"
+    "table_revenue": "Ciro",
+    "drop_overall_conversion": "Genel Dönüşüm"
   },
 
   "channel_analysis": {
@@ -70,5 +71,165 @@
     "col_revenue": "Ciro",
     "col_last_order": "Son Sipariş",
     "empty_top": "Henüz müşteri verisi yok."
+  },
+
+  "traffic": {
+    "title": "Trafik (GA4)",
+    "trend_card_title": "Günlük Oturum Trendi",
+    "by_channel_card_title": "Kanal Dağılımı (Oturum)",
+    "by_device_card_title": "Cihaz Dağılımı",
+    "by_city_card_title": "Şehir Bazlı Trafik (Top 15)",
+    "series_sessions": "Oturum",
+    "value_sessions_suffix": "oturum"
+  },
+
+  "meta_ads": {
+    "title": "Meta Ads",
+    "trend_card_title": "Günlük Harcama vs Gelir",
+    "campaigns_card_title": "Kampanyalar",
+    "series_ad_revenue": "Reklam Geliri",
+    "series_ad_spend": "Reklam Harcaması",
+    "col_campaign": "Kampanya",
+    "col_impressions": "Gösterim",
+    "col_clicks": "Tıklama",
+    "col_ctr": "CTR",
+    "col_cpc": "CPC",
+    "col_spend": "Harcama",
+    "col_conversions": "Dönüşüm",
+    "col_revenue": "Gelir",
+    "col_roas": "ROAS"
+  },
+
+  "google_ads": {
+    "title": "Google Ads",
+    "trend_card_title": "Günlük Harcama vs Gelir",
+    "campaigns_card_title": "Kampanyalar",
+    "series_ad_revenue": "Reklam Geliri",
+    "series_ad_spend": "Reklam Harcaması",
+    "col_campaign": "Kampanya",
+    "col_impressions": "Gösterim",
+    "col_clicks": "Tıklama",
+    "col_ctr": "CTR",
+    "col_cpc": "CPC",
+    "col_spend": "Harcama",
+    "col_conversions": "Dönüşüm",
+    "col_revenue": "Gelir",
+    "col_roas": "ROAS"
+  },
+
+  "ecom": {
+    "title": "E-Ticaret",
+    "trend_card_title": "Günlük Ciro & Sipariş",
+    "by_channel_card_title": "Kanal Bazlı Ciro",
+    "new_vs_returning_card_title": "Yeni vs Tekrarlayan Müşteri",
+    "top_customers_card_title": "En Çok Harcayan Müşteriler (Top 20)",
+    "series_revenue": "Ciro (₺)",
+    "series_orders": "Sipariş",
+    "customer_new": "Yeni",
+    "customer_returning": "Tekrarlayan",
+    "total_revenue": "Toplam Ciro",
+    "col_customer_id": "Müşteri ID",
+    "col_name": "Ad",
+    "col_city": "Şehir",
+    "col_gender": "Cinsiyet",
+    "col_age_group": "Yaş Grubu",
+    "col_orders": "Sipariş",
+    "col_revenue": "Ciro"
+  },
+
+  "campaigns": {
+    "title": "Kampanya Analizi",
+    "platform_filter_all": "Tümü",
+    "all_campaigns_card_title": "Tüm Kampanyalar ({{count}})",
+    "col_platform": "Platform",
+    "col_campaign": "Kampanya",
+    "col_impressions": "Gösterim",
+    "col_clicks": "Tıklama",
+    "col_ctr": "CTR",
+    "col_spend": "Harcama",
+    "col_conversions": "Dönüşüm",
+    "col_revenue": "Gelir",
+    "col_roas": "ROAS",
+    "col_action_detail": "Detay",
+    "campaign_detail_aria": "Kampanya detayı"
+  },
+
+  "funnel": {
+    "title": "Funnel Analizi",
+    "card_title": "Dönüşüm Hunisi",
+    "step_details_card_title": "Adım Detayları",
+    "overall_conversion": "Genel Dönüşüm",
+    "step_label": "Adım",
+    "step_label_start": "Başlangıç",
+    "drop_from_previous": "Önceki adımdan",
+    "steps": {
+      "view": "Görüntüleme",
+      "add_to_cart": "Sepete Ekleme",
+      "checkout": "Ödeme Başlatma",
+      "purchase": "Satın Alma"
+    }
+  },
+
+  "cohort": {
+    "title": "Cohort / Retention",
+    "heatmap_card_title": "Retention Heatmap — Kayıt Ayı × Ay Sonra Aktivite",
+    "sizes_card_title": "Cohort Boyutları",
+    "col_cohort": "Cohort",
+    "col_size": "Boyut",
+    "month_offset_short": "M",
+    "customers_suffix": "müşteri",
+    "m1_retention_label": "M1 retention:",
+    "empty": "Bu tarih aralığında cohort verisi yok."
+  },
+
+  "products": {
+    "title": "Ürün Performansı",
+    "by_category_card_title": "Kategori Bazlı Ciro",
+    "by_brand_card_title": "Marka Bazlı Ciro",
+    "top_products_card_title": "En Çok Satan Ürünler (Top 20)",
+    "series_revenue": "Ciro",
+    "col_rank": "#",
+    "col_sku": "SKU",
+    "col_product": "Ürün",
+    "col_brand": "Marka",
+    "col_units": "Adet",
+    "col_revenue": "Ciro"
+  },
+
+  "kpi": {
+    "sessions": "Toplam Oturum",
+    "users": "Tekil Kullanıcı",
+    "new_users": "Yeni Kullanıcı",
+    "bounce_rate": "Hemen Çıkma Oranı",
+    "pages_per_session": "Oturum Başına Sayfa",
+    "avg_session_duration": "Ort. Oturum Süresi",
+    "conversion_rate": "Dönüşüm Oranı",
+    "ad_spend": "Reklam Harcaması",
+    "impressions": "Gösterim",
+    "clicks": "Tıklama",
+    "ctr": "CTR",
+    "cpc": "CPC",
+    "cpm": "CPM",
+    "ad_conversions": "Reklam Dönüşümü",
+    "cost_per_conversion": "Dönüşüm Başına Maliyet",
+    "roas": "ROAS",
+    "frequency": "Reklam Frekansı",
+    "revenue": "Toplam Ciro",
+    "orders": "Sipariş Sayısı",
+    "items_sold": "Satılan Ürün",
+    "aov": "Ortalama Sepet (AOV)",
+    "revenue_per_user": "Kullanıcı Başına Gelir",
+    "repeat_purchase_rate": "Tekrar Satın Alma",
+    "refund_rate": "İade Oranı",
+    "active_channels": "Aktif Kanal",
+    "top_channel_revenue": "En Çok Gelir Getiren Kanal",
+    "avg_roas": "Ort. ROAS",
+    "avg_conversion_rate": "Ort. Dönüşüm Oranı",
+    "total_customers": "Toplam Müşteri",
+    "new_customers": "Yeni Müşteri",
+    "avg_customer_value": "Ort. Müşteri Değeri",
+    "repeat_rate": "Tekrar Satın Alma",
+    "avg_orders_per_customer": "Ort. Sipariş / Müşteri",
+    "newsletter_subscription_rate": "Newsletter Aboneliği"
   }
 }
