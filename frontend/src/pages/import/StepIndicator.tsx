@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, CheckCircle2, Eye, Loader2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
@@ -11,11 +11,14 @@ interface StepIndicatorProps {
 
 const STEP_ORDER: WizardStep[] = ["select", "preview", "importing", "done"];
 
-const STEP_KEYS: Record<WizardStep, string> = {
-  select: "wizard.step_1",
-  preview: "wizard.step_2",
-  importing: "wizard.step_3",
-  done: "wizard.step_4",
+const STEP_META: Record<
+  WizardStep,
+  { icon: typeof Upload; labelKey: string }
+> = {
+  select: { icon: Upload, labelKey: "wizard.step_1" },
+  preview: { icon: Eye, labelKey: "wizard.step_2" },
+  importing: { icon: Loader2, labelKey: "wizard.step_3" },
+  done: { icon: CheckCircle2, labelKey: "wizard.step_4" },
 };
 
 /** Wizard'ın 4 adımını gösteren progress indicator. */
@@ -24,39 +27,66 @@ export function StepIndicator({ current }: StepIndicatorProps) {
   const currentIdx = STEP_ORDER.indexOf(current);
 
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
       {STEP_ORDER.map((step, idx) => {
         const isCompleted = idx < currentIdx;
         const isActive = idx === currentIdx;
+        const Icon = STEP_META[step].icon;
+        const label = t(STEP_META[step].labelKey).replace(/^\d+\.\s*/, "");
         return (
-          <div key={step} className="flex items-center flex-1">
-            <div
+          <div
+            key={step}
+            className="flex flex-1 items-center gap-2 first:pl-1 last:pr-1"
+          >
+            <span
               className={cn(
-                "flex items-center gap-2 flex-1",
-                isActive && "text-foreground",
-                !isActive && !isCompleted && "text-muted-foreground",
-                isCompleted && "text-foreground",
+                "inline-flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-colors",
+                isCompleted &&
+                  "border-success-500 bg-success-500/10 text-success-600 dark:text-success-500",
+                isActive &&
+                  "border-primary bg-primary text-primary-foreground shadow-sm",
+                !isActive &&
+                  !isCompleted &&
+                  "border-border bg-surface-2 text-text-dim",
               )}
             >
-              <div
+              {isCompleted ? (
+                <Check className="size-4" />
+              ) : isActive && step === "importing" ? (
+                <Icon className="size-4 animate-spin" />
+              ) : (
+                <Icon className="size-4" />
+              )}
+            </span>
+            <div className="hidden min-w-0 flex-1 sm:block">
+              <p
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-medium",
-                  isActive && "border-primary bg-primary text-primary-foreground",
-                  isCompleted && "border-primary bg-primary text-primary-foreground",
-                  !isActive && !isCompleted && "border-border",
+                  "text-[10px] font-semibold uppercase tracking-wider",
+                  isActive
+                    ? "text-primary"
+                    : isCompleted
+                      ? "text-success-600 dark:text-success-500"
+                      : "text-text-dim",
                 )}
               >
-                {isCompleted ? <Check className="h-4 w-4" /> : idx + 1}
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">
-                {t(STEP_KEYS[step]).replace(/^\d+\.\s*/, "")}
-              </span>
+                {String(idx + 1).padStart(2, "0")}
+              </p>
+              <p
+                className={cn(
+                  "truncate text-sm font-semibold leading-tight",
+                  isActive || isCompleted
+                    ? "text-foreground"
+                    : "text-text-muted",
+                )}
+              >
+                {label}
+              </p>
             </div>
             {idx < STEP_ORDER.length - 1 && (
               <div
                 className={cn(
-                  "h-px flex-1 mx-2",
-                  idx < currentIdx ? "bg-primary" : "bg-border",
+                  "mx-2 h-px flex-1 transition-colors",
+                  idx < currentIdx ? "bg-success-500" : "bg-border",
                 )}
               />
             )}
