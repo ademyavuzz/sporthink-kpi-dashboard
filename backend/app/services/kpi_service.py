@@ -1311,10 +1311,34 @@ async def cohort_retention(
 ) -> list[dict[str, Any]]:
     """`docs/09` §9.7.2 — kayıt ayı × ay-N retention.
 
-    Ham SQL CTE kullanır (SQLAlchemy ORM'de tercüme zor).
+    Cohort boyutu = `first_order_date` o ayın içinde olan müşteri sayısı
+    (cohort_users CTE satır sayısı). Retention = (M_n aktif müşteri) / size.
+
+    NOT: M0 her zaman 100%'e eşit DEĞİLDİR. Bazı müşterilerin
+    `first_order_date`'i ile `orders.order_date`'i farklı satırlarda
+    olabilir (registration tarihinin sipariş tarihinden farklı tutulması
+    gibi); bu durumda M0 < cohort_size çıkar ve %100 altında bir M0
+    retention'ı bilgilendiricidir.
     """
     from sqlalchemy import text as sa_text
 
+    # 1) Cohort boyutları — tabanı first_order_date'ten al, NOT offset=0.
+    size_stmt = sa_text(
+        """
+        SELECT
+            DATE(DATE_FORMAT(first_order_date, '%Y-%m-01')) AS cohort_month,
+            COUNT(*) AS size
+        FROM customers
+        WHERE first_order_date BETWEEN :from AND :to
+        GROUP BY cohort_month
+        """
+    )
+    size_rows = (
+        await db.execute(size_stmt, {"from": date_from, "to": date_to})
+    ).all()
+    base: dict[date, int] = {cm: int(n) for cm, n in size_rows}
+
+    # 2) Her (cohort, month_offset) için aktif müşteri sayısı
     stmt = sa_text(
         """
         WITH cohort_users AS (
@@ -1341,11 +1365,6 @@ async def cohort_retention(
     )
     rows = (await db.execute(stmt, {"from": date_from, "to": date_to})).all()
     out: list[dict[str, Any]] = []
-    # cohort_size = month_offset=0 sayısı (tabanı)
-    base: dict[date, int] = {}
-    for cohort_month, offset, cnt in rows:
-        if offset == 0:
-            base[cohort_month] = int(cnt)
     for cohort_month, offset, cnt in rows:
         size = base.get(cohort_month, 0)
         retention = (
