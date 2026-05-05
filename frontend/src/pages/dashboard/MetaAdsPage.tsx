@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { LineChart } from "@/components/feature/charts/LineChart";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -18,12 +17,17 @@ import {
   formatAxisCurrency,
   formatCount,
   formatCurrency,
-  formatMultiplier,
   formatPercent,
   toNumber,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import {
+  DashboardHeader,
+  PageShell,
+  RoasPill,
+  useDashboardRange,
+} from "./_shared";
 
 export default function MetaAdsPage() {
   const [range, setRange] = useDashboardRange();
@@ -38,10 +42,10 @@ export default function MetaAdsPage() {
   const isLoading = q.isPending;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader title="Meta Ads" range={range} onChangeRange={setRange} />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
         {isLoading
           ? Array.from({ length: 8 }).map((_, i) => <KPICardSkeleton key={i} />)
           : data && (
@@ -93,79 +97,123 @@ export default function MetaAdsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Kampanyalar</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
+              <colgroup>
+                <col />
+                <col className="w-[110px]" />
+                <col className="w-[100px]" />
+                <col className="w-[90px]" />
+                <col className="w-[100px]" />
+                <col className="w-[120px]" />
+                <col className="w-[100px]" />
+                <col className="w-[120px]" />
+                <col className="w-[100px]" />
+              </colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Kampanya</TableHead>
-                  <TableHead className="text-right">Gösterim</TableHead>
-                  <TableHead className="text-right">Tıklama</TableHead>
-                  <TableHead className="text-right">CTR</TableHead>
-                  <TableHead className="text-right">CPC</TableHead>
-                  <TableHead className="text-right">Harcama</TableHead>
-                  <TableHead className="text-right">Dönüşüm</TableHead>
-                  <TableHead className="text-right">Gelir</TableHead>
-                  <TableHead className="text-right">ROAS</TableHead>
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Kampanya
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Gösterim
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Tıklama
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    CTR
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    CPC
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Harcama
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Dönüşüm
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Gelir
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    ROAS
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading
-                  ? Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={9}>
-                          <div className="h-5 bg-muted rounded animate-pulse" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : (data?.campaigns ?? []).map((c) => (
-                      <TableRow key={c.campaign_id}>
-                        <TableCell className="max-w-[280px] truncate" title={c.campaign_name ?? ""}>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={9} className="px-4 py-3.5">
+                        <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (data?.campaigns ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="py-12 text-center text-sm text-text-muted"
+                    >
+                      —
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  (data?.campaigns ?? []).map((c, idx) => (
+                    <TableRow
+                      key={c.campaign_id}
+                      className={cn(
+                        "border-b border-border/60 transition-colors",
+                        idx % 2 === 1 && "bg-surface-2/40",
+                        "hover:bg-primary/[0.04]",
+                      )}
+                    >
+                      <TableCell className="px-4 py-3.5 text-sm">
+                        <span
+                          className="block truncate font-medium text-foreground"
+                          title={c.campaign_name ?? ""}
+                        >
                           {c.campaign_name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCount(c.impressions)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCount(c.clicks)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {c.ctr ? formatPercent(toNumber(c.ctr)! * 100, 2) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCurrency(c.cpc)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCurrency(c.spend)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCount(c.conversions)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCurrency(c.conversions_value)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge
-                            variant={
-                              toNumber(c.roas) && toNumber(c.roas)! >= 4
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {formatMultiplier(c.roas)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                        {formatCount(c.impressions)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                        {formatCount(c.clicks)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                        {c.ctr ? formatPercent(toNumber(c.ctr)! * 100, 2) : "—"}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
+                        {formatCurrency(c.cpc)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                        {formatCurrency(c.spend)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                        {formatCount(c.conversions)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
+                        {formatCurrency(c.conversions_value)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right">
+                        <RoasPill value={c.roas} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
