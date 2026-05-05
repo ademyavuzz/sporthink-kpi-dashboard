@@ -64,7 +64,7 @@ export default function OverviewPage() {
     <PageShell>
       <PageHeader
         title={t("overview.title")}
-        subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")}`}
+        subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")} · ${t("overview.subtitle_vs_prev")}`}
         actions={
           <>
             <PresetButton
@@ -196,7 +196,7 @@ export default function OverviewPage() {
                   : []
               }
               valueFormatter={formatCurrency}
-              totalLabel={t("overview.total_revenue")}
+              totalLabel={t("overview.new_returning_center")}
             />
           </CardContent>
         </Card>
@@ -208,6 +208,9 @@ export default function OverviewPage() {
           <CardTitle>{t("overview.top_products_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          {!isLoading && data && data.top_products.length > 0 && (
+            <TopProductsInsightStrip products={data.top_products} />
+          )}
           <div className="overflow-x-auto">
             <Table className="table-fixed">
               <colgroup>
@@ -319,6 +322,11 @@ function FunnelTable({
 }) {
   const { t } = useTranslation("dashboard");
   const max = useMemo(() => Math.max(...steps.map((s) => s.count), 1), [steps]);
+  // Genel dönüşüm: ilk adım (görüntüleme) → son adım (satın alma) yüzdesi.
+  const overallConversion = useMemo(() => {
+    if (steps.length < 2 || steps[0].count === 0) return null;
+    return (steps[steps.length - 1].count / steps[0].count) * 100;
+  }, [steps]);
 
   if (loading) {
     return (
@@ -331,39 +339,161 @@ function FunnelTable({
   }
 
   return (
-    <div className="space-y-2.5">
-      {steps.map((s) => {
-        const pct = (s.count / max) * 100;
-        const drop = s.drop_from_previous_pct;
-        const stepLabel = t(`funnel.steps.${s.step}`, {
-          defaultValue: s.label_tr,
-        });
-        return (
-          <div key={s.step} className="space-y-1.5">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-semibold text-foreground">
-                {stepLabel}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="tabular-nums font-medium text-foreground">
-                  {formatCount(s.count)}
+    <div className="space-y-3">
+      <div className="space-y-2.5">
+        {steps.map((s) => {
+          const pct = (s.count / max) * 100;
+          const drop = s.drop_from_previous_pct;
+          const stepLabel = t(`funnel.steps.${s.step}`, {
+            defaultValue: s.label_tr,
+          });
+          return (
+            <div key={s.step} className="space-y-1.5">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-semibold text-foreground">
+                  {stepLabel}
                 </span>
-                {drop !== null && (
-                  <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-error-600 dark:text-error-500">
-                    ↓ {formatPercent(drop, 1)}
+                <div className="flex items-center gap-3">
+                  <span className="tabular-nums font-medium text-foreground">
+                    {formatCount(s.count)}
                   </span>
-                )}
+                  {drop !== null && (
+                    <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-error-600 dark:text-error-500">
+                      ↓ {formatPercent(drop, 1)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="h-7 overflow-hidden rounded-md bg-muted/40">
+                <div
+                  className="h-full rounded-md bg-primary transition-all"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
-            <div className="h-7 overflow-hidden rounded-md bg-muted/40">
-              <div
-                className="h-full rounded-md bg-primary transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      {overallConversion !== null && (
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <span className="text-sm font-semibold text-text-muted">
+            {t("overview.funnel_overall")}
+          </span>
+          <span className="text-xl font-bold tabular-nums text-foreground">
+            {overallConversion.toFixed(2).replace(".", ",")}%
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface TopProduct {
+  sku: string;
+  product_name: string | null;
+  brand: string | null;
+  units_sold: number;
+  revenue: string;
+}
+
+/**
+ * Tablonun üzerine yerleşen 3 mini insight tile — backend'e ek çağrı atmadan
+ * `top_products` verisinden türetilir.
+ */
+function TopProductsInsightStrip({ products }: { products: TopProduct[] }) {
+  const { t } = useTranslation("dashboard");
+
+  const insight = useMemo(() => {
+    const totalRevenue = products.reduce(
+      (s, p) => s + (toNumber(p.revenue) ?? 0),
+      0,
+    );
+    const byBrand = new Map<string, number>();
+    for (const p of products) {
+      const b = p.brand ?? "—";
+      byBrand.set(b, (byBrand.get(b) ?? 0) + (toNumber(p.revenue) ?? 0));
+    }
+    const top3Brands = [...byBrand.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    const top3Sum = top3Brands.reduce((s, [, v]) => s + v, 0);
+    const concentrationPct = totalRevenue > 0 ? (top3Sum / totalRevenue) * 100 : 0;
+    let volumeLeader = products[0];
+    let revenueLeader = products[0];
+    for (const p of products) {
+      if (p.units_sold > volumeLeader.units_sold) volumeLeader = p;
+      const r = toNumber(p.revenue) ?? 0;
+      if (r > (toNumber(revenueLeader.revenue) ?? 0)) revenueLeader = p;
+    }
+    return {
+      concentrationPct,
+      top3Brands: top3Brands.map(([b]) => b),
+      volumeLeader,
+      revenueLeader,
+    };
+  }, [products]);
+
+  return (
+    <div className="grid gap-3 border-b border-border bg-surface-2/30 p-4 md:grid-cols-3">
+      <InsightTile
+        label={`${t("overview.top_products_brand_concentration")} ${t(
+          "overview.top_products_brand_share",
+          { pct: insight.concentrationPct.toFixed(0) },
+        )}`}
+        chips={insight.top3Brands}
+      />
+      <InsightTile
+        label={t("overview.top_products_volume_leader")}
+        valueText={`${formatCount(insight.volumeLeader.units_sold)}`}
+        sub={insight.volumeLeader.product_name ?? "—"}
+      />
+      <InsightTile
+        label={t("overview.top_products_revenue_leader")}
+        valueText={formatCurrency(insight.revenueLeader.revenue)}
+        sub={insight.revenueLeader.product_name ?? "—"}
+      />
+    </div>
+  );
+}
+
+function InsightTile({
+  label,
+  valueText,
+  sub,
+  chips,
+}: {
+  label: string;
+  valueText?: string;
+  sub?: string;
+  chips?: string[];
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+        {label}
+      </p>
+      {valueText && (
+        <p className="mt-1 text-base font-bold tabular-nums text-foreground">
+          {valueText}
+        </p>
+      )}
+      {sub && (
+        <p className="mt-0.5 truncate text-xs text-text-muted" title={sub}>
+          {sub}
+        </p>
+      )}
+      {chips && chips.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {chips.map((c) => (
+            <span
+              key={c}
+              className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-text-muted"
+            >
+              {c}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
