@@ -9,6 +9,7 @@ Kullanım: `import_service` parser çıktısını alır, FK lookup yapar, dedup
 filtrelemesi yapar, bulk insert eder. Tek bir tablo-spesifik kod yazmadan
 tüm 4 source aynı pipeline'dan geçer.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -77,11 +78,7 @@ async def fetch_existing_keys(
 
     # Çok kolonlu — IN ((a, b), (c, d), ...)
     tuples = list(
-        {
-            tuple(row[c] for c in key_columns)
-            for row in batch
-            if all(c in row for c in key_columns)
-        }
+        {tuple(row[c] for c in key_columns) for row in batch if all(c in row for c in key_columns)}
     )
     if not tuples:
         return set()
@@ -93,9 +90,7 @@ async def fetch_existing_keys(
     for i, tup in enumerate(tuples):
         for j, val in enumerate(tup):
             params[f"k{i}_{j}"] = val
-    stmt = text(
-        f"SELECT {cols_select} FROM {table} WHERE ({cols_select}) IN ({placeholders})"
-    )
+    stmt = text(f"SELECT {cols_select} FROM {table} WHERE ({cols_select}) IN ({placeholders})")
     result = await db.execute(stmt, params)
     return {tuple(r) for r in result.all()}
 

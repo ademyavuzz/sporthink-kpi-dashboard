@@ -2,6 +2,7 @@
 
 `StreamingResponse` ile büyük tablolar (10k+ satır) ram'i şişirmeden döner.
 """
+
 from __future__ import annotations
 
 import csv

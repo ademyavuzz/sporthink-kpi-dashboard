@@ -13,6 +13,7 @@ Endpoint'ler:
 - POST  → REPORTS_CREATE
 - DELETE → REPORTS_DELETE
 """
+
 from __future__ import annotations
 
 from pathlib import Path as FsPath
@@ -20,6 +21,7 @@ from typing import cast
 
 from fastapi import APIRouter, Depends, Path
 from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ResourceNotFoundError, ValidationError
 from app.core.permissions import Permission
@@ -35,7 +37,6 @@ from app.schemas import (
     SuccessEnvelope,
 )
 from app.services import report_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -48,7 +49,9 @@ def _to_list_item(r: Report) -> ReportListItem:
         date_to=r.date_to,
         sections=cast(list[ReportSectionKey], list(r.sections or [])),
         language=r.language,
-        status=cast(ReportStatusKey, r.status.value if hasattr(r.status, "value") else str(r.status)),
+        status=cast(
+            ReportStatusKey, r.status.value if hasattr(r.status, "value") else str(r.status)
+        ),
         file_size_bytes=r.file_size_bytes,
         error_message=r.error_message,
         started_at=r.started_at,

@@ -10,6 +10,7 @@ Notlar:
 - `itemId` SKU → `product_pk_id` FK lookup (opsiyonel; bulunamazsa NULL).
 - Natural unique key yok; dedup boş, rollback için import sil.
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, FKLookup, SourceConfig
@@ -25,22 +26,12 @@ CONFIG = SourceConfig(
         ColumnSpec("item_category2", "itemCategory2", "str", required=False),
         ColumnSpec("item_brand", "itemBrand", "str", required=False),
         ColumnSpec("items_viewed", "itemsViewed", "int", required=False, default=0),
-        ColumnSpec(
-            "items_added_to_cart", "itemsAddedToCart", "int", required=False, default=0
-        ),
-        ColumnSpec(
-            "items_checked_out", "itemsCheckedOut", "int", required=False, default=0
-        ),
-        ColumnSpec(
-            "items_purchased", "itemsPurchased", "int", required=False, default=0
-        ),
+        ColumnSpec("items_added_to_cart", "itemsAddedToCart", "int", required=False, default=0),
+        ColumnSpec("items_checked_out", "itemsCheckedOut", "int", required=False, default=0),
+        ColumnSpec("items_purchased", "itemsPurchased", "int", required=False, default=0),
         ColumnSpec("item_revenue", "itemRevenue", "decimal", required=False, default=0),
-        ColumnSpec(
-            "item_list_views", "itemListViews", "int", required=False, default=0
-        ),
-        ColumnSpec(
-            "item_list_clicks", "itemListClicks", "int", required=False, default=0
-        ),
+        ColumnSpec("item_list_views", "itemListViews", "int", required=False, default=0),
+        ColumnSpec("item_list_clicks", "itemListClicks", "int", required=False, default=0),
     ],
     dedup_keys=[],
     fk_lookups=[

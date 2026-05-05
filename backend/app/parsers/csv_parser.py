@@ -16,6 +16,7 @@ Tip dönüşümleri (`ColumnSpec.coerce`):
 Hatalar `ParseError` listesinde toplanır (fail-fast değil); çağıran taraf
 import_error tablosuna yazar.
 """
+
 from __future__ import annotations
 
 import csv

@@ -9,6 +9,7 @@ Sorumluluklar:
 `pdf_render_service` saf render, `report_service` veri çekme + lifecycle
 yönetimi yapar — bu ayrım test edilebilirliği kolaylaştırır.
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,7 +26,6 @@ from app.models import Report, User
 from app.repositories import report_repository as repo
 from app.schemas.reports import ReportSectionMeta
 from app.services import (
-    channel_service,
     customer_service,
     kpi_service,
     pdf_render_service,
@@ -107,16 +107,12 @@ async def create_report(
     language: str,
 ) -> Report:
     if date_from > date_to:
-        raise ValidationError(
-            "date_from must be <= date_to", field="date_from"
-        )
+        raise ValidationError("date_from must be <= date_to", field="date_from")
     if not sections:
         raise ValidationError("At least one section required", field="sections")
     invalid = [s for s in sections if s not in ALL_SECTIONS]
     if invalid:
-        raise ValidationError(
-            f"Unknown section keys: {invalid}", field="sections"
-        )
+        raise ValidationError(f"Unknown section keys: {invalid}", field="sections")
 
     final_name = (name or "").strip() or _default_report_name(date_from, date_to, language)
 
@@ -130,6 +126,10 @@ async def create_report(
         language=language,
     )
     await db.commit()
+    # `created_at` MySQL DEFAULT CURRENT_TIMESTAMP ile set ediliyor; insert sonrası
+    # ORM instance'a otomatik yüklenmez. Response serialize'da lazy-load
+    # tetiklenmesin diye explicit refresh.
+    await db.refresh(report)
 
     # Celery task'ı burada enqueue ediyoruz — ImportError'u önlemek için lazy
     # import (celery_app worker'ı, FastAPI worker'ından farklı process).
@@ -165,9 +165,7 @@ async def delete_report(db: AsyncSession, report_id: int) -> None:
         try:
             Path(report.file_path).unlink(missing_ok=True)
         except OSError as e:
-            logger.warning(
-                "report_file_unlink_failed report_id=%d err=%s", report_id, e
-            )
+            logger.warning("report_file_unlink_failed report_id=%d err=%s", report_id, e)
     await repo.soft_delete(db, report_id)
 
 
@@ -188,7 +186,8 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
     await repo.mark_generating(db, report_id)
     logger.info(
         "report_generation_start report_id=%d sections=%s",
-        report_id, report.sections,
+        report_id,
+        report.sections,
     )
 
     try:
@@ -201,10 +200,7 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                 await db.execute(select(User).where(User.id == report.user_id))
             ).scalar_one_or_none()
             if user is not None:
-                user_name = (
-                    f"{user.first_name or ''} {user.last_name or ''}".strip()
-                    or user.email
-                )
+                user_name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.email
 
         sections = report.sections
         lang = report.language or "tr"
@@ -214,43 +210,98 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
         daily_revenue_points: list[dict[str, Any]] = []
         if "overview" in sections:
             overview_summary = await kpi_service.calculate_summary(
-                db, date_from=report.date_from, date_to=report.date_to,
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
             )
             series = await kpi_service.daily_revenue_series(
-                db, date_from=report.date_from, date_to=report.date_to,
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
             )
             daily_revenue_points = [
-                {"date": p.date.strftime("%d.%m" if lang == "tr" else "%m/%d"),
-                 "revenue": p.revenue}
+                {
+                    "date": p.date.strftime("%d.%m" if lang == "tr" else "%m/%d"),
+                    "revenue": p.revenue,
+                }
                 for p in series
             ]
 
         channel_rows: list[dict[str, str]] = []
+        channel_bar_rows: list[dict[str, Any]] = []
         if "ga4" in sections:
             channels = await kpi_service.revenue_by_channel(
-                db, date_from=report.date_from, date_to=report.date_to, limit=10,
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
+                limit=10,
             )
+            unknown_label = "(Bilinmiyor)" if lang == "tr" else "(Unknown)"
             for c in channels:
-                channel_rows.append({
-                    "channel": c.channel or ("(Bilinmiyor)" if lang == "tr" else "(Unknown)"),
-                    "sessions": pdf_render_service.fmt_int(c.sessions, lang),
-                    "orders": pdf_render_service.fmt_int(c.orders, lang),
-                    "revenue": pdf_render_service.fmt_currency(c.revenue, lang),
-                    "conv_rate": pdf_render_service.fmt_percent(c.conversion_rate, lang),
-                })
+                ch_label = c.channel or unknown_label
+                channel_rows.append(
+                    {
+                        "channel": ch_label,
+                        "sessions": pdf_render_service.fmt_int(c.sessions, lang),
+                        "orders": pdf_render_service.fmt_int(c.orders, lang),
+                        "revenue": pdf_render_service.fmt_currency(c.revenue, lang),
+                        "conv_rate": pdf_render_service.fmt_percent(c.conversion_rate, lang),
+                    }
+                )
+                channel_bar_rows.append(
+                    {
+                        "channel": ch_label,
+                        "revenue_float": float(c.revenue or 0),
+                        "revenue_str": pdf_render_service.fmt_currency(c.revenue, lang),
+                    }
+                )
+
+        # KPI fonksiyonları comparison için prev_from/prev_to bekliyor; sequential
+        # mod (önceki eşit uzunluktaki dönem) raporlarda standart.
+        prev_from, prev_to = kpi_service.compute_comparison_period(
+            report.date_from, report.date_to, mode="sequential"
+        )
+        prev_kwargs = {"prev_from": prev_from, "prev_to": prev_to}
 
         ads_kpis: list[dict[str, Any]] = []
         if "ads" in sections:
-            # Reuse summary's ad KPIs if available, otherwise compute fresh
-            summary = overview_summary or await kpi_service.calculate_summary(
-                db, date_from=report.date_from, date_to=report.date_to,
+            # 8 reklam KPI'sı — fresh çek, bazıları KPISummary'de yok.
+            summary_for_ads = overview_summary or await kpi_service.calculate_summary(
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
             )
-            for kpi, label_tr, label_en, unit in [
-                (summary.ad_spend, "Reklam Harcaması", "Ad spend", "currency"),
-                (summary.roas, "ROAS", "ROAS", "multiplier"),
-                (summary.conversion_rate, "Dönüşüm", "Conv. rate", "percent"),
-                (summary.bounce_rate, "Bounce", "Bounce", "percent"),
-            ]:
+            impressions_kpi = await kpi_service.kpi_impressions(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            clicks_kpi = await kpi_service.kpi_clicks(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            ctr_kpi = await kpi_service.kpi_ctr(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            cpc_kpi = await kpi_service.kpi_cpc(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            ad_conv_kpi = await kpi_service.kpi_ad_conversions(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            cost_per_conv_kpi = await kpi_service.kpi_cost_per_conversion(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            ads_lineup = [
+                (summary_for_ads.ad_spend, "Reklam Harcaması", "Ad Spend", "currency"),
+                (summary_for_ads.roas, "ROAS", "ROAS", "multiplier"),
+                (impressions_kpi, "Gösterim", "Impressions", "count"),
+                (clicks_kpi, "Tıklama", "Clicks", "count"),
+                (ctr_kpi, "CTR", "CTR", "percent"),
+                (cpc_kpi, "CPC", "CPC", "currency"),
+                (ad_conv_kpi, "Reklam Dönüşümü", "Ad Conversions", "count"),
+                (cost_per_conv_kpi, "Dönüşüm Maliyeti", "Cost / Conversion", "currency"),
+            ]
+            for kpi, label_tr, label_en, unit in ads_lineup:
+                if kpi is None:
+                    continue
                 ads_kpis.append(
                     pdf_render_service.kpi_card(
                         label_tr if lang == "tr" else label_en,
@@ -263,15 +314,34 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                 )
 
         ecom_kpis: list[dict[str, Any]] = []
+        new_revenue: Decimal | None = None
+        returning_revenue: Decimal | None = None
         if "ecommerce" in sections:
-            summary = overview_summary or await kpi_service.calculate_summary(
-                db, date_from=report.date_from, date_to=report.date_to,
+            summary_for_ecom = overview_summary or await kpi_service.calculate_summary(
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
             )
-            for kpi, label_tr, label_en, unit in [
-                (summary.revenue, "Gelir", "Revenue", "currency"),
-                (summary.orders, "Sipariş", "Orders", "count"),
-                (summary.aov, "Sepet Ortalaması", "AOV", "currency"),
-            ]:
+            refund_kpi = await kpi_service.kpi_refund_rate(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            repeat_kpi = await kpi_service.kpi_repeat_purchase_rate(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            rpu_kpi = await kpi_service.kpi_revenue_per_user(
+                db, date_from=report.date_from, date_to=report.date_to, **prev_kwargs
+            )
+            ecom_lineup = [
+                (summary_for_ecom.revenue, "Gelir", "Revenue", "currency"),
+                (summary_for_ecom.orders, "Sipariş", "Orders", "count"),
+                (summary_for_ecom.aov, "Sepet Ortalaması", "AOV", "currency"),
+                (refund_kpi, "İade Oranı", "Refund Rate", "percent"),
+                (repeat_kpi, "Tekrar Satın Alma", "Repeat Purchase", "percent"),
+                (rpu_kpi, "Müşteri Başına Gelir", "Revenue / User", "currency"),
+            ]
+            for kpi, label_tr, label_en, unit in ecom_lineup:
+                if kpi is None:
+                    continue
                 ecom_kpis.append(
                     pdf_render_service.kpi_card(
                         label_tr if lang == "tr" else label_en,
@@ -282,11 +352,28 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                         lang=lang,
                     )
                 )
+            # New vs returning revenue
+            try:
+                ctr_revenue = await kpi_service.new_vs_returning_revenue(
+                    db,
+                    date_from=report.date_from,
+                    date_to=report.date_to,
+                )
+                for row in ctr_revenue:
+                    if row.customer_type == "new":
+                        new_revenue = row.revenue
+                    elif row.customer_type == "returning":
+                        returning_revenue = row.revenue
+            except Exception:
+                logger.exception("new_vs_returning_failed report_id=%d", report_id)
 
         funnel_view: list[dict[str, str]] = []
+        funnel_chart_steps: list[dict[str, Any]] = []
         if "funnel" in sections:
             steps = await kpi_service.funnel_steps(
-                db, date_from=report.date_from, date_to=report.date_to,
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
             )
             label_map_en = {
                 "view": "View",
@@ -297,36 +384,59 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
             for s in steps:
                 drop_str = (
                     pdf_render_service.fmt_percent(s.drop_from_previous_pct, lang)
-                    if s.drop_from_previous_pct is not None else "—"
+                    if s.drop_from_previous_pct is not None
+                    else "—"
                 )
-                funnel_view.append({
-                    "label": s.label_tr if lang == "tr" else label_map_en[s.step],
-                    "count": pdf_render_service.fmt_int(s.count, lang),
-                    "drop": drop_str,
-                })
+                step_label = s.label_tr if lang == "tr" else label_map_en[s.step]
+                funnel_view.append(
+                    {
+                        "label": step_label,
+                        "count": pdf_render_service.fmt_int(s.count, lang),
+                        "drop": drop_str,
+                    }
+                )
+                funnel_chart_steps.append(
+                    {
+                        "label": step_label,
+                        "count_int": s.count,
+                        "count_str": pdf_render_service.fmt_int(s.count, lang),
+                        "drop_str": (
+                            pdf_render_service.fmt_percent(s.drop_from_previous_pct, lang)
+                            if s.drop_from_previous_pct is not None
+                            else None
+                        ),
+                    }
+                )
 
         top_products_view: list[dict[str, str]] = []
         top_customers_view: list[dict[str, str]] = []
         if "top" in sections:
             products = await kpi_service.top_products(
-                db, date_from=report.date_from, date_to=report.date_to, limit=10,
+                db,
+                date_from=report.date_from,
+                date_to=report.date_to,
+                limit=10,
             )
             for p in products:
-                top_products_view.append({
-                    "sku": p.sku,
-                    "name": p.product_name or "—",
-                    "units": pdf_render_service.fmt_int(p.units_sold, lang),
-                    "revenue": pdf_render_service.fmt_currency(p.revenue, lang),
-                })
+                top_products_view.append(
+                    {
+                        "sku": p.sku,
+                        "name": p.product_name or "—",
+                        "units": pdf_render_service.fmt_int(p.units_sold, lang),
+                        "revenue": pdf_render_service.fmt_currency(p.revenue, lang),
+                    }
+                )
 
             customers = await customer_service.top_customers(db, limit=10)
             for c in customers:
-                top_customers_view.append({
-                    "name": c.customer_name or c.customer_id,
-                    "city": c.city or "—",
-                    "orders": pdf_render_service.fmt_int(c.total_orders, lang),
-                    "revenue": pdf_render_service.fmt_currency(c.total_revenue, lang),
-                })
+                top_customers_view.append(
+                    {
+                        "name": c.customer_name or c.customer_id,
+                        "city": c.city or "—",
+                        "orders": pdf_render_service.fmt_int(c.total_orders, lang),
+                        "revenue": pdf_render_service.fmt_currency(c.total_revenue, lang),
+                    }
+                )
 
         # --- Date strings ---
         if lang == "tr":
@@ -352,19 +462,24 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
             overview_summary=overview_summary,
             daily_revenue_points=daily_revenue_points,
             channel_rows=channel_rows,
+            channel_bar_rows=channel_bar_rows,
             funnel_steps_view=funnel_view,
+            funnel_chart_steps=funnel_chart_steps,
             top_products=top_products_view,
             top_customers=top_customers_view,
             ads_kpis=ads_kpis,
             ecom_kpis=ecom_kpis,
+            new_revenue=new_revenue,
+            returning_revenue=returning_revenue,
         )
 
         await repo.mark_completed(
-            db, report_id, file_path=str(output_path), file_size_bytes=size,
+            db,
+            report_id,
+            file_path=str(output_path),
+            file_size_bytes=size,
         )
-        logger.info(
-            "report_generation_complete report_id=%d size=%d", report_id, size
-        )
+        logger.info("report_generation_complete report_id=%d size=%d", report_id, size)
 
     except Exception as e:  # noqa: BLE001 — task üst seviye guard
         logger.exception("report_generation_failed report_id=%d", report_id)

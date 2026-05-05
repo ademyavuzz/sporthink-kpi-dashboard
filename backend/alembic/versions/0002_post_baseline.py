@@ -12,6 +12,7 @@ script ile gelmiş bir DB üzerine `alembic stamp head` denerek bu migration
 
 Revision identifiers
 """
+
 from __future__ import annotations
 
 # revision identifiers, used by Alembic.

@@ -5,10 +5,11 @@
 Süper Admin (`is_system=True`) silinmez, düzenlenmez. `role_permissions`
 tablosunda **yer almaz**; require_permission tarafında bypass'lanır.
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import and_, delete, func, select
@@ -27,9 +28,7 @@ from app.repositories import audit_log_repository
 logger = logging.getLogger(__name__)
 
 
-async def list_roles(
-    db: AsyncSession, *, include_deleted: bool = False
-) -> list[dict[str, Any]]:
+async def list_roles(db: AsyncSession, *, include_deleted: bool = False) -> list[dict[str, Any]]:
     """Rol listesi + her rolün kullanıcı sayısı + izin sayısı."""
     stmt = select(Role)
     if not include_deleted:
@@ -45,10 +44,9 @@ async def list_roles(
     )
     user_counts = {r[0]: int(r[1]) for r in (await db.execute(user_count_stmt)).all()}
 
-    perm_count_stmt = (
-        select(RolePermission.role_id, func.count(RolePermission.permission_id))
-        .group_by(RolePermission.role_id)
-    )
+    perm_count_stmt = select(
+        RolePermission.role_id, func.count(RolePermission.permission_id)
+    ).group_by(RolePermission.role_id)
     perm_counts = {r[0]: int(r[1]) for r in (await db.execute(perm_count_stmt)).all()}
 
     out: list[dict[str, Any]] = []
@@ -56,9 +54,7 @@ async def list_roles(
         # Süper Admin → "tüm izinler" (40)
         from app.core.permissions import Permission
 
-        perm_count = (
-            len(Permission) if r.is_system else perm_counts.get(r.id, 0)
-        )
+        perm_count = len(Permission) if r.is_system else perm_counts.get(r.id, 0)
         out.append(
             {
                 "id": r.id,
@@ -76,9 +72,7 @@ async def list_roles(
     return out
 
 
-async def get_role_with_permissions(
-    db: AsyncSession, role_id: int
-) -> dict[str, Any]:
+async def get_role_with_permissions(db: AsyncSession, role_id: int) -> dict[str, Any]:
     role = await db.get(Role, role_id)
     if role is None or role.deleted_at is not None:
         raise ResourceNotFoundError(params={"role_id": role_id})
@@ -99,9 +93,8 @@ async def get_role_with_permissions(
         )
         all_codes = [r[0] for r in (await db.execute(stmt)).all()]
 
-    user_count_stmt = (
-        select(func.count(User.id))
-        .where(and_(User.role_id == role_id, User.deleted_at.is_(None)))
+    user_count_stmt = select(func.count(User.id)).where(
+        and_(User.role_id == role_id, User.deleted_at.is_(None))
     )
     user_count = int((await db.execute(user_count_stmt)).scalar_one())
 
@@ -140,9 +133,7 @@ async def create_role(
         select(Role).where(and_(Role.name == name, Role.deleted_at.is_(None)))
     )
     if existing.scalar_one_or_none() is not None:
-        raise ConflictError(
-            "ROLE_NAME_EXISTS", params={"name": name}
-        )
+        raise ConflictError("ROLE_NAME_EXISTS", params={"name": name})
 
     role = Role(
         name=name,
@@ -221,9 +212,7 @@ async def update_role(
     if role is None or role.deleted_at is not None:
         raise ResourceNotFoundError(params={"role_id": role_id})
     if role.is_system:
-        raise ValidationError(
-            "Sistem rolü düzenlenemez (Süper Admin)", field="role_id"
-        )
+        raise ValidationError("Sistem rolü düzenlenemez (Süper Admin)", field="role_id")
 
     changed: dict[str, Any] = {}
     if name is not None and role.name != name:
@@ -253,15 +242,11 @@ async def update_role(
 
     if permission_codes is not None:
         # Mevcut izinleri silip yeniden ekle (atomik replacement)
-        await db.execute(
-            delete(RolePermission).where(RolePermission.role_id == role_id)
-        )
+        await db.execute(delete(RolePermission).where(RolePermission.role_id == role_id))
         if permission_codes:
             valid_perms = (
                 await db.execute(
-                    select(PermissionModel.id).where(
-                        PermissionModel.code.in_(permission_codes)
-                    )
+                    select(PermissionModel.id).where(PermissionModel.code.in_(permission_codes))
                 )
             ).all()
             for (perm_id,) in valid_perms:
@@ -350,14 +335,10 @@ async def delete_role(
     if role is None or role.deleted_at is not None:
         raise ResourceNotFoundError(params={"role_id": role_id})
     if role.is_system:
-        raise ValidationError(
-            "Sistem rolü silinemez (Süper Admin)", field="role_id"
-        )
+        raise ValidationError("Sistem rolü silinemez (Süper Admin)", field="role_id")
 
     # 1. Bu role atanmış aktif kullanıcıları bul
-    users_stmt = select(User).where(
-        and_(User.role_id == role_id, User.deleted_at.is_(None))
-    )
+    users_stmt = select(User).where(and_(User.role_id == role_id, User.deleted_at.is_(None)))
     users = list((await db.execute(users_stmt)).scalars().all())
 
     # 2. Hepsini pasifleştir, role_id null'a set et
@@ -382,7 +363,7 @@ async def delete_role(
         await cache.delete(cache_keys.user_perms(u.id))
 
     # 5. Rolü soft-delete (role_permissions CASCADE ile silinir)
-    role.deleted_at = datetime.now(timezone.utc)
+    role.deleted_at = datetime.now(UTC)
     role.updated_by = actor.id
 
     await audit_log_repository.add(
@@ -400,9 +381,7 @@ async def delete_role(
         },
     )
     await db.commit()
-    logger.info(
-        "role_deleted role_id=%d deactivated_users=%d", role.id, deactivated
-    )
+    logger.info("role_deleted role_id=%d deactivated_users=%d", role.id, deactivated)
     return deactivated
 
 

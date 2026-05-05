@@ -7,6 +7,7 @@ SMTP gecikmesi (1-3sn) bekletmez. SMTP hatası olduğunda otomatik retry
 Task'lar idempotent: aynı task tekrar tetiklenirse aynı mail tekrar
 gönderilebilir; yan etki yoktur.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -64,9 +65,7 @@ def send_invitation_email(
         action_url=action_url,
         expires_in=expires_in,
     )
-    sent = _run_async(
-        mail_service.send_email(to=user_email, subject=subject, html_body=html)
-    )
+    sent = _run_async(mail_service.send_email(to=user_email, subject=subject, html_body=html))
     return {"sent": sent, "to": user_email, "type": "invitation"}
 
 
@@ -98,7 +97,5 @@ def send_password_reset_email(
         action_url=action_url,
         expires_in=expires_in,
     )
-    sent = _run_async(
-        mail_service.send_email(to=user_email, subject=subject, html_body=html)
-    )
+    sent = _run_async(mail_service.send_email(to=user_email, subject=subject, html_body=html))
     return {"sent": sent, "to": user_email, "type": "password_reset"}

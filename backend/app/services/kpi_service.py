@@ -19,6 +19,7 @@ Hesaplama prensipleri (`backend/CLAUDE.md` §11):
 Karşılaştırma dönemi (§9.2.2): default sequential (önceki N gün), opsiyonel
 YoY (geçen yılın aynı dönemi). Frontend toggle ile seçer.
 """
+
 from __future__ import annotations
 
 import logging
@@ -199,26 +200,36 @@ async def kpi_sessions(
 ) -> KPIResult:
     """Toplam Oturum — `SUM(sessions)` (`docs/09` §9.3.1)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "sessions", date_from=date_from, date_to=date_to,
+        db,
+        "sessions",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.GA4],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "sessions", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "sessions",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     return _build_result("sessions", cur, p)
 
 
-async def kpi_users(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
-) -> KPIResult:
+async def kpi_users(db: AsyncSession, *, date_from: date, date_to: date, **prev: date) -> KPIResult:
     """Tekil Kullanıcı — `SUM(users)` (§9.3.2)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "users", date_from=date_from, date_to=date_to,
+        db,
+        "users",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.GA4],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "users", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "users",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     return _build_result("users", cur, p)
@@ -229,11 +240,17 @@ async def kpi_new_users(
 ) -> KPIResult:
     """Yeni Kullanıcı — `SUM(new_users)` (§9.3.3)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "new_users", date_from=date_from, date_to=date_to,
+        db,
+        "new_users",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.GA4],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "new_users", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "new_users",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     return _build_result("new_users", cur, p)
@@ -247,15 +264,20 @@ async def kpi_bounce_rate(
     Trend yönü: aşağı iyidir (düşük bounce rate = kaliteli trafik).
     """
     metrics = await agg_repo.sum_metrics_daily(
-        db, ["bounce_sessions", "sessions"],
-        date_from=date_from, date_to=date_to, platforms=[KPIPlatform.GA4],
+        db,
+        ["bounce_sessions", "sessions"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.GA4],
     )
     cur = _safe_div(metrics["bounce_sessions"], metrics["sessions"])
     cur_pct = _quantize(cur * 100) if cur is not None else None
 
     pmetrics = await agg_repo.sum_metrics_daily(
-        db, ["bounce_sessions", "sessions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["bounce_sessions", "sessions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     p = _safe_div(pmetrics["bounce_sessions"], pmetrics["sessions"])
@@ -268,13 +290,18 @@ async def kpi_pages_per_session(
 ) -> KPIResult:
     """Oturum Başına Sayfa — `SUM(total_page_views)/SUM(sessions)` (§9.3.5)."""
     m = await agg_repo.sum_metrics_daily(
-        db, ["total_page_views", "sessions"],
-        date_from=date_from, date_to=date_to, platforms=[KPIPlatform.GA4],
+        db,
+        ["total_page_views", "sessions"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.GA4],
     )
     cur = _quantize(_safe_div(m["total_page_views"], m["sessions"]))
     pm = await agg_repo.sum_metrics_daily(
-        db, ["total_page_views", "sessions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["total_page_views", "sessions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     p = _quantize(_safe_div(pm["total_page_views"], pm["sessions"]))
@@ -286,13 +313,18 @@ async def kpi_avg_session_duration(
 ) -> KPIResult:
     """Ortalama Oturum Süresi — saniye (§9.3.6)."""
     m = await agg_repo.sum_metrics_daily(
-        db, ["total_session_duration", "sessions"],
-        date_from=date_from, date_to=date_to, platforms=[KPIPlatform.GA4],
+        db,
+        ["total_session_duration", "sessions"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.GA4],
     )
     cur = _quantize(_safe_div(m["total_session_duration"], m["sessions"]))
     pm = await agg_repo.sum_metrics_daily(
-        db, ["total_session_duration", "sessions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["total_session_duration", "sessions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     p = _quantize(_safe_div(pm["total_session_duration"], pm["sessions"]))
@@ -308,22 +340,34 @@ async def kpi_conversion_rate(
     SUM içinde otomatik birleşir (NULL'a duyarlı değil).
     """
     sessions = await agg_repo.sum_metric_daily(
-        db, "sessions", date_from=date_from, date_to=date_to,
+        db,
+        "sessions",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.GA4],
     )
     orders = await agg_repo.sum_metric_daily(
-        db, "orders", date_from=date_from, date_to=date_to,
+        db,
+        "orders",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
     )
     cur = _safe_div(orders, sessions)
     cur_pct = _quantize(cur * 100) if cur is not None else None
 
     p_sessions = await agg_repo.sum_metric_daily(
-        db, "sessions", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "sessions",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     p_orders = await agg_repo.sum_metric_daily(
-        db, "orders", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "orders",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = _safe_div(p_orders, p_sessions)
@@ -359,10 +403,17 @@ async def kpi_ad_spend(
     """Toplam Harcama (§9.4.1)."""
     plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "spend", date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        "spend",
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
-        db, "spend", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "spend",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=plats,
     )
     return _build_result("ad_spend", _quantize(cur), _quantize(p))
@@ -379,10 +430,17 @@ async def kpi_impressions(
     """Gösterim (§9.4.2)."""
     plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "impressions", date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        "impressions",
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
-        db, "impressions", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "impressions",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=plats,
     )
     return _build_result("impressions", cur, p)
@@ -399,10 +457,17 @@ async def kpi_clicks(
     """Tıklama (§9.4.3)."""
     plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "clicks", date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        "clicks",
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
-        db, "clicks", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "clicks",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=plats,
     )
     return _build_result("clicks", cur, p)
@@ -419,15 +484,21 @@ async def kpi_ctr(
     """CTR — `clicks/impressions × 100` (§9.4.4)."""
     plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["clicks", "impressions"], date_from=date_from, date_to=date_to,
+        db,
+        ["clicks", "impressions"],
+        date_from=date_from,
+        date_to=date_to,
         platforms=plats,
     )
     cur = _safe_div(m["clicks"], m["impressions"])
     cur_pct = _quantize(cur * 100, "0.0001") if cur is not None else None
 
     pm = await agg_repo.sum_metrics_daily(
-        db, ["clicks", "impressions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
+        db,
+        ["clicks", "impressions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
+        platforms=plats,
     )
     p = _safe_div(pm["clicks"], pm["impressions"])
     p_pct = _quantize(p * 100, "0.0001") if p is not None else None
@@ -445,11 +516,18 @@ async def kpi_cpc(
     """CPC — `spend/clicks` (§9.4.5)."""
     plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["spend", "clicks"], date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        ["spend", "clicks"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     cur = _quantize(_safe_div(m["spend"], m["clicks"]), "0.0001")
     pm = await agg_repo.sum_metrics_daily(
-        db, ["spend", "clicks"], date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["spend", "clicks"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=plats,
     )
     p = _quantize(_safe_div(pm["spend"], pm["clicks"]), "0.0001")
@@ -467,14 +545,20 @@ async def kpi_cpm(
     """CPM — `spend/impressions × 1000` (§9.4.6)."""
     plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["spend", "impressions"], date_from=date_from, date_to=date_to,
+        db,
+        ["spend", "impressions"],
+        date_from=date_from,
+        date_to=date_to,
         platforms=plats,
     )
     cur = _safe_div(m["spend"], m["impressions"])
     cur_v = _quantize(cur * 1000, "0.0001") if cur is not None else None
     pm = await agg_repo.sum_metrics_daily(
-        db, ["spend", "impressions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
+        db,
+        ["spend", "impressions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
+        platforms=plats,
     )
     p = _safe_div(pm["spend"], pm["impressions"])
     p_v = _quantize(p * 1000, "0.0001") if p is not None else None
@@ -492,10 +576,17 @@ async def kpi_ad_conversions(
     """Reklam Dönüşümü (§9.4.7)."""
     plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "ad_conversions", date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        "ad_conversions",
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
-        db, "ad_conversions", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "ad_conversions",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=plats,
     )
     return _build_result("ad_conversions", _quantize(cur), _quantize(p))
@@ -512,13 +603,19 @@ async def kpi_cost_per_conversion(
     """Dönüşüm Başına Maliyet — `spend/ad_conversions` (§9.4.8). Trend ↓ iyi."""
     plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["spend", "ad_conversions"],
-        date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        ["spend", "ad_conversions"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     cur = _quantize(_safe_div(m["spend"], m["ad_conversions"]))
     pm = await agg_repo.sum_metrics_daily(
-        db, ["spend", "ad_conversions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
+        db,
+        ["spend", "ad_conversions"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
+        platforms=plats,
     )
     p = _quantize(_safe_div(pm["spend"], pm["ad_conversions"]))
     return _build_result("cost_per_conversion", cur, p)
@@ -535,13 +632,19 @@ async def kpi_roas(
     """ROAS — `ad_revenue/spend` (§9.4.9)."""
     plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["ad_revenue", "spend"],
-        date_from=date_from, date_to=date_to, platforms=plats,
+        db,
+        ["ad_revenue", "spend"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=plats,
     )
     cur = _quantize(_safe_div(m["ad_revenue"], m["spend"]), "0.0001")
     pm = await agg_repo.sum_metrics_daily(
-        db, ["ad_revenue", "spend"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
+        db,
+        ["ad_revenue", "spend"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
+        platforms=plats,
     )
     p = _quantize(_safe_div(pm["ad_revenue"], pm["spend"]), "0.0001")
     return _build_result("roas", cur, p)
@@ -560,9 +663,7 @@ async def kpi_frequency(
     cur_stmt = select(
         func.coalesce(func.sum(MetaAds.impressions), 0),
         func.coalesce(func.sum(MetaAds.reach), 0),
-    ).where(
-        and_(MetaAds.date_start >= date_from, MetaAds.date_start <= date_to)
-    )
+    ).where(and_(MetaAds.date_start >= date_from, MetaAds.date_start <= date_to))
     cr = (await db.execute(cur_stmt)).one()
     cur = _quantize(_safe_div(Decimal(cr[0]), Decimal(cr[1])), "0.0001")
 
@@ -590,11 +691,17 @@ async def kpi_revenue(
 ) -> KPIResult:
     """Toplam Ciro (§9.5.1)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "revenue", date_from=date_from, date_to=date_to,
+        db,
+        "revenue",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "revenue", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "revenue",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     return _build_result("revenue", _quantize(cur), _quantize(p))
@@ -605,11 +712,17 @@ async def kpi_orders(
 ) -> KPIResult:
     """Sipariş Sayısı (§9.5.2)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "orders", date_from=date_from, date_to=date_to,
+        db,
+        "orders",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "orders", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "orders",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     return _build_result("orders", cur, p)
@@ -620,28 +733,37 @@ async def kpi_items_sold(
 ) -> KPIResult:
     """Satılan Ürün Adedi (§9.5.3)."""
     cur = await agg_repo.sum_metric_daily(
-        db, "items_sold", date_from=date_from, date_to=date_to,
+        db,
+        "items_sold",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = await agg_repo.sum_metric_daily(
-        db, "items_sold", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "items_sold",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     return _build_result("items_sold", cur, p)
 
 
-async def kpi_aov(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
-) -> KPIResult:
+async def kpi_aov(db: AsyncSession, *, date_from: date, date_to: date, **prev: date) -> KPIResult:
     """AOV — `revenue/orders` (§9.5.4)."""
     m = await agg_repo.sum_metrics_daily(
-        db, ["revenue", "orders"],
-        date_from=date_from, date_to=date_to, platforms=[KPIPlatform.ECOMMERCE],
+        db,
+        ["revenue", "orders"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.ECOMMERCE],
     )
     cur = _quantize(_safe_div(m["revenue"], m["orders"]))
     pm = await agg_repo.sum_metrics_daily(
-        db, ["revenue", "orders"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["revenue", "orders"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = _quantize(_safe_div(pm["revenue"], pm["orders"]))
@@ -653,20 +775,32 @@ async def kpi_revenue_per_user(
 ) -> KPIResult:
     """Kullanıcı Başına Gelir — `revenue/users` (§9.5.5)."""
     revenue = await agg_repo.sum_metric_daily(
-        db, "revenue", date_from=date_from, date_to=date_to,
+        db,
+        "revenue",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
     )
     users = await agg_repo.sum_metric_daily(
-        db, "users", date_from=date_from, date_to=date_to,
+        db,
+        "users",
+        date_from=date_from,
+        date_to=date_to,
         platforms=[KPIPlatform.GA4],
     )
     cur = _quantize(_safe_div(revenue, users))
     p_revenue = await agg_repo.sum_metric_daily(
-        db, "revenue", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "revenue",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p_users = await agg_repo.sum_metric_daily(
-        db, "users", date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        "users",
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
     )
     p = _quantize(_safe_div(p_revenue, p_users))
@@ -711,14 +845,19 @@ async def kpi_refund_rate(
 ) -> KPIResult:
     """İade Oranı — `refund_total/revenue × 100` (§9.5.7). Trend ↓ iyi."""
     m = await agg_repo.sum_metrics_daily(
-        db, ["refund_total", "revenue"],
-        date_from=date_from, date_to=date_to, platforms=[KPIPlatform.ECOMMERCE],
+        db,
+        ["refund_total", "revenue"],
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.ECOMMERCE],
     )
     cur = _safe_div(m["refund_total"], m["revenue"])
     cur_pct = _quantize(cur * 100) if cur is not None else None
     pm = await agg_repo.sum_metrics_daily(
-        db, ["refund_total", "revenue"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
+        db,
+        ["refund_total", "revenue"],
+        date_from=prev["prev_from"],
+        date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
     )
     p = _safe_div(pm["refund_total"], pm["revenue"])
@@ -763,12 +902,8 @@ async def calculate_summary(
         aov=await kpi_aov(db, date_from=date_from, date_to=date_to, **kw),
         sessions=await kpi_sessions(db, date_from=date_from, date_to=date_to, **kw),
         users=await kpi_users(db, date_from=date_from, date_to=date_to, **kw),
-        conversion_rate=await kpi_conversion_rate(
-            db, date_from=date_from, date_to=date_to, **kw
-        ),
-        bounce_rate=await kpi_bounce_rate(
-            db, date_from=date_from, date_to=date_to, **kw
-        ),
+        conversion_rate=await kpi_conversion_rate(db, date_from=date_from, date_to=date_to, **kw),
+        bounce_rate=await kpi_bounce_rate(db, date_from=date_from, date_to=date_to, **kw),
         ad_spend=await kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw),
         roas=await kpi_roas(db, date_from=date_from, date_to=date_to, **kw),
     )
@@ -828,7 +963,8 @@ async def campaign_detail(
     - top_products: bu kampanya kaynaklı en çok satılan ürünler
     - daily_series: günlük spend + e-ticaret revenue
     """
-    from app.models import Campaign, OrderItem, Product as ProductModel
+    from app.models import Campaign, OrderItem
+    from app.models import Product as ProductModel
 
     if campaign_pk_id is None and campaign_name is None:
         raise ValueError("campaign_pk_id veya campaign_name verilmeli")
@@ -914,7 +1050,8 @@ async def campaign_detail(
                 "clicks": Decimal(int(m[1]) + int(g[1])),
                 "spend": _quantize(Decimal(str(m[2])) + Decimal(str(g[2]))) or Decimal(0),
                 "conversions": _quantize(Decimal(str(m[3])) + Decimal(str(g[3]))) or Decimal(0),
-                "conversions_value": _quantize(Decimal(str(m[4])) + Decimal(str(g[4]))) or Decimal(0),
+                "conversions_value": _quantize(Decimal(str(m[4])) + Decimal(str(g[4])))
+                or Decimal(0),
             }
 
     # 2) E-ticaret attribution — orders.campaign_name = resolved_name
@@ -1016,7 +1153,10 @@ async def campaign_detail(
             .group_by(func.date(Order.order_date))
             .order_by(func.date(Order.order_date))
         )
-        ecom_rows = {r[0]: (Decimal(str(r[1] or 0)), int(r[2] or 0)) for r in (await db.execute(ecom_stmt)).all()}
+        ecom_rows = {
+            r[0]: (Decimal(str(r[1] or 0)), int(r[2] or 0))
+            for r in (await db.execute(ecom_stmt)).all()
+        }
 
         # Spend per gün — meta_ads + google_ads (campaign_pk_id match)
         spend_by_date: dict[date, Decimal] = {}
@@ -1046,7 +1186,9 @@ async def campaign_detail(
                     .group_by(date_col)
                 )
                 for r in (await db.execute(stmt)).all():
-                    spend_by_date[r[0]] = spend_by_date.get(r[0], Decimal(0)) + Decimal(str(r[1] or 0))
+                    spend_by_date[r[0]] = spend_by_date.get(r[0], Decimal(0)) + Decimal(
+                        str(r[1] or 0)
+                    )
 
         # Birleştir
         all_dates = sorted(set(ecom_rows.keys()) | set(spend_by_date.keys()))
@@ -1080,6 +1222,37 @@ async def campaign_detail(
     }
 
 
+def _build_campaign_metric(row: Any, platform: str) -> CampaignMetric:
+    """Raw aggregation row → CampaignMetric. CTR/CPC/ROAS sıfır bölme korumalı."""
+    spend = Decimal(str(row.spend or 0))
+    impressions = int(row.impressions or 0)
+    clicks = int(row.clicks or 0)
+    conversions = Decimal(str(row.conversions or 0))
+    conv_value = Decimal(str(row.conversions_value or 0))
+
+    ctr = (
+        (Decimal(clicks) / Decimal(impressions) * 100).quantize(Decimal("0.0001"))
+        if impressions > 0
+        else None
+    )
+    cpc = (spend / Decimal(clicks)).quantize(Decimal("0.0001")) if clicks > 0 else None
+    roas = (conv_value / spend).quantize(Decimal("0.0001")) if spend > 0 else None
+
+    return CampaignMetric(
+        campaign_id=int(row.pk_id),
+        campaign_name=row.campaign_name,
+        platform=platform,
+        impressions=impressions,
+        clicks=clicks,
+        spend=spend.quantize(Decimal("0.01")),
+        conversions=conversions,
+        conversions_value=conv_value.quantize(Decimal("0.01")),
+        ctr=ctr,
+        cpc=cpc,
+        roas=roas,
+    )
+
+
 async def campaign_performance(
     db: AsyncSession,
     *,
@@ -1089,31 +1262,82 @@ async def campaign_performance(
     limit: int = 50,
     order_by: str = "spend",
 ) -> list[CampaignMetric]:
-    """Kampanya × performance metrics (§9.6.3) — `kpi_campaign_aggregates`."""
-    items = await agg_repo.list_campaign_aggregates(
-        db,
-        period_start=period_start,
-        period_end=period_end,
-        platform=platform,
-        limit=limit,
-        order_by=order_by,
-    )
-    return [
-        CampaignMetric(
-            campaign_id=it.campaign_pk_id,
-            campaign_name=it.campaign_name,
-            platform=it.platform.value if it.platform else None,
-            impressions=int(it.impressions),
-            clicks=int(it.clicks),
-            spend=it.spend,
-            conversions=it.conversions,
-            conversions_value=it.conversions_value,
-            ctr=it.ctr,
-            cpc=it.cpc,
-            roas=it.roas,
+    """Kampanya × performance metrics (§9.6.3).
+
+    `meta_ads` ve `google_ads` raw tablolarından `campaign_pk_id` (FK to
+    `campaigns.id`) üzerinden gruplanır. Bu yaklaşım `kpi_campaign_aggregates`
+    tablosuna bağımlı değildir — herhangi bir tarih aralığı için on-the-fly
+    çalışır (aggregation rebuild yapılmamış kısmi dönemler de doğru sonuç verir).
+
+    `campaign_pk_id` data writer FK resolution sırasında doldurulur; populate
+    edilmemiş satırlar agregata dahil edilmez.
+    """
+    from app.models import GoogleAds, MetaAds
+
+    metrics: list[CampaignMetric] = []
+
+    if platform is None or platform == KPIPlatform.META:
+        meta_stmt = (
+            select(
+                MetaAds.campaign_pk_id.label("pk_id"),
+                func.max(MetaAds.campaign_name).label("campaign_name"),
+                func.coalesce(func.sum(MetaAds.impressions), 0).label("impressions"),
+                func.coalesce(func.sum(MetaAds.clicks), 0).label("clicks"),
+                func.coalesce(func.sum(MetaAds.spend), 0).label("spend"),
+                func.coalesce(func.sum(MetaAds.actions_purchase), 0).label("conversions"),
+                func.coalesce(func.sum(MetaAds.action_values_purchase), 0).label(
+                    "conversions_value"
+                ),
+            )
+            .where(
+                and_(
+                    MetaAds.date_start >= period_start,
+                    MetaAds.date_start <= period_end,
+                    MetaAds.campaign_pk_id.is_not(None),
+                )
+            )
+            .group_by(MetaAds.campaign_pk_id)
         )
-        for it in items
-    ]
+        for row in (await db.execute(meta_stmt)).all():
+            metrics.append(_build_campaign_metric(row, "meta"))
+
+    if platform is None or platform == KPIPlatform.GOOGLE:
+        google_stmt = (
+            select(
+                GoogleAds.campaign_pk_id.label("pk_id"),
+                func.max(GoogleAds.campaign_name).label("campaign_name"),
+                func.coalesce(func.sum(GoogleAds.impressions), 0).label("impressions"),
+                func.coalesce(func.sum(GoogleAds.clicks), 0).label("clicks"),
+                # Google'da kolon `cost`, Meta'da `spend` — her ikisi de "harcama".
+                func.coalesce(func.sum(GoogleAds.cost), 0).label("spend"),
+                func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
+                func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
+            )
+            .where(
+                and_(
+                    GoogleAds.date >= period_start,
+                    GoogleAds.date <= period_end,
+                    GoogleAds.campaign_pk_id.is_not(None),
+                )
+            )
+            .group_by(GoogleAds.campaign_pk_id)
+        )
+        for row in (await db.execute(google_stmt)).all():
+            metrics.append(_build_campaign_metric(row, "google"))
+
+    sort_keys = {
+        "spend": lambda m: m.spend or Decimal(0),
+        "roas": lambda m: m.roas if m.roas is not None else Decimal(0),
+        "impressions": lambda m: m.impressions or 0,
+        "clicks": lambda m: m.clicks or 0,
+        "conversions": lambda m: m.conversions or Decimal(0),
+        "conversions_value": lambda m: m.conversions_value or Decimal(0),
+    }
+    metrics.sort(
+        key=sort_keys.get(order_by, sort_keys["spend"]),
+        reverse=True,
+    )
+    return metrics[:limit] if limit else metrics
 
 
 async def new_vs_returning_revenue(
@@ -1202,9 +1426,7 @@ async def daily_revenue_series(
 # ---------------------------------------------------------------------- #
 
 
-async def funnel_steps(
-    db: AsyncSession, *, date_from: date, date_to: date
-) -> list[FunnelStep]:
+async def funnel_steps(db: AsyncSession, *, date_from: date, date_to: date) -> list[FunnelStep]:
     """E-ticaret funnel: View → Cart → Checkout → Purchase (§9.7.1)."""
     stmt = select(
         func.coalesce(func.sum(GA4ItemEngagement.items_viewed), 0),
@@ -1223,9 +1445,7 @@ async def funnel_steps(
     def drop_pct(prev_count: int, curr_count: int) -> Decimal | None:
         if prev_count == 0:
             return None
-        return _quantize(
-            Decimal(prev_count - curr_count) / Decimal(prev_count) * 100
-        )
+        return _quantize(Decimal(prev_count - curr_count) / Decimal(prev_count) * 100)
 
     return [
         FunnelStep(step="view", label_tr="Görüntüleme", count=view, drop_from_previous_pct=None),
@@ -1392,9 +1612,7 @@ async def cohort_retention(
         GROUP BY cohort_month
         """
     )
-    size_rows = (
-        await db.execute(size_stmt, {"from": date_from, "to": date_to})
-    ).all()
+    size_rows = (await db.execute(size_stmt, {"from": date_from, "to": date_to})).all()
     base: dict[date, int] = {cm: int(n) for cm, n in size_rows}
 
     # 2) Her (cohort, month_offset) için aktif müşteri sayısı
@@ -1427,11 +1645,7 @@ async def cohort_retention(
     out: list[dict[str, Any]] = []
     for cohort_month, offset, cnt in rows:
         size = base.get(cohort_month, 0)
-        retention = (
-            _quantize(Decimal(int(cnt)) / Decimal(size) * 100)
-            if size > 0
-            else None
-        )
+        retention = _quantize(Decimal(int(cnt)) / Decimal(size) * 100) if size > 0 else None
         out.append(
             {
                 "cohort_month": cohort_month,

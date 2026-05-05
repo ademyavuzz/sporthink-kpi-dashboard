@@ -64,8 +64,8 @@
 - Trend yönü her KPI'da farklı (revenue ↑ iyi, bounce_rate ↓ iyi)
 
 ## Slayt 9 — RBAC
-- 37 izin enum'u — `app/core/permissions.py` tek doğru kaynak
-- 4 kategori: Veri Görüntüleme (9), Veri İşlemleri (17),
+- 43 izin enum'u — `app/core/permissions.py` tek doğru kaynak
+- 4 kategori: Veri Görüntüleme (9), Veri İşlemleri (20),
   Kullanıcı/Rol (9), Sistem (5)
 - Süper Admin → tüm izinleri otomatik bypass
 - Frontend `<ProtectedRoute permission=...>` + backend `@require_permission`

@@ -64,29 +64,19 @@ class MetaAds(Base):
     cpm: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=0)
     cpp: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=0)
     ctr: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=False, default=0)
-    inline_link_click_ctr: Mapped[Decimal] = mapped_column(
-        Numeric(8, 4), nullable=False, default=0
-    )
+    inline_link_click_ctr: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=False, default=0)
 
     actions_link_click: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
-    actions_landing_page_view: Mapped[int] = mapped_column(
-        IntUnsigned, nullable=False, default=0
-    )
+    actions_landing_page_view: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
     actions_view_content: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
     actions_add_to_cart: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
-    actions_initiate_checkout: Mapped[int] = mapped_column(
-        IntUnsigned, nullable=False, default=0
-    )
+    actions_initiate_checkout: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
     actions_purchase: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
     action_values_purchase: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=0
     )
-    actions_page_engagement: Mapped[int] = mapped_column(
-        IntUnsigned, nullable=False, default=0
-    )
-    actions_post_engagement: Mapped[int] = mapped_column(
-        IntUnsigned, nullable=False, default=0
-    )
+    actions_page_engagement: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
+    actions_post_engagement: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
     actions_video_view: Mapped[int] = mapped_column(IntUnsigned, nullable=False, default=0)
 
     created_at: Mapped[datetime] = mapped_column(

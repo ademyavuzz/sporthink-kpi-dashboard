@@ -7,6 +7,7 @@ Idempotent — aynı `date_from`/`date_to` ile birden fazla kez çağrılırsa
 duplikat üretmez (UPSERT). Geniş tarih aralıkları için ~saniye sürebilir;
 production'da Celery worker'da çalışır.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -57,9 +58,7 @@ def rebuild_all_task(
 
     async def _job():
         async with AsyncSessionLocal() as db:
-            return await aggregation_service.rebuild_all(
-                db, date_from=date_from, date_to=date_to
-            )
+            return await aggregation_service.rebuild_all(db, date_from=date_from, date_to=date_to)
 
     result = _run_async(_job())
     logger.info("aggregation_rebuild_complete result=%s", result)

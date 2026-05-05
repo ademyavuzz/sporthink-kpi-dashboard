@@ -55,7 +55,7 @@ Kullanıcı yönetimi, yetkilendirme, denetim ve uygulama içi işlevler için t
 |---|---|
 | `users` | Kullanıcı kayıtları |
 | `roles` | Rol tanımları |
-| `permissions` | İzin tanımları (37 izin) |
+| `permissions` | İzin tanımları (43 izin) |
 | `role_permissions` | Rol-izin ilişki tablosu (M:N) |
 | `refresh_tokens` | Aktif refresh token kayıtları |
 | `password_reset_tokens` | Şifre sıfırlama token kayıtları |
@@ -815,7 +815,7 @@ CREATE TABLE permissions (
     INDEX idx_category (category)
 );
 
--- 37 izin seed verisi (Bölüm 05'te detayları)
+-- 43 izin seed verisi (Bölüm 05'te detayları)
 INSERT INTO permissions (code, module, action, description, category) VALUES
 ('dashboard.view', 'dashboard', 'view', 'Genel Özet sayfasını görme', 'view'),
 ('traffic.view', 'traffic', 'view', 'Trafik (GA4) sayfasını görme', 'view'),

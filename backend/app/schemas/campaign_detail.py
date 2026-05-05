@@ -1,4 +1,5 @@
 """Campaign detail (drill-down) endpoint şeması."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -60,7 +61,7 @@ class CampaignDetailResponse(BaseModel):
     daily_series: list[CampaignDailyPoint]
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "CampaignDetailResponse":
+    def from_dict(cls, d: dict[str, Any]) -> CampaignDetailResponse:
         return cls(
             campaign_pk_id=d["campaign_pk_id"],
             campaign_name=d["campaign_name"],

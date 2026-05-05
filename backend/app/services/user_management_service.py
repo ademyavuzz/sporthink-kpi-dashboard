@@ -7,6 +7,7 @@ güvenli bir placeholder hash atanır (login imkânsız), ardından
 
 Tüm değişiklikler audit_log'a yazılır.
 """
+
 from __future__ import annotations
 
 import logging
@@ -72,9 +73,7 @@ async def create_user(
 
     role = await db.get(Role, role_id)
     if role is None:
-        raise ValidationError(
-            "Invalid role", field="role_id", params={"role_id": role_id}
-        )
+        raise ValidationError("Invalid role", field="role_id", params={"role_id": role_id})
 
     user = User(
         email=email,

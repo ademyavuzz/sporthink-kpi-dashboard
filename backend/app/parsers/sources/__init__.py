@@ -1,4 +1,5 @@
 """Source config registry — `ImportDataType` → `SourceConfig`."""
+
 from __future__ import annotations
 
 from app.models import ImportDataType

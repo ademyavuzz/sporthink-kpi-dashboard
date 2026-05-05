@@ -15,6 +15,7 @@ Notlar:
 - Natural unique key yok — `dedup_keys` boş, aynı satır iki import'ta iki kez
   görünebilir (yeniden yükleme için import_id ile rollback yapılır).
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, SourceConfig
@@ -26,9 +27,7 @@ CONFIG = SourceConfig(
         ColumnSpec("date", "date", "date_yyyymmdd", required=True),
         ColumnSpec("session_source", "sessionSource", "str", required=True),
         ColumnSpec("session_medium", "sessionMedium", "str", required=True),
-        ColumnSpec(
-            "session_campaign_name", "sessionCampaignName", "str", required=False
-        ),
+        ColumnSpec("session_campaign_name", "sessionCampaignName", "str", required=False),
         ColumnSpec(
             "session_default_channel_group",
             "sessionDefaultChannelGroup",
@@ -74,12 +73,8 @@ CONFIG = SourceConfig(
             required=False,
             default=0,
         ),
-        ColumnSpec(
-            "engaged_sessions", "engagedSessions", "int", required=False, default=0
-        ),
-        ColumnSpec(
-            "engagement_rate", "engagementRate", "decimal", required=False, default=0
-        ),
+        ColumnSpec("engaged_sessions", "engagedSessions", "int", required=False, default=0),
+        ColumnSpec("engagement_rate", "engagementRate", "decimal", required=False, default=0),
         ColumnSpec(
             "user_engagement_duration",
             "userEngagementDuration",
@@ -88,9 +83,7 @@ CONFIG = SourceConfig(
             default=0,
         ),
         ColumnSpec("conversions", "conversions", "int", required=False, default=0),
-        ColumnSpec(
-            "purchase_revenue", "purchaseRevenue", "decimal", required=False, default=0
-        ),
+        ColumnSpec("purchase_revenue", "purchaseRevenue", "decimal", required=False, default=0),
         ColumnSpec("transactions", "transactions", "int", required=False, default=0),
     ],
     dedup_keys=[],  # natural key yok

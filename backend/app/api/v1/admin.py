@@ -3,6 +3,7 @@ segments, saved views, RFM, filters, export.
 
 Bu router büyük; pratik için tek dosyada — Sprint 10'da modüler ayrılabilir.
 """
+
 from __future__ import annotations
 
 import csv as _csv
@@ -143,9 +144,7 @@ async def rebuild_aggregations(
     _user: User = Depends(require_permission(Permission.SETTINGS_UPDATE)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[dict]:
-    result = await aggregation_service.rebuild_all(
-        db, date_from=date_from, date_to=date_to
-    )
+    result = await aggregation_service.rebuild_all(db, date_from=date_from, date_to=date_to)
     # KPI cache'lerini invalidate et
     await cache.delete_pattern(cache_keys.kpi_invalidation_pattern())
     return SuccessEnvelope(data=result)  # type: ignore[arg-type]
@@ -167,9 +166,7 @@ async def list_audit_logs(
     _user: User = Depends(require_permission(Permission.LOGS_VIEW_AUDIT)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[list[AuditLogItem]]:
-    items = await user_management_service.list_audit_logs(
-        db, limit=limit, action_filter=action
-    )
+    items = await user_management_service.list_audit_logs(db, limit=limit, action_filter=action)
     return SuccessEnvelope(data=[AuditLogItem(**i) for i in items])
 
 
@@ -188,12 +185,16 @@ async def list_channel_mappings(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[list[ChannelMappingItem]]:
     rows = (
-        await db.execute(
-            select(ChannelMapping)
-            .where(ChannelMapping.deleted_at.is_(None))
-            .order_by(ChannelMapping.id)
+        (
+            await db.execute(
+                select(ChannelMapping)
+                .where(ChannelMapping.deleted_at.is_(None))
+                .order_by(ChannelMapping.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return SuccessEnvelope(data=[ChannelMappingItem.model_validate(r) for r in rows])
 
 
@@ -382,9 +383,7 @@ async def list_permissions_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[dict[str, list[PermissionItem]]]:
     grouped = await role_service.list_permissions_grouped(db)
-    return SuccessEnvelope(
-        data={k: [PermissionItem(**p) for p in v] for k, v in grouped.items()}
-    )
+    return SuccessEnvelope(data={k: [PermissionItem(**p) for p in v] for k, v in grouped.items()})
 
 
 # ---------------------------------------------------------------------- #
@@ -399,12 +398,18 @@ def _user_to_item(u: User, role: Role | None = None) -> UserListItem:
         first_name=u.first_name,
         last_name=u.last_name,
         role_id=u.role_id,
-        role=None if role is None else type("RoleSummary", (), {
-            "id": role.id,
-            "name": role.name,
-            "is_system": role.is_system,
-            "color": role.color,
-        })(),  # type: ignore
+        role=None
+        if role is None
+        else type(
+            "RoleSummary",
+            (),
+            {
+                "id": role.id,
+                "name": role.name,
+                "is_system": role.is_system,
+                "color": role.color,
+            },
+        )(),  # type: ignore
         is_active=u.is_active,
         avatar_url=u.avatar_url,
         last_login_at=u.last_login_at,
@@ -423,19 +428,13 @@ async def list_users(
     _user: User = Depends(require_permission(Permission.USERS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[list[UserListItem]]:
-    users = await user_management_service.list_users(
-        db, include_deleted=include_deleted
-    )
+    users = await user_management_service.list_users(db, include_deleted=include_deleted)
     role_ids = {u.role_id for u in users if u.role_id}
     roles_map = {}
     if role_ids:
-        roles = (
-            await db.execute(select(Role).where(Role.id.in_(role_ids)))
-        ).scalars().all()
+        roles = (await db.execute(select(Role).where(Role.id.in_(role_ids)))).scalars().all()
         roles_map = {r.id: r for r in roles}
-    return SuccessEnvelope(
-        data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users]
-    )
+    return SuccessEnvelope(data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users])
 
 
 @router.post(
@@ -470,9 +469,7 @@ async def create_user(
     )
     role = await db.get(Role, user.role_id) if user.role_id else None
     item = _user_to_item(user, role)
-    return SuccessEnvelope(
-        data=UserCreateResponse(**item.model_dump(), invitation_sent=True)
-    )
+    return SuccessEnvelope(data=UserCreateResponse(**item.model_dump(), invitation_sent=True))
 
 
 @router.patch(
@@ -548,9 +545,7 @@ async def admin_reset_password(
         user_agent=request.headers.get("user-agent"),
     )
     return SuccessEnvelope(
-        data=AdminPasswordResetResponse(
-            user_id=user.id, email=user.email, reset_email_sent=True
-        )
+        data=AdminPasswordResetResponse(user_id=user.id, email=user.email, reset_email_sent=True)
     )
 
 
@@ -568,16 +563,20 @@ async def list_segments(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[list[SegmentItem]]:
     rows = (
-        await db.execute(
-            select(Segment)
-            .where(
-                Segment.deleted_at.is_(None),
-                # Kullanıcı kendi + paylaşılanları görür
-                (Segment.user_id == current.id) | (Segment.is_shared.is_(True)),
+        (
+            await db.execute(
+                select(Segment)
+                .where(
+                    Segment.deleted_at.is_(None),
+                    # Kullanıcı kendi + paylaşılanları görür
+                    (Segment.user_id == current.id) | (Segment.is_shared.is_(True)),
+                )
+                .order_by(Segment.id.desc())
             )
-            .order_by(Segment.id.desc())
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return SuccessEnvelope(data=[SegmentItem.model_validate(r) for r in rows])
 
 
@@ -605,6 +604,7 @@ async def create_segment(
     try:
         seg.cached_count = await segment_service.evaluate_count(db, payload.rules)
         from datetime import datetime
+
         seg.cached_at = datetime.now(UTC)
     except Exception:  # noqa: BLE001
         seg.cached_count = None
@@ -623,9 +623,7 @@ async def preview_segment(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[SegmentPreviewResponse]:
     count = await segment_service.evaluate_count(db, payload.rules)
-    sample_customers = await segment_service.list_customers(
-        db, payload.rules, limit=10
-    )
+    sample_customers = await segment_service.list_customers(db, payload.rules, limit=10)
     sample = [
         {
             "customer_id": c.customer_id,
@@ -660,6 +658,7 @@ async def update_segment(
         seg.rules = payload.rules
         seg.cached_count = await segment_service.evaluate_count(db, payload.rules)
         from datetime import datetime
+
         seg.cached_at = datetime.now(UTC)
     if payload.is_shared is not None:
         seg.is_shared = payload.is_shared
@@ -681,6 +680,7 @@ async def delete_segment(
     if seg is None or seg.deleted_at is not None:
         raise ResourceNotFoundError(params={"segment_id": segment_id})
     from datetime import datetime
+
     seg.deleted_at = datetime.now(UTC)
     await db.commit()
     return SuccessEnvelope(data={"deleted": True, "id": segment_id})
@@ -697,6 +697,7 @@ async def get_rfm(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[RFMResponse]:
     from datetime import date as date_type2
+
     ref = reference_date or date_type2.today()
     rows = await segment_service.rfm_table(db, reference_date=ref)
     distribution = await segment_service.rfm_distribution(db, reference_date=ref)
@@ -723,9 +724,7 @@ async def list_saved_views(
     current: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[list[SavedViewItem]]:
-    stmt = select(SavedView).where(
-        SavedView.deleted_at.is_(None), SavedView.user_id == current.id
-    )
+    stmt = select(SavedView).where(SavedView.deleted_at.is_(None), SavedView.user_id == current.id)
     if page:
         stmt = stmt.where(SavedView.page == page)
     stmt = stmt.order_by(SavedView.id.desc())
@@ -797,6 +796,7 @@ async def delete_saved_view(
     if sv is None or sv.deleted_at is not None or sv.user_id != current.id:
         raise ResourceNotFoundError(params={"view_id": view_id})
     from datetime import datetime
+
     sv.deleted_at = datetime.now(UTC)
     await db.commit()
     return SuccessEnvelope(data={"deleted": True, "id": view_id})
@@ -830,10 +830,10 @@ async def export_data(
         from app.models import Product
 
         items = (
-            await db.execute(
-                select(Product).where(Product.deleted_at.is_(None)).limit(limit)
-            )
-        ).scalars().all()
+            (await db.execute(select(Product).where(Product.deleted_at.is_(None)).limit(limit)))
+            .scalars()
+            .all()
+        )
         rows = [
             {
                 "sku": p.sku,
@@ -852,10 +852,10 @@ async def export_data(
         from app.models import Customer
 
         items = (
-            await db.execute(
-                select(Customer).where(Customer.deleted_at.is_(None)).limit(limit)
-            )
-        ).scalars().all()
+            (await db.execute(select(Customer).where(Customer.deleted_at.is_(None)).limit(limit)))
+            .scalars()
+            .all()
+        )
         rows = [
             {
                 "customer_id": c.customer_id,
@@ -873,9 +873,7 @@ async def export_data(
     elif kind == "orders":
         from app.models import Order
 
-        items = (
-            await db.execute(select(Order).limit(limit))
-        ).scalars().all()
+        items = (await db.execute(select(Order).limit(limit))).scalars().all()
         rows = [
             {
                 "order_id": o.order_id,
@@ -894,10 +892,10 @@ async def export_data(
         from app.models import Campaign
 
         items = (
-            await db.execute(
-                select(Campaign).where(Campaign.deleted_at.is_(None)).limit(limit)
-            )
-        ).scalars().all()
+            (await db.execute(select(Campaign).where(Campaign.deleted_at.is_(None)).limit(limit)))
+            .scalars()
+            .all()
+        )
         rows = [
             {
                 "campaign_name": c.campaign_name,
@@ -915,10 +913,10 @@ async def export_data(
         rows = await user_management_service.list_audit_logs(db, limit=limit)
     elif kind == "channel_mappings":
         items = (
-            await db.execute(
-                select(ChannelMapping).where(ChannelMapping.deleted_at.is_(None))
-            )
-        ).scalars().all()
+            (await db.execute(select(ChannelMapping).where(ChannelMapping.deleted_at.is_(None))))
+            .scalars()
+            .all()
+        )
         rows = [
             {
                 "source": m.source,

@@ -1,4 +1,5 @@
 """Rapor üretim modülü API contract'ı."""
+
 from __future__ import annotations
 
 from datetime import date as date_type
@@ -35,7 +36,7 @@ class ReportCreateRequest(BaseModel):
     language: Literal["tr", "en"] = "tr"
 
     @model_validator(mode="after")
-    def _validate_range(self) -> "ReportCreateRequest":
+    def _validate_range(self) -> ReportCreateRequest:
         if self.date_from > self.date_to:
             raise ValueError("date_from must be <= date_to")
         return self

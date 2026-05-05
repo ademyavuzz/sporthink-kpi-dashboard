@@ -19,11 +19,27 @@ ignore = [
     "E501",  # line-too-long (formatter handles)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# SQL dialect tipleri (BIGINT, INTEGER, vb.) Python'da konvansiyon olarak
+# CONST stilinde gelir; `MysqlBigInt` gibi alias'lar SQLAlchemy modelleri
+# arasında sıkça kullanılır ve okunaklılığı arttırır.
+"app/models/*.py" = ["N811"]
+# `SporthinkException` proje çapı base class; tüm subclass'lar `Error` suffix'i
+# taşıyor. Base class adının `Exception` ile uyumlu olması bilinçli.
+"app/core/exceptions.py" = ["N818"]
+# `ImportError_` Python builtin `ImportError` ile çakışmasın diye trailing
+# underscore taşır; tablo adı `import_errors` ile uyumlu kalır.
+"app/models/import_error.py" = ["N801"]
+# `BigIntPK()` SQLAlchemy column factory — class gibi davranır, CapWords seçildi.
+"app/models/base.py" = ["N802"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI dependency injection pattern — Depends/Query/... default'larda olur.
+# `require_permission(...)` bir factory; çağrı sonucu Depends'e geçer ve
+# her isteğe değil, dependency tree çözüm anına bağlanır.
 extend-immutable-calls = [
     "fastapi.Depends",
     "fastapi.Query",
@@ -34,6 +50,7 @@ extend-immutable-calls = [
     "fastapi.Form",
     "fastapi.File",
     "fastapi.Security",
+    "app.dependencies.require_permission",
 ]
 
 [tool.ruff.format]

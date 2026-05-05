@@ -16,6 +16,7 @@ Hata akışı:
     - Satır seviyesi hatalar → `import_errors` tablosuna; pipeline devam eder
       (skip strategy). 0 valid satır kalırsa COMPLETED + 0 inserted.
 """
+
 from __future__ import annotations
 
 import io
@@ -111,9 +112,7 @@ _DATE_COLUMN_BY_TYPE: dict[ImportDataType, str] = {
 }
 
 
-def _trigger_aggregate_rebuild(
-    rows: list[dict[str, Any]], data_type: ImportDataType
-) -> None:
+def _trigger_aggregate_rebuild(rows: list[dict[str, Any]], data_type: ImportDataType) -> None:
     """Import sonrası aggregate'leri yenilemek için Celery task'ı tetikler.
 
     `rows` içinden tarih min/max'ı çıkarır ve sadece o pencere için rebuild
@@ -147,9 +146,8 @@ def _trigger_aggregate_rebuild(
     except Exception:
         # Celery broker erişilemezse bile import başarılı sayılır;
         # admin manuel rebuild'i tetikleyebilir.
-        logger.exception(
-            "aggregate_rebuild_enqueue_failed data_type=%s", data_type.value
-        )
+        logger.exception("aggregate_rebuild_enqueue_failed data_type=%s", data_type.value)
+
 
 # Sonuç panelinde gösterilecek max örnek hata sayısı
 _SAMPLE_ERRORS_LIMIT = 50
@@ -192,9 +190,7 @@ def _save_uploaded_file(file: BinaryIO, original_name: str) -> tuple[str, int]:
             if written > max_bytes:
                 out.close()
                 os.remove(dest_path)
-                raise FileTooLargeError(
-                    params={"max_mb": settings.import_max_file_size_mb}
-                )
+                raise FileTooLargeError(params={"max_mb": settings.import_max_file_size_mb})
             out.write(chunk)
     return dest_path, written
 
@@ -206,7 +202,7 @@ def _jsonify(value: Any) -> Any:
     """
     if isinstance(value, Decimal):
         return str(value)
-    if isinstance(value, (date, datetime)):
+    if isinstance(value, date | datetime):
         return value.isoformat()
     if isinstance(value, dict):
         return {k: _jsonify(v) for k, v in value.items()}
@@ -246,8 +242,7 @@ async def _resolve_fk_lookups(
         external_values = [
             r.data[fk.external_id_column]
             for r in rows
-            if fk.external_id_column in r.data
-            and r.data[fk.external_id_column] is not None
+            if fk.external_id_column in r.data and r.data[fk.external_id_column] is not None
         ]
         pk_maps[fk.pk_column] = await data_writer.fetch_pk_map(
             db,
@@ -385,7 +380,10 @@ async def run_import(
         )
         await db.commit()
 
-        with open(file_path, "rb") as raw:
+        # NOTE: Sync `open()` + streaming CSV parser. backend/CLAUDE.md §8.2
+        # gereği import'ların Celery'ye taşınması planlandı; bu yapılana kadar
+        # request loop bu noktada bloke olur. Dev/küçük dosyalarda kabul ediliyor.
+        with open(file_path, "rb") as raw:  # noqa: ASYNC230
             text_stream = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
             for item in parse_csv(text_stream, config):
                 if isinstance(item, ParsedRow):
@@ -442,9 +440,7 @@ async def run_import(
                 row["import_id"] = import_id
             prepared_rows.append(row)
 
-        inserted = await data_writer.bulk_insert(
-            db, model=model, rows=prepared_rows
-        )
+        inserted = await data_writer.bulk_insert(db, model=model, rows=prepared_rows)
 
         # import_errors satırlarını yaz — ilk N + sayı yeter ama hepsini logla
         if all_errors:
@@ -518,7 +514,7 @@ async def run_import(
 
 
 _PREVIEW_PARSE_LIMIT = 100  # Kaç satır parse denenir
-_PREVIEW_SAMPLE_SIZE = 10   # Kaç başarılı satır frontend'e döner
+_PREVIEW_SAMPLE_SIZE = 10  # Kaç başarılı satır frontend'e döner
 _PREVIEW_ERROR_SAMPLE = 20  # Kaç hata frontend'e döner
 
 
@@ -570,9 +566,7 @@ def preview_import(
             reader_for_headers = _csv.reader(text_stream)
             try:
                 first_row = next(reader_for_headers)
-                detected_headers = [
-                    h.lstrip("﻿").strip() if h else "" for h in first_row
-                ]
+                detected_headers = [h.lstrip("﻿").strip() if h else "" for h in first_row]
             except StopIteration:
                 detected_headers = []
 
@@ -588,10 +582,7 @@ def preview_import(
                         sample_rows.append(_jsonify(item.data))
                 elif isinstance(item, ParseError):
                     error_count += 1
-                    if (
-                        item.error_code == "MISSING_HEADERS"
-                        and not missing_required
-                    ):
+                    if item.error_code == "MISSING_HEADERS" and not missing_required:
                         # Header eksikse parse_csv tek hata yield edip durur
                         missing_required = sorted(
                             {c.csv_header for c in config.columns if c.required}
@@ -621,9 +612,7 @@ def preview_import(
         missing_required = sorted(
             {c.csv_header for c in config.columns if c.required} - detected_set
         )
-    unknown_headers = sorted(
-        detected_set - expected_headers - intentionally_ignored
-    )
+    unknown_headers = sorted(detected_set - expected_headers - intentionally_ignored)
 
     return {
         "data_type": data_type.value,
@@ -672,7 +661,7 @@ def get_data_types_meta() -> list[dict[str, Any]]:
             }
         )
     # Stable order for frontend rendering — master tablolar önce, transactional sonra.
-    _ORDER = [
+    order = [
         "products",
         "customers",
         "campaigns",
@@ -684,7 +673,7 @@ def get_data_types_meta() -> list[dict[str, Any]]:
         "meta_breakdowns",
         "google_ads",
     ]
-    order_index = {dt: i for i, dt in enumerate(_ORDER)}
+    order_index = {dt: i for i, dt in enumerate(order)}
     result.sort(key=lambda x: order_index.get(x["data_type"], 999))
     return result
 

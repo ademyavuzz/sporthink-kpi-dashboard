@@ -10,6 +10,7 @@ Notlar:
 - `created_at` CSV'den okunur ve DB'ye yazılır (DB default `CURRENT_TIMESTAMP`'i
   override eder). Eski sistemden gelen ürünlerin gerçek oluşturma tarihi korunsun.
 """
+
 from __future__ import annotations
 
 from typing import Any

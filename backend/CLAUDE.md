@@ -35,7 +35,7 @@ backend/
 │   ├── dependencies.py      # Global FastAPI deps (get_db, get_current_user)
 │   │
 │   ├── core/                # Çapraz kesen bileşenler
-│   │   ├── permissions.py   # 37 izin enum'u — TEK doğru kaynak
+│   │   ├── permissions.py   # 43 izin enum'u — TEK doğru kaynak
 │   │   ├── exceptions.py    # Custom exception class'ları
 │   │   ├── security.py      # JWT encode/decode, password hash
 │   │   └── cache_keys.py    # Tüm cache key formatları
@@ -215,7 +215,7 @@ from app.core.permissions import Permission
 @Depends(require_permission(Permission.USERS_DELETE))
 ```
 
-Tüm 37 izin `app/core/permissions.py` içinde `Permission` enum'unda tanımlıdır. Yeni izin eklenirken:
+Tüm 43 izin `app/core/permissions.py` içinde `Permission` enum'unda tanımlıdır. Yeni izin eklenirken:
 1. `docs/overview/05-rbac-security.md` §5.5.4 güncellenir.
 2. `Permission` enum'una eklenir.
 3. Migration ile `permissions` tablosuna seed edilir.

@@ -3,6 +3,7 @@
 Bkz: backend/CLAUDE.md §16.2 — her endpoint için happy + auth + validation
 beklenir. Burada `auth/*` 4 endpoint için temel davranış kapsanıyor.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -104,8 +105,8 @@ async def test_me_with_valid_access_token_returns_user_and_permissions(
     body = r.json()
     assert body["success"] is True
     assert body["data"]["user"]["email"] == super_admin_credentials["email"]
-    # Süper admin → enum'daki tüm 40 izin
-    assert len(body["data"]["permissions"]) == 40
+    # Süper admin → enum'daki tüm 43 izin
+    assert len(body["data"]["permissions"]) == 43
     assert "dashboard.view" in body["data"]["permissions"]
 
 
@@ -116,9 +117,7 @@ async def test_me_without_token_returns_401(client: AsyncClient) -> None:
 
 
 async def test_me_with_garbage_token_returns_401(client: AsyncClient) -> None:
-    r = await client.get(
-        "/api/v1/auth/me", headers={"Authorization": "Bearer not-a-real-jwt"}
-    )
+    r = await client.get("/api/v1/auth/me", headers={"Authorization": "Bearer not-a-real-jwt"})
     assert r.status_code == 401
     assert r.json()["error"]["code"] in {"AUTH_REQUIRED", "INVALID_CREDENTIALS"}
 
@@ -137,7 +136,10 @@ async def test_refresh_with_cookie_returns_new_access_and_rotates_cookie(
 
     assert refresh_r.status_code == 200
     data = refresh_r.json()["data"]
-    assert isinstance(data["access_token"], str) and data["access_token"] != login_r.json()["data"]["access_token"]
+    assert (
+        isinstance(data["access_token"], str)
+        and data["access_token"] != login_r.json()["data"]["access_token"]
+    )
     new_cookie = refresh_r.cookies.get(REFRESH_COOKIE_NAME)
     assert new_cookie and new_cookie != old_cookie
 

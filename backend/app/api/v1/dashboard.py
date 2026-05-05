@@ -8,6 +8,7 @@ Tüm endpoint'ler:
 Cache invalidation: yeni veri import edildiğinde `cache.delete_pattern("kpi:*")`
 import_service'in audit_log adımında çağrılır.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -66,9 +67,7 @@ def _validate_range(date_from: date, date_to: date) -> None:
 def _date_range_with_comparison(
     date_from: date, date_to: date, comparison_mode: ComparisonMode
 ) -> DateRange:
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     return DateRange(
         date_from=date_from,
         date_to=date_to,
@@ -109,12 +108,8 @@ async def get_overview(
     channels = await kpi_service.revenue_by_channel(
         db, date_from=date_from, date_to=date_to, limit=10
     )
-    daily = await kpi_service.daily_revenue_series(
-        db, date_from=date_from, date_to=date_to
-    )
-    nvr = await kpi_service.new_vs_returning_revenue(
-        db, date_from=date_from, date_to=date_to
-    )
+    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
+    nvr = await kpi_service.new_vs_returning_revenue(db, date_from=date_from, date_to=date_to)
     funnel = await kpi_service.funnel_steps(db, date_from=date_from, date_to=date_to)
     top_products = await kpi_service.top_products(
         db, date_from=date_from, date_to=date_to, limit=10
@@ -160,31 +155,17 @@ async def get_traffic(
     if hit is not None:
         return SuccessEnvelope(data=TrafficResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to}
 
     sessions = await kpi_service.kpi_sessions(db, date_from=date_from, date_to=date_to, **kw)
     users = await kpi_service.kpi_users(db, date_from=date_from, date_to=date_to, **kw)
-    new_users = await kpi_service.kpi_new_users(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    bounce = await kpi_service.kpi_bounce_rate(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    pps = await kpi_service.kpi_pages_per_session(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    asd = await kpi_service.kpi_avg_session_duration(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    cvr = await kpi_service.kpi_conversion_rate(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    daily = await kpi_service.daily_revenue_series(
-        db, date_from=date_from, date_to=date_to
-    )
+    new_users = await kpi_service.kpi_new_users(db, date_from=date_from, date_to=date_to, **kw)
+    bounce = await kpi_service.kpi_bounce_rate(db, date_from=date_from, date_to=date_to, **kw)
+    pps = await kpi_service.kpi_pages_per_session(db, date_from=date_from, date_to=date_to, **kw)
+    asd = await kpi_service.kpi_avg_session_duration(db, date_from=date_from, date_to=date_to, **kw)
+    cvr = await kpi_service.kpi_conversion_rate(db, date_from=date_from, date_to=date_to, **kw)
+    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
 
     by_channel_rows = await kpi_service.by_dimension_revenue(
         db, "channel", date_from=date_from, date_to=date_to, limit=20
@@ -207,16 +188,12 @@ async def get_traffic(
         conversion_rate=cvr,
         daily_series=daily,
         by_channel=[
-            DimensionBreakdown(label=r["channel"], value=r["sessions"])
-            for r in by_channel_rows
+            DimensionBreakdown(label=r["channel"], value=r["sessions"]) for r in by_channel_rows
         ],
         by_device=[
-            DimensionBreakdown(label=r["device"], value=r["sessions"])
-            for r in by_device_rows
+            DimensionBreakdown(label=r["device"], value=r["sessions"]) for r in by_device_rows
         ],
-        by_city=[
-            DimensionBreakdown(label=r["city"], value=r["sessions"]) for r in cities
-        ],
+        by_city=[DimensionBreakdown(label=r["city"], value=r["sessions"]) for r in cities],
     )
     await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
     return SuccessEnvelope(data=response)
@@ -250,9 +227,7 @@ async def get_meta(
     if hit is not None:
         return SuccessEnvelope(data=MetaAdsResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.META]}
 
     spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
@@ -260,14 +235,15 @@ async def get_meta(
     clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
     ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
     cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
-    conv = await kpi_service.kpi_ad_conversions(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
+    conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
     roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
     # Frequency only applies to Meta; doesn't take platforms filter (raw meta_ads).
     freq = await kpi_service.kpi_frequency(
-        db, date_from=date_from, date_to=date_to,
-        prev_from=prev_from, prev_to=prev_to,
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        prev_from=prev_from,
+        prev_to=prev_to,
     )
     campaigns = await kpi_service.campaign_performance(
         db,
@@ -276,9 +252,7 @@ async def get_meta(
         platform=KPIPlatform.META,
         limit=50,
     )
-    daily = await kpi_service.daily_revenue_series(
-        db, date_from=date_from, date_to=date_to
-    )
+    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
 
     response = MetaAdsResponse(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
@@ -325,9 +299,7 @@ async def get_google(
     if hit is not None:
         return SuccessEnvelope(data=GoogleAdsResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.GOOGLE]}
 
     spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
@@ -335,12 +307,8 @@ async def get_google(
     clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
     ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
     cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
-    conv = await kpi_service.kpi_ad_conversions(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    cpa = await kpi_service.kpi_cost_per_conversion(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
+    conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
+    cpa = await kpi_service.kpi_cost_per_conversion(db, date_from=date_from, date_to=date_to, **kw)
     roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
     campaigns = await kpi_service.campaign_performance(
         db,
@@ -349,9 +317,7 @@ async def get_google(
         platform=KPIPlatform.GOOGLE,
         limit=50,
     )
-    daily = await kpi_service.daily_revenue_series(
-        db, date_from=date_from, date_to=date_to
-    )
+    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
 
     response = GoogleAdsResponse(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
@@ -398,40 +364,24 @@ async def get_ecom(
     if hit is not None:
         return SuccessEnvelope(data=EcommerceResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to}
 
-    revenue = await kpi_service.kpi_revenue(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
+    revenue = await kpi_service.kpi_revenue(db, date_from=date_from, date_to=date_to, **kw)
     orders = await kpi_service.kpi_orders(db, date_from=date_from, date_to=date_to, **kw)
     aov = await kpi_service.kpi_aov(db, date_from=date_from, date_to=date_to, **kw)
-    items = await kpi_service.kpi_items_sold(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    refund = await kpi_service.kpi_refund_rate(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
+    items = await kpi_service.kpi_items_sold(db, date_from=date_from, date_to=date_to, **kw)
+    refund = await kpi_service.kpi_refund_rate(db, date_from=date_from, date_to=date_to, **kw)
     repeat = await kpi_service.kpi_repeat_purchase_rate(
         db, date_from=date_from, date_to=date_to, **kw
     )
-    rpu = await kpi_service.kpi_revenue_per_user(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    daily = await kpi_service.daily_revenue_series(
-        db, date_from=date_from, date_to=date_to
-    )
+    rpu = await kpi_service.kpi_revenue_per_user(db, date_from=date_from, date_to=date_to, **kw)
+    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
     by_channel = await kpi_service.revenue_by_channel(
         db, date_from=date_from, date_to=date_to, limit=15
     )
-    nvr = await kpi_service.new_vs_returning_revenue(
-        db, date_from=date_from, date_to=date_to
-    )
-    top = await kpi_service.top_customers(
-        db, date_from=date_from, date_to=date_to, limit=20
-    )
+    nvr = await kpi_service.new_vs_returning_revenue(db, date_from=date_from, date_to=date_to)
+    top = await kpi_service.top_customers(db, date_from=date_from, date_to=date_to, limit=20)
 
     response = EcommerceResponse(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
@@ -465,6 +415,9 @@ async def get_campaign(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
+    platform: KPIPlatform | None = Query(
+        None, description="meta | google — boş bırakılırsa her iki platform"
+    ),
     _user: User = Depends(require_permission(Permission.CAMPAIGNS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CampaignAnalysisResponse]:
@@ -473,37 +426,40 @@ async def get_campaign(
         "campaign",
         date_from=date_from,
         date_to=date_to,
-        extra_filters={"cmp": comparison_mode},
+        extra_filters={"cmp": comparison_mode, "plat": platform.value if platform else "all"},
     )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=CampaignAnalysisResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to}
 
-    spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
-    roas_kpi = await kpi_service.kpi_roas(
-        db, date_from=date_from, date_to=date_to, **kw
+    # Platform filtresi seçildiyse total_spend / ad_revenue / ROAS de o platform'a
+    # daraltılır; aksi halde meta + google toplamı.
+    spend_platforms = [platform] if platform else None
+    spend = await kpi_service.kpi_ad_spend(
+        db, date_from=date_from, date_to=date_to, platforms=spend_platforms, **kw
     )
-    # ad_revenue toplamı için KPIResult lazım; Revenue gibi gösteriyoruz.
+    roas_kpi = await kpi_service.kpi_roas(
+        db, date_from=date_from, date_to=date_to, platforms=spend_platforms, **kw
+    )
     from app.repositories import kpi_aggregate_repository as agg_repo
 
+    revenue_platforms = [platform] if platform else [KPIPlatform.META, KPIPlatform.GOOGLE]
     cur_revenue = await agg_repo.sum_metric_daily(
         db,
         "ad_revenue",
         date_from=date_from,
         date_to=date_to,
-        platforms=[KPIPlatform.META, KPIPlatform.GOOGLE],
+        platforms=revenue_platforms,
     )
     p_revenue = await agg_repo.sum_metric_daily(
         db,
         "ad_revenue",
         date_from=prev_from,
         date_to=prev_to,
-        platforms=[KPIPlatform.META, KPIPlatform.GOOGLE],
+        platforms=revenue_platforms,
     )
     revenue_kpi = KPIResult(
         kpi_id="ad_revenue",
@@ -518,7 +474,11 @@ async def get_campaign(
     )
 
     campaigns = await kpi_service.campaign_performance(
-        db, period_start=date_from, period_end=date_to, limit=100
+        db,
+        period_start=date_from,
+        period_end=date_to,
+        platform=platform,
+        limit=100,
     )
 
     response = CampaignAnalysisResponse(
@@ -601,9 +561,7 @@ async def get_funnel(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[FunnelResponse]:
     _validate_range(date_from, date_to)
-    key = cache_keys.kpi_dashboard(
-        "funnel", date_from=date_from, date_to=date_to
-    )
+    key = cache_keys.kpi_dashboard("funnel", date_from=date_from, date_to=date_to)
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=FunnelResponse.model_validate(hit))
@@ -634,16 +592,12 @@ async def get_cohort(
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CohortResponse]:
     _validate_range(date_from, date_to)
-    key = cache_keys.kpi_dashboard(
-        "cohort", date_from=date_from, date_to=date_to
-    )
+    key = cache_keys.kpi_dashboard("cohort", date_from=date_from, date_to=date_to)
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=CohortResponse.model_validate(hit))
 
-    cells = await kpi_service.cohort_retention(
-        db, date_from=date_from, date_to=date_to
-    )
+    cells = await kpi_service.cohort_retention(db, date_from=date_from, date_to=date_to)
     response = CohortResponse(
         date_range=_date_range_with_comparison(date_from, date_to, "sequential"),
         cells=[CohortCell(**c) for c in cells],
@@ -680,17 +634,11 @@ async def get_products(
     if hit is not None:
         return SuccessEnvelope(data=ProductsResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, comparison_mode
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to}
 
-    items = await kpi_service.kpi_items_sold(
-        db, date_from=date_from, date_to=date_to, **kw
-    )
-    top = await kpi_service.top_products(
-        db, date_from=date_from, date_to=date_to, limit=20
-    )
+    items = await kpi_service.kpi_items_sold(db, date_from=date_from, date_to=date_to, **kw)
+    top = await kpi_service.top_products(db, date_from=date_from, date_to=date_to, limit=20)
     by_cat = await kpi_service.top_categories_brands(
         db, date_from=date_from, date_to=date_to, by="category", limit=15
     )
@@ -702,12 +650,8 @@ async def get_products(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
         items_sold=items,
         top_products=top,
-        by_category=[
-            DimensionBreakdown(label=r["category"], value=r["revenue"]) for r in by_cat
-        ],
-        by_brand=[
-            DimensionBreakdown(label=r["brand"], value=r["revenue"]) for r in by_brand
-        ],
+        by_category=[DimensionBreakdown(label=r["category"], value=r["revenue"]) for r in by_cat],
+        by_brand=[DimensionBreakdown(label=r["brand"], value=r["revenue"]) for r in by_brand],
     )
     await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
     return SuccessEnvelope(data=response)
@@ -736,16 +680,12 @@ async def get_customers(
     müşteri tabanını kapsar.
     """
     _validate_range(date_from, date_to)
-    key = cache_keys.kpi_dashboard(
-        "customers", date_from=date_from, date_to=date_to
-    )
+    key = cache_keys.kpi_dashboard("customers", date_from=date_from, date_to=date_to)
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=CustomersResponse.model_validate(hit))
 
-    prev_from, prev_to = kpi_service.compute_comparison_period(
-        date_from, date_to, "sequential"
-    )
+    prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, "sequential")
 
     payload = await customer_service.calculate_customer_overview(
         db,

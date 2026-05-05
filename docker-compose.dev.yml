@@ -91,6 +91,9 @@ services:
     command: celery -A app.celery_app worker --loglevel=info
     volumes:
       - ./backend:/app
+      # Rapor PDF üretimi worker tarafında oluyor; backend ile aynı upload
+      # volume'u paylaşılmazsa download endpoint dosyayı bulamaz (404).
+      - backend_uploads:/var/sporthink/uploads
     environment:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
@@ -106,6 +109,7 @@ services:
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Sporthink Dashboard}
+      UPLOAD_DIR: /var/sporthink/uploads
     depends_on:
       mysql:
         condition: service_healthy

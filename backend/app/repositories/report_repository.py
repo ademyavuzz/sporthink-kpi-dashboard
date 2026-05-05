@@ -1,4 +1,5 @@
 """`reports` tablosuna erişim — service'ten çağrılır."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -95,8 +96,6 @@ async def mark_failed(db: AsyncSession, report_id: int, *, error_message: str) -
 
 async def soft_delete(db: AsyncSession, report_id: int) -> None:
     await db.execute(
-        update(Report)
-        .where(Report.id == report_id)
-        .values(deleted_at=datetime.now(UTC))
+        update(Report).where(Report.id == report_id).values(deleted_at=datetime.now(UTC))
     )
     await db.commit()

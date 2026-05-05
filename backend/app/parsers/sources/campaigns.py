@@ -11,6 +11,7 @@ Notlar:
 - Dedup: aynı `(platform, campaign_name)` çifti tekrar gelirse skip
   (NULL external_id'ler UNIQUE constraint'i tetiklemez).
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, SourceConfig

@@ -3,6 +3,7 @@
 Sadece `add()` — audit log'lar append-only (hard delete edilmez,
 backend/CLAUDE.md §7.3, partition drop ile temizlenir).
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -3,6 +3,7 @@
 DB'de plain JWT veya jti tutulmaz; `sha256(jti)` saklanır. Servis layer
 hash'lemeden sorumlu.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

@@ -14,6 +14,7 @@ diğer KPI'lar zaman bazlı olmadığı için karşılaştırma yok (None döner
 bu dosya kendi formüllerini tanımlar (RFM analizi `segment_service`'te zaten
 ayrı yaşar; bu sayfa overview niteliğindedir).
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type
@@ -43,11 +44,7 @@ def _kpi(
     direction_positive: str = "up",
 ) -> KPIResult:
     """KPIResult helper — değişim yüzdesi ve trend yönünü hesaplar."""
-    if (
-        previous_value is None
-        or value is None
-        or Decimal(str(previous_value)) == 0
-    ):
+    if previous_value is None or value is None or Decimal(str(previous_value)) == 0:
         change_pct: Decimal | None = None
         is_positive = True
         direction: str = "flat"
@@ -64,12 +61,8 @@ def _kpi(
         else:
             direction = "down"
             is_positive = direction_positive == "down"
-    decimal_value = (
-        Decimal(str(value)) if value is not None else None
-    )
-    decimal_prev = (
-        Decimal(str(previous_value)) if previous_value is not None else None
-    )
+    decimal_value = Decimal(str(value)) if value is not None else None
+    decimal_prev = Decimal(str(previous_value)) if previous_value is not None else None
     return KPIResult(
         kpi_id=kpi_id,
         label_tr=label_tr,
@@ -118,17 +111,13 @@ async def repeat_rate(db: AsyncSession) -> Decimal | None:
 
 
 async def avg_customer_value(db: AsyncSession) -> Decimal | None:
-    stmt = select(func.avg(Customer.total_revenue)).where(
-        Customer.deleted_at.is_(None)
-    )
+    stmt = select(func.avg(Customer.total_revenue)).where(Customer.deleted_at.is_(None))
     val = (await db.execute(stmt)).scalar()
     return Decimal(val).quantize(Decimal("0.01")) if val is not None else None
 
 
 async def avg_orders_per_customer(db: AsyncSession) -> Decimal | None:
-    stmt = select(func.avg(Customer.total_orders)).where(
-        Customer.deleted_at.is_(None)
-    )
+    stmt = select(func.avg(Customer.total_orders)).where(Customer.deleted_at.is_(None))
     val = (await db.execute(stmt)).scalar()
     return Decimal(val).quantize(Decimal("0.01")) if val is not None else None
 
@@ -177,9 +166,7 @@ async def by_age_group(db: AsyncSession) -> list[DimensionBreakdown]:
     rows = (await db.execute(stmt)).all()
     # Sıralama enum'a uygun olsun
     order = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
-    items = {
-        (g.value if g is not None else "unknown"): Decimal(c) for g, c in rows
-    }
+    items = {(g.value if g is not None else "unknown"): Decimal(c) for g, c in rows}
     out: list[DimensionBreakdown] = []
     for key in order:
         if key in items:
@@ -198,10 +185,7 @@ async def by_city(db: AsyncSession, limit: int = 10) -> list[DimensionBreakdown]
         .limit(limit)
     )
     rows = (await db.execute(stmt)).all()
-    return [
-        DimensionBreakdown(label=city or "unknown", value=Decimal(c))
-        for city, c in rows
-    ]
+    return [DimensionBreakdown(label=city or "unknown", value=Decimal(c)) for city, c in rows]
 
 
 async def order_frequency_buckets(db: AsyncSession) -> list[CustomerFreqBucket]:
@@ -223,11 +207,7 @@ async def order_frequency_buckets(db: AsyncSession) -> list[CustomerFreqBucket]:
     rows = (await db.execute(stmt)).all()
     order = ["0", "1", "2", "3", "4", "5-9", "10+"]
     items = {b: int(c) for b, c in rows}
-    return [
-        CustomerFreqBucket(bucket=b, customer_count=items[b])
-        for b in order
-        if b in items
-    ]
+    return [CustomerFreqBucket(bucket=b, customer_count=items[b]) for b in order if b in items]
 
 
 async def newsletter_comparison(db: AsyncSession) -> list[NewsletterCompare]:
@@ -268,14 +248,10 @@ async def daily_new_customers(
         .order_by(Customer.first_order_date)
     )
     rows = (await db.execute(stmt)).all()
-    return [
-        CustomerDailyPoint(date=d, new_customers=int(c)) for d, c in rows
-    ]
+    return [CustomerDailyPoint(date=d, new_customers=int(c)) for d, c in rows]
 
 
-async def top_customers(
-    db: AsyncSession, *, limit: int = 20
-) -> list[CustomerOverviewRow]:
+async def top_customers(db: AsyncSession, *, limit: int = 20) -> list[CustomerOverviewRow]:
     stmt = (
         select(Customer)
         .where(Customer.deleted_at.is_(None))
@@ -318,9 +294,7 @@ async def calculate_customer_overview(
     """
     total = await total_customers(db)
     new_now = await new_customers_in_range(db, date_from=date_from, date_to=date_to)
-    new_prev = await new_customers_in_range(
-        db, date_from=prev_from, date_to=prev_to
-    )
+    new_prev = await new_customers_in_range(db, date_from=prev_from, date_to=prev_to)
     repeat = await repeat_rate(db)
     acv = await avg_customer_value(db)
     aopc = await avg_orders_per_customer(db)

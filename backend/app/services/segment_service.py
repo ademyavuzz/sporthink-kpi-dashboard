@@ -11,6 +11,7 @@ Visual segment rule builder JSON şeması:
         {"op": "OR", "rules": [...]}
     ]}
 """
+
 from __future__ import annotations
 
 import logging
@@ -78,9 +79,7 @@ async def evaluate_count(db: AsyncSession, rules: dict[str, Any]) -> int:
     clause = _build_rule_clause(rules)
     from sqlalchemy import func
 
-    stmt = select(func.count(Customer.id)).where(
-        and_(Customer.deleted_at.is_(None), clause)
-    )
+    stmt = select(func.count(Customer.id)).where(and_(Customer.deleted_at.is_(None), clause))
     return int((await db.execute(stmt)).scalar_one())
 
 

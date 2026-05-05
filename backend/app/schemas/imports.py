@@ -1,4 +1,5 @@
 """Import endpoint'leri için API şemaları."""
+
 from __future__ import annotations
 
 from datetime import datetime

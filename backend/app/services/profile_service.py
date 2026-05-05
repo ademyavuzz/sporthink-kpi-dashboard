@@ -4,6 +4,7 @@ Adminin başkasını yönettiği `user_management_service`'ten ayrı; bu modül
 sadece kullanıcının kendi kayıtları için. Email ve role admin yetkisi
 gerektirir, burada güncellenmez.
 """
+
 from __future__ import annotations
 
 import logging
@@ -105,9 +106,7 @@ async def upload_avatar(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> User:
-    url = avatar_service.save_avatar(
-        user.id, content=content, content_type=content_type
-    )
+    url = avatar_service.save_avatar(user.id, content=content, content_type=content_type)
     user.avatar_url = url
     await audit_log_repository.add(
         db,
@@ -188,11 +187,7 @@ async def change_password(
     from app.models import TokenPurpose
     from app.repositories import password_reset_token_repository
 
-    await password_reset_token_repository.revoke_active_for_user(
-        db, user.id, TokenPurpose.RESET
-    )
-    await password_reset_token_repository.revoke_active_for_user(
-        db, user.id, TokenPurpose.INVITE
-    )
+    await password_reset_token_repository.revoke_active_for_user(db, user.id, TokenPurpose.RESET)
+    await password_reset_token_repository.revoke_active_for_user(db, user.id, TokenPurpose.INVITE)
 
     await db.commit()

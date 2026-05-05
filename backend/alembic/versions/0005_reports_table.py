@@ -8,11 +8,13 @@ Revision ID: 0005_reports_table
 Revises: 0004_user_profile_fields
 Create Date: 2026-05-05
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.mysql import BIGINT
+
+from alembic import op
 
 revision = "0005_reports_table"
 down_revision = "0004_user_profile_fields"

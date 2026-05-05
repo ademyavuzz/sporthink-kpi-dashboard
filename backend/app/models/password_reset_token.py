@@ -6,6 +6,7 @@ ENUM ile davet (yeni kullanıcı şifre kurma) ve sıfırlama (mevcut kullanıc�
 token'ı olur — yeni token üretilmeden önce eski aktifler revoke edilir
 (`used_at` set edilir) ki bir önceki link mail kutusunda kullanılamasın.
 """
+
 from datetime import datetime
 from enum import Enum
 

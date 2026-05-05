@@ -13,6 +13,7 @@ production'da yüz binlerce key'de bile güvenlidir.
 
 Decorator: `@cache.cached(key_fn, ttl=300)` ile fonksiyon-seviyesi sarmalama.
 """
+
 from __future__ import annotations
 
 import json
@@ -119,11 +120,7 @@ def cached_json(
                 logger.debug("cache_hit key=%s", key)
                 return deserialize(hit) if deserialize else hit
             result = await fn(*args, **kwargs)
-            payload = (
-                result.model_dump(mode="json")
-                if hasattr(result, "model_dump")
-                else result
-            )
+            payload = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
             await cache.set_json(key, payload, ttl=ttl)
             return result
 

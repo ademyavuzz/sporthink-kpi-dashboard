@@ -156,15 +156,11 @@ class GoogleAds(Base):
     all_conversions_value: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=0
     )
-    cost_per_conversion: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False, default=0
-    )
+    cost_per_conversion: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     conversions_from_interactions_rate: Mapped[Decimal] = mapped_column(
         Numeric(8, 4), nullable=False, default=0
     )
-    value_per_conversion: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False, default=0
-    )
+    value_per_conversion: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     search_impression_share: Mapped[Decimal | None] = mapped_column(Numeric(7, 4), nullable=True)
     search_budget_lost_impression_share: Mapped[Decimal | None] = mapped_column(
         Numeric(7, 4), nullable=True
@@ -175,9 +171,7 @@ class GoogleAds(Base):
     view_through_conversions: Mapped[int] = mapped_column(
         BigIntUnsignedRaw, nullable=False, default=0
     )
-    interaction_rate: Mapped[Decimal] = mapped_column(
-        Numeric(8, 4), nullable=False, default=0
-    )
+    interaction_rate: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=False, default=0)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp(), nullable=False

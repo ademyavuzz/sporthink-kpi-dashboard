@@ -12,7 +12,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
 from app.config import settings
 
 # alembic Config object
@@ -24,9 +23,8 @@ if config.config_file_name is not None:
 
 # `app.models` üzerinden tüm ORM tabloları register et — autogenerate'in
 # diff'i doğru üretebilmesi için.
-from app.models import Base  # noqa: E402
-
 import app.models  # noqa: F401, E402  # tüm modelleri import et (registration)
+from app.models import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

@@ -3,6 +3,7 @@
 `docs/overview/09-kpi-formulas.md` ile birebir uyumlu — KPIResult, trend
 yönü, birim, karşılaştırma yapısı.
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type
@@ -12,10 +13,10 @@ from typing import Literal
 from pydantic import BaseModel
 
 KPIUnit = Literal[
-    "currency",          # TL — Intl.NumberFormat tr-TR currency
-    "percent",           # 0-100 (örn 65.5 = %65.5)
-    "count",             # Adet — Intl.NumberFormat tr-TR
-    "multiplier",        # ROAS gibi (4.5x)
+    "currency",  # TL — Intl.NumberFormat tr-TR currency
+    "percent",  # 0-100 (örn 65.5 = %65.5)
+    "count",  # Adet — Intl.NumberFormat tr-TR
+    "multiplier",  # ROAS gibi (4.5x)
     "duration_seconds",  # Saniye — UI "2dk 35sn"
 ]
 

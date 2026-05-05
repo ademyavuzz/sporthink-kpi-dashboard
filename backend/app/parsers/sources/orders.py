@@ -10,6 +10,7 @@ Notlar:
 - `customer_id` (string) → `customer_pk_id` (BIGINT FK) lookup gerekiyor;
   servis layer'ı `customers` tablosundan id'yi çeker.
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, FKLookup, SourceConfig
@@ -44,18 +45,14 @@ CONFIG = SourceConfig(
             "order_status",
             "enum_str",
             required=True,
-            allowed_values=frozenset(
-                {"completed", "cancelled", "refunded", "pending", "shipped"}
-            ),
+            allowed_values=frozenset({"completed", "cancelled", "refunded", "pending", "shipped"}),
         ),
         ColumnSpec(
             "payment_method",
             "payment_method",
             "enum_str",
             required=True,
-            allowed_values=frozenset(
-                {"credit_card", "debit_card", "bank_transfer", "pay_at_door"}
-            ),
+            allowed_values=frozenset({"credit_card", "debit_card", "bank_transfer", "pay_at_door"}),
         ),
     ],
     dedup_keys=["order_id"],

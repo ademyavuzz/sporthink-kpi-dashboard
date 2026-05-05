@@ -1,4 +1,5 @@
 """Multi-select filter dropdown'ları için distinct değer servisleri."""
+
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -33,15 +34,8 @@ async def distinct_devices(db: AsyncSession) -> list[str]:
 
 async def distinct_cities(db: AsyncSession, *, limit: int = 100) -> list[str]:
     """GA4 ham tablodan + orders'tan birleşik şehir listesi (top N)."""
-    ga4_stmt = (
-        select(GA4Traffic.city)
-        .where(GA4Traffic.city.isnot(None))
-        .distinct()
-        .limit(limit)
-    )
-    order_stmt = (
-        select(Order.city).where(Order.city.isnot(None)).distinct().limit(limit)
-    )
+    ga4_stmt = select(GA4Traffic.city).where(GA4Traffic.city.isnot(None)).distinct().limit(limit)
+    order_stmt = select(Order.city).where(Order.city.isnot(None)).distinct().limit(limit)
     cities: set[str] = set()
     for stmt in (ga4_stmt, order_stmt):
         for r in (await db.execute(stmt)).all():

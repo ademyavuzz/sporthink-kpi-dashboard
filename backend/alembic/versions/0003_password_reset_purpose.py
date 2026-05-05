@@ -10,9 +10,11 @@ Revision ID: 0003_password_reset_purpose
 Revises: 0002_post_baseline
 Create Date: 2026-05-04
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0003_password_reset_purpose"

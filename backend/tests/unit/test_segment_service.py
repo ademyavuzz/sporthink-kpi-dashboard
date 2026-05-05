@@ -1,4 +1,5 @@
 """Segment service rule builder + RFM label testleri."""
+
 from __future__ import annotations
 
 import pytest

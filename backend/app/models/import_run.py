@@ -1,4 +1,5 @@
 """`imports` tablosu — bir import işleminin durumu, dosyası, sonuçları."""
+
 from __future__ import annotations
 
 from datetime import datetime

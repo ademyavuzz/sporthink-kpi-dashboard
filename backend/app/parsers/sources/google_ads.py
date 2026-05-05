@@ -26,6 +26,7 @@ Notlar:
 - ENUM kolonları CSV'de UPPERCASE — `enum_str` coercer otomatik lowercase.
 - FK `campaign_pk_id` opsiyonel (campaign_name üzerinden lookup).
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -71,9 +72,7 @@ CONFIG = SourceConfig(
             "campaign.advertising_channel_type",
             "enum_str",
             required=False,
-            allowed_values=frozenset(
-                {"search", "shopping", "performance_max", "display", "video"}
-            ),
+            allowed_values=frozenset({"search", "shopping", "performance_max", "display", "video"}),
         ),
         ColumnSpec("ad_group_id", "ad_group.id", "int", required=False),
         ColumnSpec("ad_group_name", "ad_group.name", "str", required=False),
@@ -92,17 +91,11 @@ CONFIG = SourceConfig(
             allowed_values=frozenset({"mobile", "desktop", "tablet", "other"}),
         ),
         ColumnSpec("ad_network_type", "segments.ad_network_type", "str", required=False),
-        ColumnSpec(
-            "product_item_id", "segments.product_item_id", "str", required=False
-        ),
+        ColumnSpec("product_item_id", "segments.product_item_id", "str", required=False),
         ColumnSpec("product_title", "segments.product_title", "str", required=False),
         ColumnSpec("product_brand", "segments.product_brand", "str", required=False),
-        ColumnSpec(
-            "product_type_l1", "segments.product_type_l1", "str", required=False
-        ),
-        ColumnSpec(
-            "product_type_l2", "segments.product_type_l2", "str", required=False
-        ),
+        ColumnSpec("product_type_l1", "segments.product_type_l1", "str", required=False),
+        ColumnSpec("product_type_l2", "segments.product_type_l2", "str", required=False),
         ColumnSpec(
             "keyword_text",
             "ad_group_criterion.keyword.text",
@@ -121,15 +114,9 @@ CONFIG = SourceConfig(
         # micros — post_coerce'ta ÷1_000_000
         ColumnSpec("cost", "metrics.cost_micros", "decimal", required=False, default=0),
         ColumnSpec("ctr", "metrics.ctr", "decimal", required=False, default=0),
-        ColumnSpec(
-            "average_cpc", "metrics.average_cpc", "decimal", required=False, default=0
-        ),
-        ColumnSpec(
-            "average_cpm", "metrics.average_cpm", "decimal", required=False, default=0
-        ),
-        ColumnSpec(
-            "conversions", "metrics.conversions", "decimal", required=False, default=0
-        ),
+        ColumnSpec("average_cpc", "metrics.average_cpc", "decimal", required=False, default=0),
+        ColumnSpec("average_cpm", "metrics.average_cpm", "decimal", required=False, default=0),
+        ColumnSpec("conversions", "metrics.conversions", "decimal", required=False, default=0),
         ColumnSpec(
             "conversions_value",
             "metrics.conversions_value",

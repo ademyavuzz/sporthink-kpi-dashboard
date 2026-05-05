@@ -2,6 +2,7 @@
 
 Bkz: `docs/overview/05-rbac-security.md` §5.4 token mimarisi.
 """
+
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from uuid import uuid4
