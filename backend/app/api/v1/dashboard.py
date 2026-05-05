@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache_keys
+from app.core.exceptions import ValidationError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import KPIPlatform, User
@@ -46,6 +47,20 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 ComparisonMode = Literal["sequential", "yoy"]
+
+
+def _validate_range(date_from: date, date_to: date) -> None:
+    """Tüm dashboard endpoint'leri için ortak tarih aralığı doğrulaması.
+
+    `date_from > date_to` ise sessizce 0 döndürmek yerine 422 ile
+    `VALIDATION_ERROR` dönüyoruz; aksi halde frontend'de "veri yok"
+    gibi yorumlanır.
+    """
+    if date_from > date_to:
+        raise ValidationError(
+            "date_from must be less than or equal to date_to",
+            field="date_from",
+        )
 
 
 def _date_range_with_comparison(
@@ -80,6 +95,7 @@ async def get_overview(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[OverviewResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_summary(
         date_from=date_from, date_to=date_to, comparison_mode=comparison_mode
     )
@@ -133,6 +149,7 @@ async def get_traffic(
     _user: User = Depends(require_permission(Permission.TRAFFIC_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[TrafficResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "traffic",
         date_from=date_from,
@@ -222,6 +239,7 @@ async def get_meta(
     _user: User = Depends(require_permission(Permission.META_ADS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[MetaAdsResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "meta",
         date_from=date_from,
@@ -296,6 +314,7 @@ async def get_google(
     _user: User = Depends(require_permission(Permission.GOOGLE_ADS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[GoogleAdsResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "google",
         date_from=date_from,
@@ -368,6 +387,7 @@ async def get_ecom(
     _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[EcommerceResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "ecom",
         date_from=date_from,
@@ -448,6 +468,7 @@ async def get_campaign(
     _user: User = Depends(require_permission(Permission.CAMPAIGNS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CampaignAnalysisResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "campaign",
         date_from=date_from,
@@ -539,6 +560,7 @@ async def get_campaign_detail(
             field="campaign_pk_id",
         )
 
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "campaign-detail",
         date_from=date_from,
@@ -578,6 +600,7 @@ async def get_funnel(
     _user: User = Depends(require_permission(Permission.FUNNEL_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[FunnelResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "funnel", date_from=date_from, date_to=date_to
     )
@@ -610,6 +633,7 @@ async def get_cohort(
     _user: User = Depends(require_permission(Permission.COHORT_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CohortResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "cohort", date_from=date_from, date_to=date_to
     )
@@ -645,6 +669,7 @@ async def get_products(
     _user: User = Depends(require_permission(Permission.PRODUCTS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[ProductsResponse]:
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "products",
         date_from=date_from,
@@ -710,6 +735,7 @@ async def get_customers(
     aralığına göredir; toplam/dağılım gibi statik metrikler tüm aktif
     müşteri tabanını kapsar.
     """
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "customers", date_from=date_from, date_to=date_to
     )
@@ -783,6 +809,7 @@ async def get_channel_analysis(
         "conv_min": conversion_min,
         "conv_max": conversion_max,
     }
+    _validate_range(date_from, date_to)
     key = cache_keys.kpi_dashboard(
         "channel-analysis",
         date_from=date_from,
