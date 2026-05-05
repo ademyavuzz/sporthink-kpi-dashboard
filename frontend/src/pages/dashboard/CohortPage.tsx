@@ -7,7 +7,7 @@ import { dayjs } from "@/lib/dayjs";
 import { formatCount, formatPercent, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 const MAX_OFFSET = 12;
 
@@ -49,7 +49,7 @@ export default function CohortPage() {
   }, [cells]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader
         title="Cohort / Retention"
         range={range}
@@ -64,62 +64,70 @@ export default function CohortPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="h-64 bg-muted/40 rounded animate-pulse" />
+            <div className="h-64 animate-pulse rounded bg-muted/40" />
           ) : matrix.cohorts.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-12 text-center">
+            <p className="py-12 text-center text-sm text-text-muted">
               Bu tarih aralığında cohort verisi yok.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="border-collapse text-xs w-full">
+              <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left p-2 sticky left-0 bg-background z-10 border-b">
-                      Cohort (Kayıt Ayı)
+                    <th className="sticky left-0 z-10 border-b border-border bg-surface-2 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+                      Cohort
                     </th>
-                    <th className="text-right p-2 border-b">Boyut</th>
+                    <th className="border-b border-border bg-surface-2 px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+                      Boyut
+                    </th>
                     {Array.from({ length: MAX_OFFSET + 1 }).map((_, i) => (
-                      <th key={i} className="text-center p-2 border-b">
-                        Ay {i}
+                      <th
+                        key={i}
+                        className="border-b border-border bg-surface-2 px-1 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-dim"
+                      >
+                        M{i}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {matrix.cohorts.map((cohort) => {
+                  {matrix.cohorts.map((cohort, rowIdx) => {
                     const row = matrix.map.get(cohort)!;
                     const size = row.get(0)?.count ?? 0;
                     return (
-                      <tr key={cohort}>
-                        <td className="p-2 font-mono sticky left-0 bg-background z-10 border-b">
+                      <tr
+                        key={cohort}
+                        className={cn(
+                          "border-b border-border/60",
+                          rowIdx % 2 === 1 && "bg-surface-2/30",
+                        )}
+                      >
+                        <td className="sticky left-0 z-10 bg-card px-3 py-2 font-mono text-xs font-semibold text-foreground">
                           {dayjs(cohort).format("YYYY-MM")}
                         </td>
-                        <td className="p-2 text-right tabular-nums border-b">
+                        <td className="px-3 py-2 text-right text-xs tabular-nums text-text-muted">
                           {formatCount(size)}
                         </td>
                         {Array.from({ length: MAX_OFFSET + 1 }).map((_, i) => {
                           const cell = row.get(i);
                           if (!cell) {
                             return (
-                              <td key={i} className="p-1 border-b">
-                                <div className="h-8 bg-muted/20 rounded" />
+                              <td key={i} className="px-0.5 py-1">
+                                <div className="h-8 rounded-md bg-muted/20" />
                               </td>
                             );
                           }
                           const pct = cell.pct ?? 0;
-                          // 0-100 → renk yoğunluğu
                           const intensity = Math.min(pct / 100, 1);
                           return (
-                            <td key={i} className="p-1 border-b">
+                            <td key={i} className="px-0.5 py-1">
                               <div
                                 className={cn(
-                                  "h-8 rounded flex items-center justify-center font-medium",
-                                  pct >= 50
-                                    ? "text-white"
-                                    : "text-foreground",
+                                  "flex h-8 items-center justify-center rounded-md text-xs font-semibold",
+                                  pct >= 50 ? "text-white" : "text-foreground",
                                 )}
                                 style={{
-                                  backgroundColor: `rgba(16, 185, 129, ${0.1 + intensity * 0.85})`,
+                                  backgroundColor: `rgba(18, 183, 106, ${0.1 + intensity * 0.85})`,
                                 }}
                                 title={`${cohort} → Ay ${i}: ${cell.count} müşteri (${pct.toFixed(1)}%)`}
                               >
@@ -145,26 +153,29 @@ export default function CohortPage() {
           <CardTitle>Cohort Boyutları</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {matrix.cohorts.map((cohort) => {
               const size = matrix.map.get(cohort)?.get(0)?.count ?? 0;
               return (
                 <div
                   key={cohort}
-                  className="p-3 rounded-lg border bg-muted/20"
+                  className="space-y-1.5 rounded-xl border border-border bg-surface-2/40 p-4"
                 >
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
                     {dayjs(cohort).format("MMMM YYYY")}
                   </p>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {formatCount(size)} müşteri
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">
+                    {formatCount(size)}{" "}
+                    <span className="text-xs font-normal text-text-muted">
+                      müşteri
+                    </span>
                   </p>
                   {(() => {
                     const m1 = matrix.map.get(cohort)?.get(1);
                     return m1 ? (
-                      <p className="text-xs">
-                        Ay 1 retention:{" "}
-                        <span className="font-medium">
+                      <p className="text-xs text-text-muted">
+                        M1 retention:{" "}
+                        <span className="font-semibold text-foreground">
                           {formatPercent(m1.pct, 1)}
                         </span>
                       </p>
@@ -176,6 +187,6 @@ export default function CohortPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
