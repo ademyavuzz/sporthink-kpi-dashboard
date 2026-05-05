@@ -39,7 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useFiltersStore } from "@/stores/useFiltersStore";
 
-import { PageShell } from "./_shared";
+import { PageShell, RoasPill } from "./_shared";
 
 export default function ChannelAnalysisPage() {
   const { t } = useTranslation(["dashboard"]);
@@ -351,15 +351,6 @@ export default function ChannelAnalysisPage() {
                   </TableRow>
                 ) : (
                   data.channels.map((c, idx) => {
-                    const roasNum = c.roas !== null ? Number(c.roas) : null;
-                    const roasTone =
-                      roasNum === null
-                        ? "neutral"
-                        : roasNum >= 4
-                          ? "success"
-                          : roasNum >= 1
-                            ? "info"
-                            : "error";
                     return (
                       <TableRow
                         key={c.channel}
@@ -392,11 +383,7 @@ export default function ChannelAnalysisPage() {
                             : "—"}
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-right">
-                          {roasNum !== null ? (
-                            <RoasPill tone={roasTone} value={roasNum} />
-                          ) : (
-                            <span className="text-text-dim">—</span>
-                          )}
+                          <RoasPill value={c.roas} />
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
                           {c.aov !== null ? formatCurrency(c.aov) : "—"}
@@ -417,32 +404,6 @@ export default function ChannelAnalysisPage() {
   );
 }
 
-function RoasPill({
-  tone,
-  value,
-}: {
-  tone: "success" | "info" | "error" | "neutral";
-  value: number;
-}) {
-  const cls = {
-    success:
-      "bg-success-50 text-success-700 ring-success-100 dark:bg-success-500/10 dark:text-success-500 dark:ring-success-500/20",
-    info: "bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20",
-    error:
-      "bg-error-50 text-error-700 ring-error-100 dark:bg-error-500/10 dark:text-error-500 dark:ring-error-500/20",
-    neutral: "bg-muted text-text-muted",
-  }[tone];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset",
-        cls,
-      )}
-    >
-      {formatMultiplier(value)}
-    </span>
-  );
-}
 
 function PresetButton({
   onClick,
