@@ -16,6 +16,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { formatChange, formatKPIValue } from "@/lib/format";
@@ -101,6 +102,10 @@ export function KPICard({
   const value = formatKPIValue(kpi.value, kpi.unit);
   const change = formatChange(kpi.change_percentage);
   const TrendIcon = kpi.direction === "down" ? ArrowDown : ArrowUp;
+  // Backend `kpi_id` üzerinden i18n key çözeriz; sözlükte yoksa
+  // backward-compat için backend'den gelen `label_tr`'a düşeriz.
+  const { t } = useTranslation("dashboard");
+  const label = t(`kpi.${kpi.kpi_id}`, { defaultValue: kpi.label_tr });
 
   return (
     <Card
@@ -127,9 +132,9 @@ export function KPICard({
           <div className="min-w-0 flex-1">
             <p
               className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1"
-              title={kpi.label_tr}
+              title={label}
             >
-              {kpi.label_tr}
+              {label}
             </p>
             <p
               className={cn(
