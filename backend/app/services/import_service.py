@@ -88,6 +88,69 @@ _MODEL_BY_TABLE: dict[str, type] = {
     "google_ads": GoogleAds,
 }
 
+
+# Aggregate rebuild'i etkileyen veri tipleri — bunların import'undan sonra
+# `kpi_*_aggregates` yenilenmeli. Müşteri/ürün/kampanya import'u sayıları
+# değiştirmediği için yeniden hesaplama gerekmez.
+_AGGREGATE_TRIGGERING_TYPES: frozenset[ImportDataType] = frozenset(
+    {
+        ImportDataType.GA4_TRAFFIC,
+        ImportDataType.META_ADS,
+        ImportDataType.GOOGLE_ADS,
+        ImportDataType.ORDERS,
+    }
+)
+
+
+# data_type → o tabloda min/max çekeceğimiz tarih kolonu adı.
+_DATE_COLUMN_BY_TYPE: dict[ImportDataType, str] = {
+    ImportDataType.GA4_TRAFFIC: "date",
+    ImportDataType.META_ADS: "date_start",
+    ImportDataType.GOOGLE_ADS: "date",
+    ImportDataType.ORDERS: "order_date",
+}
+
+
+def _trigger_aggregate_rebuild(
+    rows: list[dict[str, Any]], data_type: ImportDataType
+) -> None:
+    """Import sonrası aggregate'leri yenilemek için Celery task'ı tetikler.
+
+    `rows` içinden tarih min/max'ı çıkarır ve sadece o pencere için rebuild
+    yapar — full-history rebuild gereksiz pahalı.
+    """
+    if data_type not in _AGGREGATE_TRIGGERING_TYPES or not rows:
+        return
+    col = _DATE_COLUMN_BY_TYPE.get(data_type)
+    if col is None:
+        return
+    dates: list[date] = []
+    for r in rows:
+        v = r.get(col)
+        if isinstance(v, datetime):
+            dates.append(v.date())
+        elif isinstance(v, date):
+            dates.append(v)
+    if not dates:
+        return
+    d_from, d_to = min(dates), max(dates)
+    try:
+        from app.tasks.aggregation_tasks import rebuild_all_task
+
+        rebuild_all_task.delay(d_from.isoformat(), d_to.isoformat())
+        logger.info(
+            "aggregate_rebuild_enqueued data_type=%s from=%s to=%s",
+            data_type.value,
+            d_from,
+            d_to,
+        )
+    except Exception:
+        # Celery broker erişilemezse bile import başarılı sayılır;
+        # admin manuel rebuild'i tetikleyebilir.
+        logger.exception(
+            "aggregate_rebuild_enqueue_failed data_type=%s", data_type.value
+        )
+
 # Sonuç panelinde gösterilecek max örnek hata sayısı
 _SAMPLE_ERRORS_LIMIT = 50
 
@@ -419,6 +482,11 @@ async def run_import(
             },
         )
         await db.commit()
+
+        # Aggregate rebuild — KPI tabloları artık güncel olmalı.
+        # `kpi_*_aggregates` raw'dan yeniden hesaplanmazsa dashboard
+        # eski sayıları gösterir; bu satıra kadar tetiklenmesi unutulmuştu.
+        _trigger_aggregate_rebuild(prepared_rows, data_type)
 
     except SQLAlchemyError as exc:
         logger.exception("import_db_error", extra={"import_id": import_id})
