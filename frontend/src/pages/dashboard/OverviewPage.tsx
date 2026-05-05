@@ -317,6 +317,7 @@ function FunnelTable({
   }[];
   loading?: boolean;
 }) {
+  const { t } = useTranslation("dashboard");
   const max = useMemo(() => Math.max(...steps.map((s) => s.count), 1), [steps]);
 
   if (loading) {
@@ -334,11 +335,14 @@ function FunnelTable({
       {steps.map((s) => {
         const pct = (s.count / max) * 100;
         const drop = s.drop_from_previous_pct;
+        const stepLabel = t(`funnel.steps.${s.step}`, {
+          defaultValue: s.label_tr,
+        });
         return (
           <div key={s.step} className="space-y-1.5">
             <div className="flex items-baseline justify-between text-sm">
               <span className="font-semibold text-foreground">
-                {s.label_tr}
+                {stepLabel}
               </span>
               <div className="flex items-center gap-3">
                 <span className="tabular-nums font-medium text-foreground">

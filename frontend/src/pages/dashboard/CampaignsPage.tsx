@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { CampaignDetailDialog } from "@/components/feature/CampaignDetailDialog";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
@@ -40,6 +41,7 @@ import {
 type PlatformFilter = "all" | "meta" | "google";
 
 export default function CampaignsPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const [platform, setPlatform] = useState<PlatformFilter>("all");
   const [detailCampaign, setDetailCampaign] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function CampaignsPage() {
   return (
     <PageShell>
       <DashboardHeader
-        title="Kampanya Analizi"
+        title={t("campaigns.title")}
         range={range}
         onChangeRange={setRange}
         actions={
@@ -73,7 +75,9 @@ export default function CampaignsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="all">
+                {t("campaigns.platform_filter_all")}
+              </SelectItem>
               <SelectItem value="meta">Meta</SelectItem>
               <SelectItem value="google">Google</SelectItem>
             </SelectContent>
@@ -95,7 +99,9 @@ export default function CampaignsPage() {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Tüm Kampanyalar ({filtered.length})</CardTitle>
+          <CardTitle>
+            {t("campaigns.all_campaigns_card_title", { count: filtered.length })}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -115,34 +121,36 @@ export default function CampaignsPage() {
               <TableHeader>
                 <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
                   <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Platform
+                    {t("campaigns.col_platform")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Kampanya
+                    {t("campaigns.col_campaign")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Gösterim
+                    {t("campaigns.col_impressions")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Tıklama
+                    {t("campaigns.col_clicks")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    CTR
+                    {t("campaigns.col_ctr")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Harcama
+                    {t("campaigns.col_spend")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Dönüşüm
+                    {t("campaigns.col_conversions")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Gelir
+                    {t("campaigns.col_revenue")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    ROAS
+                    {t("campaigns.col_roas")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    <span className="sr-only">Detay</span>
+                    <span className="sr-only">
+                      {t("campaigns.col_action_detail")}
+                    </span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -218,8 +226,8 @@ export default function CampaignsPage() {
                             if (c.campaign_name)
                               setDetailCampaign(c.campaign_name);
                           }}
-                          aria-label="Kampanya detayı"
-                          title="Kampanya detayı"
+                          aria-label={t("campaigns.campaign_detail_aria")}
+                          title={t("campaigns.campaign_detail_aria")}
                           className="size-8"
                         >
                           <ChevronRight className="size-4" />

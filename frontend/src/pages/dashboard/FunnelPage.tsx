@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -15,6 +16,7 @@ const STEP_COLORS = [
 ];
 
 export default function FunnelPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "funnel", range.date_from, range.date_to],
@@ -39,14 +41,14 @@ export default function FunnelPage() {
   return (
     <PageShell>
       <DashboardHeader
-        title="Funnel Analizi"
+        title={t("funnel.title")}
         range={range}
         onChangeRange={setRange}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Dönüşüm Hunisi</CardTitle>
+          <CardTitle>{t("funnel.card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -60,11 +62,14 @@ export default function FunnelPage() {
               {steps.map((s, idx) => {
                 const pct = (s.count / max) * 100;
                 const color = STEP_COLORS[idx % STEP_COLORS.length];
+                const stepLabel = t(`funnel.steps.${s.step}`, {
+                  defaultValue: s.label_tr,
+                });
                 return (
                   <div key={s.step} className="space-y-1.5">
                     <div className="flex items-baseline justify-between">
                       <span className="font-medium">
-                        {idx + 1}. {s.label_tr}
+                        {idx + 1}. {stepLabel}
                       </span>
                       <div className="flex items-center gap-3 text-sm">
                         <span className="tabular-nums font-semibold">
@@ -97,7 +102,7 @@ export default function FunnelPage() {
               {overallConversion !== null && (
                 <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
                   <span className="text-sm font-semibold text-text-muted">
-                    Genel Dönüşüm
+                    {t("funnel.overall_conversion")}
                   </span>
                   <span className="text-2xl font-bold tabular-nums text-foreground">
                     {overallConversion.toFixed(2)}%
@@ -111,33 +116,44 @@ export default function FunnelPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Adım Detayları</CardTitle>
+          <CardTitle>{t("funnel.step_details_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {steps.map((s, idx) => (
-              <div
-                key={s.step}
-                className="space-y-1.5 rounded-xl border border-border bg-surface-2/40 p-4"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
-                  Adım {idx + 1} — {s.label_tr}
-                </p>
-                <p className="text-2xl font-semibold tabular-nums text-foreground">
-                  {formatCount(s.count)}
-                </p>
-                {idx === 0 ? (
-                  <p className="text-xs text-text-muted">Başlangıç</p>
-                ) : (
-                  <p className="text-xs text-text-muted">
-                    Önceki adımdan{" "}
-                    <span className="font-semibold text-error-600 dark:text-error-500">
-                      −{formatPercent(toNumber(s.drop_from_previous_pct) ?? 0, 1)}
-                    </span>
+            {steps.map((s, idx) => {
+              const stepLabel = t(`funnel.steps.${s.step}`, {
+                defaultValue: s.label_tr,
+              });
+              return (
+                <div
+                  key={s.step}
+                  className="space-y-1.5 rounded-xl border border-border bg-surface-2/40 p-4"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
+                    {t("funnel.step_label")} {idx + 1} — {stepLabel}
                   </p>
-                )}
-              </div>
-            ))}
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">
+                    {formatCount(s.count)}
+                  </p>
+                  {idx === 0 ? (
+                    <p className="text-xs text-text-muted">
+                      {t("funnel.step_label_start")}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-text-muted">
+                      {t("funnel.drop_from_previous")}{" "}
+                      <span className="font-semibold text-error-600 dark:text-error-500">
+                        −
+                        {formatPercent(
+                          toNumber(s.drop_from_previous_pct) ?? 0,
+                          1,
+                        )}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

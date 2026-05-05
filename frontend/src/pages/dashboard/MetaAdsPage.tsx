@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { LineChart } from "@/components/feature/charts/LineChart";
@@ -30,6 +31,7 @@ import {
 } from "./_shared";
 
 export default function MetaAdsPage() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const q = useQuery({
     queryKey: ["dashboard", "meta", range.date_from, range.date_to],
@@ -43,7 +45,7 @@ export default function MetaAdsPage() {
 
   return (
     <PageShell>
-      <DashboardHeader title="Meta Ads" range={range} onChangeRange={setRange} />
+      <DashboardHeader title={t("meta_ads.title")} range={range} onChangeRange={setRange} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
         {isLoading
@@ -64,7 +66,7 @@ export default function MetaAdsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Günlük Harcama vs Gelir</CardTitle>
+          <CardTitle>{t("meta_ads.trend_card_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <LineChart
@@ -74,7 +76,7 @@ export default function MetaAdsPage() {
               data
                 ? [
                     {
-                      name: "Reklam Geliri",
+                      name: t("meta_ads.series_ad_revenue"),
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: toNumber(p.revenue) ?? 0,
@@ -82,7 +84,7 @@ export default function MetaAdsPage() {
                       formatter: formatCurrency,
                     },
                     {
-                      name: "Reklam Harcaması",
+                      name: t("meta_ads.series_ad_spend"),
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: toNumber(p.spend) ?? 0,
@@ -99,7 +101,7 @@ export default function MetaAdsPage() {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Kampanyalar</CardTitle>
+          <CardTitle>{t("meta_ads.campaigns_card_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -118,31 +120,31 @@ export default function MetaAdsPage() {
               <TableHeader>
                 <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
                   <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    Kampanya
+                    {t("meta_ads.col_campaign")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Gösterim
+                    {t("meta_ads.col_impressions")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Tıklama
+                    {t("meta_ads.col_clicks")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    CTR
+                    {t("meta_ads.col_ctr")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    CPC
+                    {t("meta_ads.col_cpc")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Harcama
+                    {t("meta_ads.col_spend")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Dönüşüm
+                    {t("meta_ads.col_conversions")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    Gelir
+                    {t("meta_ads.col_revenue")}
                   </TableHead>
                   <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    ROAS
+                    {t("meta_ads.col_roas")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
