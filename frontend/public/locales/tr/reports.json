@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "Raporlar",
+    "subtitle": "Seçtiğin tarih aralığı ve bölümlerle PDF rapor oluştur. Geçmişte üretilenler aşağıda listelenir."
+  },
+  "create": {
+    "section_title": "Yeni Rapor",
+    "name_label": "Rapor Adı",
+    "name_placeholder": "Boş bırakırsan tarihten otomatik üretilir",
+    "date_from": "Başlangıç Tarihi",
+    "date_to": "Bitiş Tarihi",
+    "language": "Dil",
+    "language_tr": "Türkçe",
+    "language_en": "İngilizce",
+    "sections_label": "Rapora Dahil Edilecek Bölümler",
+    "sections_help": "En az bir bölüm seçilmelidir.",
+    "select_all": "Hepsini Seç",
+    "clear_all": "Hiçbirini Seçme",
+    "submit": "Raporu Oluştur",
+    "submitting": "Hazırlanıyor…",
+    "presets": "Hızlı Seçim",
+    "preset_last_7": "Son 7 Gün",
+    "preset_last_30": "Son 30 Gün",
+    "preset_this_month": "Bu Ay",
+    "preset_last_month": "Geçen Ay",
+    "validation_no_section": "En az bir bölüm seçmelisin.",
+    "validation_invalid_range": "Başlangıç tarihi bitiş tarihinden sonra olamaz.",
+    "success_toast": "Rapor hazırlanmaya başladı. Tamamlandığında listede indirilebilir olacak.",
+    "create_failed": "Rapor oluşturulurken bir hata oluştu."
+  },
+  "history": {
+    "section_title": "Geçmiş Raporlar",
+    "empty_title": "Henüz rapor oluşturulmadı",
+    "empty_body": "Yukarıdaki formu kullanarak ilk raporunu üret.",
+    "col_name": "Ad",
+    "col_period": "Dönem",
+    "col_sections": "Bölümler",
+    "col_status": "Durum",
+    "col_size": "Boyut",
+    "col_created_at": "Oluşturma",
+    "col_actions": "İşlemler",
+    "download": "İndir",
+    "delete": "Sil",
+    "delete_confirm_title": "Raporu Sil",
+    "delete_confirm_body": "{{name}} adlı rapor kalıcı olarak silinecek. Devam etmek istiyor musun?",
+    "delete_confirm_cta": "Evet, Sil",
+    "delete_failed": "Rapor silinirken bir hata oluştu.",
+    "download_failed": "Rapor indirilemedi.",
+    "load_failed": "Rapor listesi yüklenemedi.",
+    "refresh": "Yenile"
+  },
+  "status": {
+    "pending": "Sırada",
+    "generating": "Hazırlanıyor",
+    "completed": "Hazır",
+    "failed": "Başarısız"
+  },
+  "section": {
+    "overview": "Genel Özet",
+    "ga4": "GA4 Trafik",
+    "ads": "Reklam Performansı",
+    "ecommerce": "E-Ticaret",
+    "funnel": "Dönüşüm Hunisi",
+    "top": "Top Performans"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "Reports",
+    "subtitle": "Build a PDF report for a date range and chosen sections. Previously generated reports appear below."
+  },
+  "create": {
+    "section_title": "New Report",
+    "name_label": "Report Name",
+    "name_placeholder": "Leave blank to auto-generate from date range",
+    "date_from": "Start date",
+    "date_to": "End date",
+    "language": "Language",
+    "language_tr": "Turkish",
+    "language_en": "English",
+    "sections_label": "Sections to include",
+    "sections_help": "At least one section is required.",
+    "select_all": "Select all",
+    "clear_all": "Clear all",
+    "submit": "Generate report",
+    "submitting": "Generating…",
+    "presets": "Quick range",
+    "preset_last_7": "Last 7 days",
+    "preset_last_30": "Last 30 days",
+    "preset_this_month": "This month",
+    "preset_last_month": "Last month",
+    "validation_no_section": "Pick at least one section.",
+    "validation_invalid_range": "Start date cannot be after end date.",
+    "success_toast": "Report queued. It will be ready to download once generation completes.",
+    "create_failed": "Failed to create the report."
+  },
+  "history": {
+    "section_title": "Past Reports",
+    "empty_title": "No reports yet",
+    "empty_body": "Use the form above to generate your first report.",
+    "col_name": "Name",
+    "col_period": "Period",
+    "col_sections": "Sections",
+    "col_status": "Status",
+    "col_size": "Size",
+    "col_created_at": "Created",
+    "col_actions": "Actions",
+    "download": "Download",
+    "delete": "Delete",
+    "delete_confirm_title": "Delete report",
+    "delete_confirm_body": "Report \"{{name}}\" will be permanently deleted. Continue?",
+    "delete_confirm_cta": "Yes, delete",
+    "delete_failed": "Failed to delete the report.",
+    "download_failed": "Failed to download the report.",
+    "load_failed": "Failed to load the report list.",
+    "refresh": "Refresh"
+  },
+  "status": {
+    "pending": "Queued",
+    "generating": "Generating",
+    "completed": "Ready",
+    "failed": "Failed"
+  },
+  "section": {
+    "overview": "Overview",
+    "ga4": "GA4 Traffic",
+    "ads": "Advertising",
+    "ecommerce": "E-commerce",
+    "funnel": "Conversion Funnel",
+    "top": "Top Performers"
+  }
+}

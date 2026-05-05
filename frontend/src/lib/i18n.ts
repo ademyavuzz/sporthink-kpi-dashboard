@@ -32,6 +32,7 @@ void i18n
       "notifications",
       "settings",
       "filters",
+      "reports",
     ],
     defaultNS: "common",
     backend: {

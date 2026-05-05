@@ -8,6 +8,8 @@ celery_app = Celery(
     backend=settings.redis_broker_url,
     include=[
         "app.tasks.email_tasks",
+        "app.tasks.aggregation_tasks",
+        "app.tasks.report_tasks",
         # "app.tasks.import_tasks",
         # "app.tasks.normalize_tasks",
     ],

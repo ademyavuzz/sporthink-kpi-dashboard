@@ -1,0 +1,302 @@
+/* Sporthink rapor PDF stili — pdf-rapor-ornek.pdf'e benzer dijital pazarlama
+ * raporu görünümü. Renkler section'a göre değişir; layout tek kolon-tabanlı,
+ * KPI grid'leri 4 sütun, tablolar sade. */
+
+@page {
+  size: A4;
+  margin: 28mm 18mm 22mm 18mm;
+  @top-left {
+    content: element(report-header);
+  }
+  @bottom-center {
+    content: element(report-footer);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "DejaVu Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 10pt;
+  color: #1f2937;
+  line-height: 1.45;
+}
+
+/* ----- Running header / footer ----- */
+.page-header {
+  position: running(report-header);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8.5pt;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 6pt;
+}
+
+.page-header .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6pt;
+  font-weight: 700;
+  letter-spacing: 0.5pt;
+  color: #be123c;
+}
+
+.page-header .header-meta {
+  text-align: right;
+}
+
+.page-header .header-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.page-header .header-range {
+  font-size: 7.5pt;
+  color: #9ca3af;
+}
+
+.page-footer {
+  position: running(report-footer);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6pt;
+  font-size: 8pt;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 5pt;
+}
+
+.page-footer .footer-brand { color: #be123c; font-weight: 600; }
+.page-footer .footer-sep { opacity: 0.5; }
+
+/* Brand pin (rose dot) */
+.brand-pin {
+  display: inline-block;
+  width: 7pt;
+  height: 7pt;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fb7185, #be123c);
+}
+
+.brand-name {
+  font-family: "DejaVu Sans", sans-serif;
+  font-size: 9.5pt;
+  font-weight: 800;
+  letter-spacing: 1pt;
+}
+
+/* ----- Cover page ----- */
+.cover {
+  page-break-after: always;
+  min-height: 230mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 6mm;
+}
+
+.cover-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8pt;
+  margin-bottom: 22mm;
+}
+.cover-brand .brand-pin { width: 12pt; height: 12pt; }
+.cover-brand .brand-name { font-size: 14pt; }
+
+.cover-title {
+  font-size: 32pt;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6pt 0;
+  line-height: 1.1;
+}
+
+.cover-subtitle {
+  font-size: 12pt;
+  color: #6b7280;
+  margin: 0 0 14pt 0;
+}
+
+.cover-pill {
+  display: inline-block;
+  padding: 6pt 14pt;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 600;
+  font-size: 11pt;
+  margin-bottom: 18pt;
+}
+
+.cover-meta {
+  margin-top: 8pt;
+  font-size: 10pt;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  gap: 4pt;
+}
+
+.cover-meta-label {
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 8.5pt;
+  letter-spacing: 0.4pt;
+}
+
+/* ----- Section ----- */
+.report-section {
+  page-break-inside: avoid;
+  margin-bottom: 14pt;
+  padding-top: 10pt;
+}
+
+/* Force a fresh page for each section after the first one when content
+ * gets long. PDF readers handle this gracefully even if a section is short. */
+.section-overview { page-break-before: always; }
+.section-ga4 { page-break-before: always; }
+.section-ads { page-break-before: always; }
+.section-ecom { page-break-before: always; }
+.section-funnel { page-break-before: always; }
+.section-top { page-break-before: always; }
+
+.section-rule {
+  height: 3pt;
+  width: 60pt;
+  border-radius: 2pt;
+  margin-bottom: 8pt;
+}
+
+.section-overview .section-rule { background: #be123c; }
+.section-ga4 .section-rule      { background: #f97316; }
+.section-ads .section-rule      { background: #2563eb; }
+.section-ecom .section-rule     { background: #16a34a; }
+.section-funnel .section-rule   { background: #7c3aed; }
+.section-top .section-rule      { background: #475569; }
+
+.section-title {
+  font-size: 18pt;
+  font-weight: 800;
+  margin: 0 0 4pt 0;
+  color: #111827;
+  letter-spacing: -0.2pt;
+}
+
+.section-desc {
+  font-size: 9.5pt;
+  color: #6b7280;
+  margin: 0 0 14pt 0;
+}
+
+.subsection-title {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #374151;
+  margin: 14pt 0 6pt 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5pt;
+}
+
+/* ----- KPI grid ----- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8pt;
+  margin-bottom: 12pt;
+}
+.kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+.kpi-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6pt;
+  padding: 9pt 10pt;
+  background: #ffffff;
+}
+
+.kpi-label {
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 4pt;
+}
+
+.kpi-value {
+  font-size: 16pt;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.3pt;
+}
+
+.kpi-change {
+  font-size: 8.5pt;
+  font-weight: 600;
+  margin-top: 2pt;
+}
+
+.kpi-change-positive { color: #16a34a; }
+.kpi-change-negative { color: #dc2626; }
+.kpi-change-flat     { color: #6b7280; }
+
+/* ----- Tables ----- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-top: 4pt;
+}
+
+.data-table thead th {
+  background: #f9fafb;
+  border-bottom: 1.2pt solid #e5e7eb;
+  padding: 6pt 8pt;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.data-table tbody td {
+  padding: 6pt 8pt;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:nth-child(even) td { background: #fafafa; }
+
+.t-left   { text-align: left; }
+.t-right  { text-align: right; }
+.t-center { text-align: center; }
+.muted    { color: #9ca3af; font-style: italic; }
+
+/* ----- Charts (inline SVG) ----- */
+.chart-block {
+  margin-top: 14pt;
+  border: 1px solid #e5e7eb;
+  border-radius: 6pt;
+  padding: 10pt;
+}
+
+.chart-title {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: #6b7280;
+  margin-bottom: 6pt;
+}
+
+.chart-block svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
