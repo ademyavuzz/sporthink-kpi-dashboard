@@ -6,9 +6,9 @@ import { LineChart } from "@/components/feature/charts/LineChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
-import { formatAxisNumber, formatCount, toNumber } from "@/lib/format";
+import { formatAxisNumber, toNumber } from "@/lib/format";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function TrafficPage() {
   const [range, setRange] = useDashboardRange();
@@ -26,11 +26,11 @@ export default function TrafficPage() {
   const isLoading = q.isPending;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader title="Trafik (GA4)" range={range} onChangeRange={setRange} />
 
       {/* 7 KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         {isLoading
           ? Array.from({ length: 7 }).map((_, i) => <KPICardSkeleton key={i} />)
           : data && (
@@ -71,7 +71,7 @@ export default function TrafficPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Kanal Dağılımı (Oturum)</CardTitle>
@@ -144,6 +144,6 @@ export default function TrafficPage() {
           />
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
