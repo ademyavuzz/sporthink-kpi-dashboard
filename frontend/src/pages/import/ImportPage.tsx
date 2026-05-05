@@ -50,7 +50,13 @@ import type {
 } from "@/types/imports";
 
 import { StepIndicator, type WizardStep } from "./StepIndicator";
-import { downloadBlob, formatBytes, formatDuration } from "./lib";
+import {
+  deriveImportOutcome,
+  downloadBlob,
+  formatBytes,
+  formatDuration,
+  type ImportOutcome,
+} from "./lib";
 
 export default function ImportPage() {
   const { t } = useTranslation(["imports", "common"]);
@@ -706,48 +712,104 @@ interface ResultStepProps {
   onNewImport: () => void;
 }
 
+/** Outcome → hero tonu (border + bg + ikon). */
+function outcomeHeroTone(o: ImportOutcome): {
+  border: string;
+  iconBg: string;
+  Icon: typeof CheckCircle2;
+  titleKey: string;
+  hintKey: string | null;
+} {
+  switch (o) {
+    case "completed":
+      return {
+        border: "border-success-500/20 bg-success-500/[0.02]",
+        iconBg: "bg-success-500/10 text-success-600 dark:text-success-500",
+        Icon: CheckCircle2,
+        titleKey: "wizard.result_success_title",
+        hintKey: null,
+      };
+    case "duplicate":
+      return {
+        border: "border-warning-500/20 bg-warning-500/[0.02]",
+        iconBg: "bg-warning-500/10 text-warning-600 dark:text-warning-500",
+        Icon: AlertCircle,
+        titleKey: "wizard.result_duplicate_title",
+        hintKey: "wizard.result_duplicate_hint",
+      };
+    case "partial":
+      return {
+        border: "border-warning-500/20 bg-warning-500/[0.02]",
+        iconBg: "bg-warning-500/10 text-warning-600 dark:text-warning-500",
+        Icon: AlertCircle,
+        titleKey: "wizard.result_partial_title",
+        hintKey: "wizard.result_partial_hint",
+      };
+    case "with_errors":
+      return {
+        border: "border-warning-500/20 bg-warning-500/[0.02]",
+        iconBg: "bg-warning-500/10 text-warning-600 dark:text-warning-500",
+        Icon: AlertCircle,
+        titleKey: "wizard.result_with_errors_title",
+        hintKey: "wizard.result_with_errors_hint",
+      };
+    case "empty":
+      return {
+        border: "border-warning-500/20 bg-warning-500/[0.02]",
+        iconBg: "bg-warning-500/10 text-warning-600 dark:text-warning-500",
+        Icon: AlertCircle,
+        titleKey: "wizard.result_empty_title",
+        hintKey: "wizard.result_empty_hint",
+      };
+    case "running":
+      // Pratikte burada görünmez; importing step'i ayrı render eder.
+      return {
+        border: "border-blue-500/20 bg-blue-500/[0.02]",
+        iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+        Icon: AlertCircle,
+        titleKey: "wizard.importing",
+        hintKey: null,
+      };
+    case "failed":
+    case "cancelled":
+      return {
+        border: "border-error-500/20 bg-error-500/[0.02]",
+        iconBg: "bg-error-500/10 text-error-600 dark:text-error-500",
+        Icon: XCircle,
+        titleKey: "wizard.result_failed_title",
+        hintKey: null,
+      };
+  }
+}
+
 function ResultStep({
   result,
   onDownloadErrors,
   onNewImport,
 }: ResultStepProps) {
   const { t } = useTranslation("imports");
-  const isSuccess = result.status === "completed";
-  const hasErrors = (result.invalid_rows ?? 0) > 0;
+  const outcome = deriveImportOutcome(result);
+  const hero = outcomeHeroTone(outcome);
   const skipped = result.skipped_rows ?? 0;
+  const hasErrors = (result.invalid_rows ?? 0) > 0;
 
   return (
     <div className="space-y-4">
       {/* Result hero */}
-      <Card
-        className={cn(
-          "overflow-hidden border-2",
-          isSuccess
-            ? "border-success-500/20 bg-success-500/[0.02]"
-            : "border-error-500/20 bg-error-500/[0.02]",
-        )}
-      >
+      <Card className={cn("overflow-hidden border-2", hero.border)}>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 "inline-flex size-12 shrink-0 items-center justify-center rounded-full",
-                isSuccess
-                  ? "bg-success-500/10 text-success-600 dark:text-success-500"
-                  : "bg-error-500/10 text-error-600 dark:text-error-500",
+                hero.iconBg,
               )}
             >
-              {isSuccess ? (
-                <CheckCircle2 className="size-6" />
-              ) : (
-                <XCircle className="size-6" />
-              )}
+              <hero.Icon className="size-6" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                {isSuccess
-                  ? t("wizard.result_success_title")
-                  : t("wizard.result_failed_title")}
+                {t(hero.titleKey)}
               </h3>
               <p className="text-xs text-text-muted">
                 {result.file_name} ·{" "}
@@ -755,6 +817,14 @@ function ResultStep({
               </p>
             </div>
           </div>
+
+          {/* Outcome-spesifik açıklama banner'ı */}
+          {hero.hintKey && (
+            <Alert>
+              <AlertCircle className="size-4" />
+              <AlertDescription>{t(hero.hintKey)}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -785,7 +855,9 @@ function ResultStep({
             <ResultStat
               label={t("wizard.result_inserted_rows")}
               value={result.inserted_rows}
-              tone="info"
+              tone={
+                (result.inserted_rows ?? 0) > 0 ? "info" : "neutral"
+              }
             />
             <ResultStat
               label={t("wizard.result_duration")}
@@ -795,7 +867,10 @@ function ResultStep({
             />
           </div>
 
-          {skipped > 0 && (
+          {/* skipped > 0 banner artık duplicate/partial outcome hint'iyle birlikte
+              gösterildiği için sadece outcome === completed iken (kenar durum)
+              yumuşak bir not olarak duruyor. */}
+          {outcome === "completed" && skipped > 0 && (
             <Alert>
               <AlertCircle className="size-4" />
               <AlertDescription>
