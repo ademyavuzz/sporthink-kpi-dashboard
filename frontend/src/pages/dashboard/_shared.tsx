@@ -10,6 +10,8 @@ import {
   type DateRangeValue,
 } from "@/components/feature/DateRangePicker";
 import { dayjs } from "@/lib/dayjs";
+import { formatMultiplier, toNumber } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export function useDashboardRange(
   initial?: Partial<DateRangeValue>,
@@ -108,5 +110,32 @@ export function PageShell({ children }: { children: ReactNode }) {
     <div className="container mx-auto max-w-[1400px] space-y-5 px-6 py-6">
       {children}
     </div>
+  );
+}
+
+/**
+ * ROAS değerine göre renkli pill — kanal/kampanya tablolarında kullanılır.
+ * 4+ → success, 1-4 → info, <1 → error, null → neutral.
+ */
+export function RoasPill({ value }: { value: number | string | null }) {
+  const num = value === null ? null : toNumber(value);
+  if (num === null || !Number.isFinite(num)) {
+    return <span className="text-text-dim">—</span>;
+  }
+  const tone =
+    num >= 4
+      ? "bg-success-50 text-success-700 ring-success-100 dark:bg-success-500/10 dark:text-success-500 dark:ring-success-500/20"
+      : num >= 1
+        ? "bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
+        : "bg-error-50 text-error-700 ring-error-100 dark:bg-error-500/10 dark:text-error-500 dark:ring-error-500/20";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset",
+        tone,
+      )}
+    >
+      {formatMultiplier(num)}
+    </span>
   );
 }
