@@ -39,38 +39,47 @@ import { ApiError } from "@/lib/api/client";
 import { importsApi } from "@/lib/api/imports";
 import { dayjs } from "@/lib/dayjs";
 import { cn } from "@/lib/utils";
-import type { ImportListItem, ImportStatus } from "@/types/imports";
+import type { ImportListItem } from "@/types/imports";
 
-import { formatDuration } from "./lib";
+import { deriveImportOutcome, formatDuration, type ImportOutcome } from "./lib";
 
-type StatusFilter = "all" | "completed" | "failed" | "running";
+type OutcomeFilter =
+  | "all"
+  | "completed"
+  | "partial"
+  | "duplicate"
+  | "with_errors"
+  | "failed"
+  | "running";
 
-const RUNNING_STATUSES: ImportStatus[] = [
-  "pending",
-  "parsing",
-  "validating",
-  "committing",
-];
+type Tone = "success" | "warning" | "error" | "info" | "neutral";
 
-function statusToTone(
-  status: ImportStatus,
-): "success" | "error" | "warning" | "info" {
-  if (status === "completed") return "success";
-  if (status === "failed" || status === "cancelled") return "error";
-  if (RUNNING_STATUSES.includes(status)) return "info";
-  return "warning";
+function outcomeToTone(o: ImportOutcome): Tone {
+  switch (o) {
+    case "completed":
+      return "success";
+    case "duplicate":
+    case "partial":
+    case "with_errors":
+    case "empty":
+      return "warning";
+    case "failed":
+    case "cancelled":
+      return "error";
+    case "running":
+      return "info";
+  }
 }
 
-function statusToIcon(status: ImportStatus) {
-  if (status === "completed") return CheckCircle2;
-  if (status === "failed" || status === "cancelled") return XCircle;
-  return Loader2;
+function outcomeToIcon(o: ImportOutcome) {
+  if (o === "completed") return CheckCircle2;
+  if (o === "failed" || o === "cancelled") return XCircle;
+  if (o === "running") return Loader2;
+  // duplicate / partial / with_errors / empty — bilgilendirici uyarı
+  return AlertCircle;
 }
 
-const TONE_PILL: Record<
-  ReturnType<typeof statusToTone>,
-  string
-> = {
+const TONE_PILL: Record<Tone, string> = {
   success:
     "bg-success-50 text-success-700 ring-1 ring-inset ring-success-100 dark:bg-success-500/10 dark:text-success-500 dark:ring-success-500/20",
   warning:
@@ -78,16 +87,21 @@ const TONE_PILL: Record<
   error:
     "bg-error-50 text-error-700 ring-1 ring-inset ring-error-100 dark:bg-error-500/10 dark:text-error-500 dark:ring-error-500/20",
   info: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20",
+  neutral: "bg-muted text-text-muted",
 };
 
-function matchesStatusFilter(
-  status: ImportStatus,
-  filter: StatusFilter,
+function matchesOutcomeFilter(
+  outcome: ImportOutcome,
+  filter: OutcomeFilter,
 ): boolean {
   if (filter === "all") return true;
-  if (filter === "completed") return status === "completed";
-  if (filter === "failed") return status === "failed" || status === "cancelled";
-  if (filter === "running") return RUNNING_STATUSES.includes(status);
+  if (filter === "completed") return outcome === "completed";
+  if (filter === "partial") return outcome === "partial";
+  if (filter === "duplicate")
+    return outcome === "duplicate" || outcome === "empty";
+  if (filter === "with_errors") return outcome === "with_errors";
+  if (filter === "failed") return outcome === "failed" || outcome === "cancelled";
+  if (filter === "running") return outcome === "running";
   return true;
 }
 
@@ -99,7 +113,7 @@ export default function ImportHistoryPage() {
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>("all");
 
   const listQuery = useQuery({
     queryKey: ["imports", "list"],
@@ -141,7 +155,8 @@ export default function ImportHistoryPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return data.filter((it) => {
-      if (!matchesStatusFilter(it.status, statusFilter)) return false;
+      const outcome = deriveImportOutcome(it);
+      if (!matchesOutcomeFilter(outcome, outcomeFilter)) return false;
       if (!term) return true;
       const haystack = [
         it.file_name,
@@ -152,7 +167,7 @@ export default function ImportHistoryPage() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [data, search, statusFilter, dataTypeLabel]);
+  }, [data, search, outcomeFilter, dataTypeLabel]);
 
   const lang = i18n.language;
 
@@ -189,26 +204,34 @@ export default function ImportHistoryPage() {
         </div>
 
         <div className="inline-flex h-10 items-center gap-0.5 rounded-lg border border-border bg-surface p-1">
-          {(["all", "completed", "running", "failed"] as StatusFilter[]).map(
-            (s) => {
-              const active = statusFilter === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStatusFilter(s)}
-                  className={cn(
-                    "inline-flex h-full items-center rounded-md px-2.5 text-[12px] font-semibold transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-text-muted hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  {t(`imports:history.filter_status_${s}`)}
-                </button>
-              );
-            },
-          )}
+          {(
+            [
+              "all",
+              "completed",
+              "partial",
+              "duplicate",
+              "with_errors",
+              "running",
+              "failed",
+            ] as OutcomeFilter[]
+          ).map((s) => {
+            const active = outcomeFilter === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setOutcomeFilter(s)}
+                className={cn(
+                  "inline-flex h-full items-center rounded-md px-2.5 text-[12px] font-semibold transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-text-muted hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {t(`imports:history.filter_outcome_${s}`)}
+              </button>
+            );
+          })}
         </div>
 
         <span className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 text-xs font-semibold tabular-nums text-text-muted">
@@ -301,11 +324,15 @@ export default function ImportHistoryPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((it, idx) => {
-                    const tone = statusToTone(it.status);
-                    const StatusIcon = statusToIcon(it.status);
+                    const outcome = deriveImportOutcome(it);
+                    const tone = outcomeToTone(outcome);
+                    const OutcomeIcon = outcomeToIcon(outcome);
                     const friendlyType =
                       dataTypeLabel.get(it.data_type) ?? it.data_type;
-                    const isRunning = RUNNING_STATUSES.includes(it.status);
+                    const isRunning = outcome === "running";
+                    const hint = t(`imports:history.outcome_hint.${outcome}`, {
+                      defaultValue: "",
+                    });
                     return (
                       <TableRow
                         key={it.id}
@@ -350,14 +377,15 @@ export default function ImportHistoryPage() {
                               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
                               TONE_PILL[tone],
                             )}
+                            title={hint || undefined}
                           >
-                            <StatusIcon
+                            <OutcomeIcon
                               className={cn(
                                 "size-3",
                                 isRunning && "animate-spin",
                               )}
                             />
-                            {t(`imports:status.${it.status}`)}
+                            {t(`imports:history.outcome.${outcome}`)}
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-xs">
