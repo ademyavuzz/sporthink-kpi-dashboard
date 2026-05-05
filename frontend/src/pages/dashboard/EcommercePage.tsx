@@ -16,13 +16,13 @@ import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import {
   formatAxisCurrency,
-  formatAxisNumber,
   formatCount,
   formatCurrency,
   toNumber,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 export default function EcommercePage() {
   const [range, setRange] = useDashboardRange();
@@ -37,10 +37,10 @@ export default function EcommercePage() {
   const isLoading = q.isPending;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader title="E-Ticaret" range={range} onChangeRange={setRange} />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         {isLoading
           ? Array.from({ length: 7 }).map((_, i) => <KPICardSkeleton key={i} />)
           : data && (
@@ -134,55 +134,111 @@ export default function EcommercePage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>En Çok Harcayan Müşteriler (Top 20)</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
+              <colgroup>
+                <col className="w-[140px]" />
+                <col />
+                <col className="w-[140px]" />
+                <col className="w-[100px]" />
+                <col className="w-[120px]" />
+                <col className="w-[100px]" />
+                <col className="w-[140px]" />
+              </colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Müşteri ID</TableHead>
-                  <TableHead>Ad</TableHead>
-                  <TableHead>Şehir</TableHead>
-                  <TableHead>Cinsiyet</TableHead>
-                  <TableHead>Yaş Grubu</TableHead>
-                  <TableHead className="text-right">Sipariş</TableHead>
-                  <TableHead className="text-right">Ciro</TableHead>
+                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Müşteri ID
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Ad
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Şehir
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Cinsiyet
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                    Yaş Grubu
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Sipariş
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                    Ciro
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading
-                  ? Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={7}>
-                          <div className="h-5 bg-muted rounded animate-pulse" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : (data?.top_customers ?? []).map((c) => (
-                      <TableRow key={c.customer_id}>
-                        <TableCell className="font-mono text-xs">
-                          {c.customer_id}
-                        </TableCell>
-                        <TableCell>{c.customer_name ?? "—"}</TableCell>
-                        <TableCell>{c.city ?? "—"}</TableCell>
-                        <TableCell>{c.gender ?? "—"}</TableCell>
-                        <TableCell>{c.age_group ?? "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCount(c.order_count)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCurrency(c.revenue)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={7} className="px-4 py-3.5">
+                        <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (data?.top_customers ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="py-12 text-center text-sm text-text-muted"
+                    >
+                      —
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  (data?.top_customers ?? []).map((c, idx) => (
+                    <TableRow
+                      key={c.customer_id}
+                      className={cn(
+                        "border-b border-border/60 transition-colors",
+                        idx % 2 === 1 && "bg-surface-2/40",
+                        "hover:bg-primary/[0.04]",
+                      )}
+                    >
+                      <TableCell className="px-4 py-3.5 font-mono text-xs text-text-muted">
+                        {c.customer_id}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm">
+                        <span
+                          className="block truncate font-medium text-foreground"
+                          title={c.customer_name ?? ""}
+                        >
+                          {c.customer_name ?? "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                        {c.city ?? <span className="text-text-dim">—</span>}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                        {c.gender ?? <span className="text-text-dim">—</span>}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-sm text-text-muted">
+                        {c.age_group ?? (
+                          <span className="text-text-dim">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                        {formatCount(c.order_count)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
+                        {formatCurrency(c.revenue)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
