@@ -4,6 +4,7 @@
 veriyi toplar, PDF render eder, dosyayı yazar, status'u günceller. Bu modül
 sadece sync→async köprüsü kurar.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -40,6 +41,7 @@ def generate_report_task(self, report_id: int) -> dict:
     """Tek argüman: report_id. Worker DB'den kaydı çeker; büyük objeler
     argument olarak geçirilmez (CLAUDE §8.2).
     """
+
     async def _job():
         async with AsyncSessionLocal() as db:
             await report_service.generate_report_pdf(db, report_id)

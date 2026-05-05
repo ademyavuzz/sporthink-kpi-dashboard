@@ -14,6 +14,7 @@ Kanal başına raporlanan metrikler:
 
 `docs/overview/09-kpi-formulas.md` §9.6.2 Kanal bazlı dönüşüm + §9.6.1 ciro.
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type
@@ -31,7 +32,6 @@ from app.schemas.dashboard import (
 )
 from app.schemas.kpi import KPIResult
 
-
 # ---------------------------------------------------------------------- #
 # KPIResult helper (kpi_service'tekiyle özdeş davranış — küçük + bağımsız)
 # ---------------------------------------------------------------------- #
@@ -47,11 +47,7 @@ def _kpi(
     direction_positive: str = "up",
 ) -> KPIResult:
     """KPIResult helper — değişim yüzdesi ve trend yönünü hesaplar."""
-    if (
-        previous_value is None
-        or value is None
-        or Decimal(str(previous_value)) == 0
-    ):
+    if previous_value is None or value is None or Decimal(str(previous_value)) == 0:
         change_pct: Decimal | None = None
         is_positive = True
         direction: str = "flat"
@@ -162,14 +158,8 @@ async def channel_performance_table(
             if sessions > 0
             else None
         )
-        roas = (
-            (ad_rev / ad_spend).quantize(Decimal("0.01")) if ad_spend > 0 else None
-        )
-        aov = (
-            (revenue / Decimal(orders)).quantize(Decimal("0.01"))
-            if orders > 0
-            else None
-        )
+        roas = (ad_rev / ad_spend).quantize(Decimal("0.01")) if ad_spend > 0 else None
+        aov = (revenue / Decimal(orders)).quantize(Decimal("0.01")) if orders > 0 else None
         out.append(
             ChannelPerformanceRow(
                 channel=r.channel or "Unknown",
@@ -292,19 +282,14 @@ async def calculate_channel_overview(
         v = Decimal(str(value))
         if lo is not None and v < Decimal(str(lo)):
             return False
-        if hi is not None and v > Decimal(str(hi)):
-            return False
-        return True
+        return not (hi is not None and v > Decimal(str(hi)))
 
     table = [
         c
         for c in table
         if _within(c.revenue, revenue_min, revenue_max)
         and _within(c.orders, orders_min, orders_max)
-        and (
-            _within(c.roas, roas_min, roas_max)
-            or (roas_min is None and roas_max is None)
-        )
+        and (_within(c.roas, roas_min, roas_max) or (roas_min is None and roas_max is None))
         and (
             _within(c.conversion_rate, conversion_min, conversion_max)
             or (conversion_min is None and conversion_max is None)
@@ -314,9 +299,19 @@ async def calculate_channel_overview(
     # Daily trend için aktif kanal listesi (eğer filtre varsa, sadece o
     # kanalların trendi gösterilir)
     daily_channels = (
-        [c.channel for c in table] if (channels or revenue_min or revenue_max
-            or orders_min or orders_max or roas_min or roas_max
-            or conversion_min or conversion_max) else None
+        [c.channel for c in table]
+        if (
+            channels
+            or revenue_min
+            or revenue_max
+            or orders_min
+            or orders_max
+            or roas_min
+            or roas_max
+            or conversion_min
+            or conversion_max
+        )
+        else None
     )
     daily = await daily_revenue_by_top_channels(
         db,
@@ -328,7 +323,7 @@ async def calculate_channel_overview(
 
     # KPI'lar
     active = len([c for c in table if c.revenue > 0])
-    total_revenue = sum((c.revenue for c in table), Decimal(0))
+    sum((c.revenue for c in table), Decimal(0))
     total_ad_spend = sum((c.ad_spend for c in table), Decimal(0))
     total_ad_revenue = sum((c.ad_revenue for c in table), Decimal(0))
     total_sessions = sum((c.sessions for c in table), 0)
@@ -342,9 +337,7 @@ async def calculate_channel_overview(
         else None
     )
     avg_conv = (
-        (Decimal(total_orders) / Decimal(total_sessions) * 100).quantize(
-            Decimal("0.01")
-        )
+        (Decimal(total_orders) / Decimal(total_sessions) * 100).quantize(Decimal("0.01"))
         if total_sessions > 0
         else None
     )
@@ -359,8 +352,7 @@ async def calculate_channel_overview(
         reverse=True,
     )[:10]
     roas_by_channel = [
-        DimensionBreakdown(label=c.channel, value=c.roas or Decimal(0))
-        for c in roas_data
+        DimensionBreakdown(label=c.channel, value=c.roas or Decimal(0)) for c in roas_data
     ]
     conv_data = sorted(
         [c for c in table if c.conversion_rate is not None],

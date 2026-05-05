@@ -14,9 +14,11 @@ Revision ID: 0004_user_profile_fields
 Revises: 0003_password_reset_purpose
 Create Date: 2026-05-04
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0004_user_profile_fields"

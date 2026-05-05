@@ -9,6 +9,7 @@ Akış:
 
 `docs/overview/05-rbac-security.md` §5.6 — şifre sıfırlama disiplini.
 """
+
 from __future__ import annotations
 
 import logging
@@ -61,9 +62,7 @@ async def send_email(
     Exception ise yukarı raise edilir (Celery retry tetiklesin diye).
     """
     if not settings.smtp_configured:
-        logger.warning(
-            "smtp_not_configured email_skipped to=%s subject=%s", to, subject
-        )
+        logger.warning("smtp_not_configured email_skipped to=%s subject=%s", to, subject)
         return False
 
     msg = EmailMessage()

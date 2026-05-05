@@ -24,7 +24,7 @@ HAFTA  KONU                              KİLOMETRE TAŞI
 ────  ──────────────────────────────  ─────────────────────────────
 1     Analiz, Tasarım, Setup            Spec finalize, Repo kuruldu
 2     DB Tasarımı, Auth Backend         DB schema, JWT auth çalışır
-3     RBAC, User Management Backend     37 izin, Süper Admin seed
+3     RBAC, User Management Backend     43 izin, Süper Admin seed
 4     Frontend Setup, Layout, Login     Login + Dashboard iskelet
 5     Import Sistemi (Backend + UI)     CSV import çalışır
 6     KPI Hesaplama, Aggregation        Aggregation tabloları aktif

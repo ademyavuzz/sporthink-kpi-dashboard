@@ -4,6 +4,7 @@ Token plaintext değil hash (sha256 hex) saklanır. Sorgular:
 - aktif token bulma (used_at IS NULL AND expires_at > now)
 - kullanıcının aynı purpose'taki tüm aktif tokenlarını revoke etme
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -35,9 +36,7 @@ async def create(
     return row
 
 
-async def get_active_by_hash(
-    db: AsyncSession, token_hash: str
-) -> PasswordResetToken | None:
+async def get_active_by_hash(db: AsyncSession, token_hash: str) -> PasswordResetToken | None:
     """Henüz kullanılmamış ve süresi geçmemiş token'ı döner."""
     now = datetime.now(UTC).replace(tzinfo=None)  # MySQL DATETIME naive
     stmt = select(PasswordResetToken).where(
@@ -56,9 +55,7 @@ async def mark_used(db: AsyncSession, token_id: int) -> None:
     )
 
 
-async def revoke_active_for_user(
-    db: AsyncSession, user_id: int, purpose: TokenPurpose
-) -> None:
+async def revoke_active_for_user(db: AsyncSession, user_id: int, purpose: TokenPurpose) -> None:
     """Kullanıcının verilen purpose'taki tüm aktif tokenlarını revoke eder.
 
     Yeni bir davet/sıfırlama maili gönderilmeden önce çağrılır ki önceki

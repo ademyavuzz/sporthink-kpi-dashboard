@@ -4,6 +4,7 @@ Her sayfa kendi ihtiyacına göre KPI + chart + tablo combo'su döner. Frontend
 sayfa load'ında tek API çağrısıyla tüm veriyi alır (su altındaki paralel
 DB sorguları backend'de).
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type

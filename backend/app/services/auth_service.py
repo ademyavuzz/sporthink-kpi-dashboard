@@ -11,6 +11,7 @@ audit log) PERSIST edilmeli — bu nedenle her dal `db.commit()` ile bitiyor,
 sonra raise ediyor. `async with db.begin()` bloğu kullanmıyoruz çünkü
 exception block'tan çıkışta rollback'e yol açıyor.
 """
+
 from __future__ import annotations
 
 import hashlib

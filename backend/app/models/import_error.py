@@ -1,4 +1,5 @@
 """`import_errors` — bir import sırasında oluşan satır seviyesi hatalar."""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -6,6 +6,7 @@ Bkz: docs/overview/06-api-spec.md
 Refresh token httpOnly cookie ile döner; body'de yer almaz. Frontend axios
 client `withCredentials: true` ile bu cookie'yi otomatik gönderir.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
@@ -37,9 +38,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 REFRESH_COOKIE_NAME = "sporthink_refresh"
 
 
-def _set_refresh_cookie(
-    response: Response, token: str, max_age_seconds: int | None
-) -> None:
+def _set_refresh_cookie(response: Response, token: str, max_age_seconds: int | None) -> None:
     """Refresh token cookie set eder.
 
     `max_age_seconds=None` → session cookie (browser kapanınca silinir,
@@ -92,9 +91,7 @@ async def login(
         ip=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    refresh_max_age = (
-        settings.refresh_token_expire_days * 24 * 3600 if body.remember_me else None
-    )
+    refresh_max_age = settings.refresh_token_expire_days * 24 * 3600 if body.remember_me else None
     _set_refresh_cookie(response, refresh_jwt, refresh_max_age)
 
     return SuccessEnvelope(
@@ -372,6 +369,4 @@ async def reset_password(
         new_password=body.new_password,
         ip=_client_ip(request),
     )
-    return SuccessEnvelope(
-        data=ResetPasswordResponse(success=True, email=user.email)
-    )
+    return SuccessEnvelope(data=ResetPasswordResponse(success=True, email=user.email))

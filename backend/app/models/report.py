@@ -7,6 +7,7 @@ Akış:
   `uploads/reports/{id}.pdf` altına yazar, `status=completed` set eder
 - Frontend status için poll eder; `completed` olunca download butonu açılır
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -43,12 +44,12 @@ class ReportSection(StrEnum):
     boş liste = tüm bölümler dahil.
     """
 
-    OVERVIEW = "overview"          # Genel Özet — 8 KPI + günlük revenue trend
-    GA4 = "ga4"                    # Trafik kanal özeti
-    ADS = "ads"                    # Meta + Google Ads özet
-    ECOMMERCE = "ecommerce"        # E-ticaret kanal × revenue
-    FUNNEL = "funnel"              # Dönüşüm hunisi 4 adım
-    TOP = "top"                    # Top 10 ürün + Top 10 müşteri
+    OVERVIEW = "overview"  # Genel Özet — 8 KPI + günlük revenue trend
+    GA4 = "ga4"  # Trafik kanal özeti
+    ADS = "ads"  # Meta + Google Ads özet
+    ECOMMERCE = "ecommerce"  # E-ticaret kanal × revenue
+    FUNNEL = "funnel"  # Dönüşüm hunisi 4 adım
+    TOP = "top"  # Top 10 ürün + Top 10 müşteri
 
 
 class Report(Base):

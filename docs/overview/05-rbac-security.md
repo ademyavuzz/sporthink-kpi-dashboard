@@ -1,7 +1,7 @@
 # 5. RBAC VE GÜVENLİK
 
 > **Bu Bölümde Neler Var?**
-> Bu bölüm, sistemin yetkilendirme (authorization) mimarisini ve genel güvenlik yaklaşımını ele almaktadır. Rol Bazlı Erişim Kontrolü (RBAC), 37 izinli yetki matrisi, JWT tabanlı kimlik doğrulama, şifre politikaları, oturum yönetimi, brute force koruması ve KVKK uyumluluğu detaylı olarak incelenmiştir.
+> Bu bölüm, sistemin yetkilendirme (authorization) mimarisini ve genel güvenlik yaklaşımını ele almaktadır. Rol Bazlı Erişim Kontrolü (RBAC), 43 izinli yetki matrisi, JWT tabanlı kimlik doğrulama, şifre politikaları, oturum yönetimi, brute force koruması ve KVKK uyumluluğu detaylı olarak incelenmiştir.
 
 ## 5.1 Güvenlik Mimarisi Genel Bakış
 
@@ -157,7 +157,7 @@ Süper Admin yeni kullanıcı eklerken aynı ekranda kullanıcıya özel rol olu
 
 **Mevcut Rolden Seçme:** Daha önce oluşturulmuş roller dropdown'da listelenir. Aynı rol birden fazla kullanıcıya atanabilir.
 
-### 5.5.4 İzin Listesi (37 İzin)
+### 5.5.4 İzin Listesi (43 İzin)
 
 İzinler 4 kategoriye ayrılır.
 
@@ -165,9 +165,9 @@ Süper Admin yeni kullanıcı eklerken aynı ekranda kullanıcıya özel rol olu
 
 `dashboard.view`, `traffic.view`, `meta_ads.view`, `google_ads.view`, `ecommerce.view`, `campaigns.view`, `funnel.view`, `cohort.view`, `products.view`
 
-**Kategori 2: Veri İşlemleri - 13 İzin**
+**Kategori 2: Veri İşlemleri - 20 İzin**
 
-`imports.view`, `imports.create`, `imports.delete`, `mappings.view`, `mappings.create`, `mappings.update`, `mappings.delete`, `segments.view`, `segments.create`, `segments.update`, `segments.delete`, `views.view`, `views.create`, `views.update`, `views.delete`, `export.csv`, `export.report`
+`imports.view`, `imports.create`, `imports.delete`, `mappings.view`, `mappings.create`, `mappings.update`, `mappings.delete`, `segments.view`, `segments.create`, `segments.update`, `segments.delete`, `views.view`, `views.create`, `views.update`, `views.delete`, `export.csv`, `export.report`, `reports.view`, `reports.create`, `reports.delete`
 
 **Kategori 3: Kullanıcı ve Rol Yönetimi - 9 İzin**
 

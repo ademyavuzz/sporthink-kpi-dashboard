@@ -9,6 +9,7 @@ Her veri kaynağı için bir `SourceConfig` ile parser davranışı tanımlanır
 Generic CSV parser bu config'i alır, satırları işler, geçerli satırları
 `ParsedRow` olarak yield eder; hatalar `ParseError` olarak biriktirilir.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -19,9 +20,9 @@ CoerceType = Literal[
     "str",
     "int",
     "decimal",
-    "date_iso",         # "2024-10-01"
-    "date_yyyymmdd",    # 20241001
-    "datetime_iso",     # "2024-10-01 12:38:42" veya "2024-10-01T12:38:42"
+    "date_iso",  # "2024-10-01"
+    "date_yyyymmdd",  # 20241001
+    "datetime_iso",  # "2024-10-01 12:38:42" veya "2024-10-01T12:38:42"
     "bool",
     "enum_str",
 ]
@@ -62,7 +63,7 @@ class SourceConfig:
     target_table: str  # ORM model'in tablo adı
 
     columns: list[ColumnSpec]
-    dedup_keys: list[str]   # DB kolon adları
+    dedup_keys: list[str]  # DB kolon adları
     fk_lookups: list[FKLookup] = field(default_factory=list)
 
     # Bazı kaynaklarda CSV'de hesaplanmış kolon var ama DB STORED GENERATED — atla.
@@ -84,4 +85,4 @@ class ParseError:
 @dataclass
 class ParsedRow:
     source_row_number: int  # 1-based, header dahil değil
-    data: dict[str, Any]    # DB kolon adı → coerce edilmiş değer
+    data: dict[str, Any]  # DB kolon adı → coerce edilmiş değer

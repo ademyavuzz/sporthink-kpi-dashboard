@@ -11,7 +11,7 @@
 - **31 KPI:** trafik, reklam, satış, pazarlama performansı (`docs/overview/09`)
 - **9 dashboard sayfası:** Overview, Traffic, Meta, Google, E-Ticaret, Campaign, Funnel, Cohort, Products
 - **CSV import wizard:** drag-drop, 4 adımlı, FK otomatik resolve, dedup, hata raporu CSV indirme
-- **RBAC:** 37 izin, Süper Admin sistem rolü, audit log
+- **RBAC:** 43 izin, Süper Admin sistem rolü, audit log
 - **Segmentasyon:** Visual rule builder + RFM-bazlı hazır segmentler
 - **i18n:** TR (default) + EN, dayjs Europe/Istanbul TZ
 - **Tema:** Light/Dark, semantic CSS variables

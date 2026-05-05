@@ -3,6 +3,7 @@
 Bkz: docs/overview/05-rbac-security.md §5.4 token mimarisi
      docs/overview/06-api-spec.md auth endpoint kontratları
 """
+
 from __future__ import annotations
 
 from datetime import date as _date_type

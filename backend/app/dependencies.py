@@ -5,6 +5,7 @@
 - `get_current_user`: JWT'den User çek (role joined)
 - `require_permission(perm)`: izin kontrolü + Redis cache (5dk) + Süper Admin bypass
 """
+
 from __future__ import annotations
 
 import json

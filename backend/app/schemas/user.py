@@ -4,6 +4,7 @@ Bkz: backend/CLAUDE.md §4 (Model vs Schema Disiplini).
 ORM model'i (`app.models.User`) doğrudan response'a dönülmez; bu modüldeki
 `UserResponse` üzerinden serialize edilir (parola hash'i sızmaz).
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime

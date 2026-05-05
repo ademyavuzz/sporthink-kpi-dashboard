@@ -1,4 +1,5 @@
 """CSV parser unit testleri — coerce + ParseError edge case'leri."""
+
 from __future__ import annotations
 
 import io
@@ -51,8 +52,11 @@ def test_coerce_bool_true_variants():
 
 def test_coerce_enum_str_lowercases():
     spec = ColumnSpec(
-        "status", "status", "enum_str",
-        required=True, allowed_values=frozenset({"active", "paused"}),
+        "status",
+        "status",
+        "enum_str",
+        required=True,
+        allowed_values=frozenset({"active", "paused"}),
     )
     assert _coerce_value(spec, "ACTIVE") == "active"
 
@@ -63,8 +67,11 @@ def test_coerce_enum_str_rejects_invalid():
     from app.parsers.csv_parser import CoerceError
 
     spec = ColumnSpec(
-        "status", "status", "enum_str",
-        required=True, allowed_values=frozenset({"active"}),
+        "status",
+        "status",
+        "enum_str",
+        required=True,
+        allowed_values=frozenset({"active"}),
     )
     with pytest.raises(CoerceError) as exc_info:
         _coerce_value(spec, "unknown")
@@ -89,7 +96,8 @@ def test_coerce_optional_empty_returns_default():
 
 def test_parse_csv_missing_headers_yields_single_error():
     config = SourceConfig(
-        name="test", target_table="test",
+        name="test",
+        target_table="test",
         columns=[
             ColumnSpec("sku", "sku", "str", required=True),
             ColumnSpec("name", "name", "str", required=True),
@@ -105,7 +113,8 @@ def test_parse_csv_missing_headers_yields_single_error():
 
 def test_parse_csv_happy_path():
     config = SourceConfig(
-        name="test", target_table="test",
+        name="test",
+        target_table="test",
         columns=[
             ColumnSpec("sku", "sku", "str", required=True),
             ColumnSpec("price", "price", "decimal", required=True),
@@ -121,7 +130,8 @@ def test_parse_csv_happy_path():
 
 def test_parse_csv_invalid_row_collected_not_aborted():
     config = SourceConfig(
-        name="test", target_table="test",
+        name="test",
+        target_table="test",
         columns=[
             ColumnSpec("count", "count", "int", required=True),
         ],

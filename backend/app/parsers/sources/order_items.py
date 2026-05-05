@@ -10,6 +10,7 @@ Notlar:
   `products` tablosundan lookup; eşleşme yoksa NULL kalır (FK yok demektir,
   ürün katalogda olmayan sipariş satırı). `required=False`.
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, FKLookup, SourceConfig

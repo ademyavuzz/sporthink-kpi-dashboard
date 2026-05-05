@@ -14,6 +14,7 @@ Güvenlik:
 - Filename kullanıcıdan alınmaz; deterministik `<user_id>.webp`
 - Directory traversal imkansız (filename hard-coded)
 """
+
 from __future__ import annotations
 
 import io

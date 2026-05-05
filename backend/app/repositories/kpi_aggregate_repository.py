@@ -10,6 +10,7 @@ Tablolar:
 - `kpi_monthly_aggregates` — period_month × channel × platform × device
 - `kpi_campaign_aggregates`— campaign_pk_id × period_start × period_end
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -44,9 +45,7 @@ def _apply_daily_filters(
     if channels:
         conditions.append(KPIDailyAggregate.channel.in_(channels))
     if platforms:
-        conditions.append(
-            KPIDailyAggregate.platform.in_([p.value for p in platforms])
-        )
+        conditions.append(KPIDailyAggregate.platform.in_([p.value for p in platforms]))
     if devices:
         conditions.append(KPIDailyAggregate.device.in_(devices))
     return stmt.where(and_(*conditions))
@@ -93,10 +92,7 @@ async def sum_metrics_daily(
     devices: list[str] | None = None,
 ) -> dict[str, Decimal]:
     """Tek sorguda birden fazla metric'i SUM'lar — N+1 önler."""
-    columns = [
-        func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m)
-        for m in metrics
-    ]
+    columns = [func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m) for m in metrics]
     stmt = select(*columns)
     stmt = _apply_daily_filters(
         stmt,
@@ -133,8 +129,7 @@ async def group_by_dimension_daily(
     """
     dim_col = getattr(KPIDailyAggregate, dimension)
     metric_cols = [
-        func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m)
-        for m in metrics
+        func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m) for m in metrics
     ]
     stmt = select(dim_col.label(dimension), *metric_cols)
     stmt = _apply_daily_filters(
@@ -148,9 +143,7 @@ async def group_by_dimension_daily(
     stmt = stmt.group_by(dim_col)
 
     if order_by_metric:
-        order_col = func.coalesce(
-            func.sum(getattr(KPIDailyAggregate, order_by_metric)), 0
-        )
+        order_col = func.coalesce(func.sum(getattr(KPIDailyAggregate, order_by_metric)), 0)
         stmt = stmt.order_by(order_col.desc() if descending else order_col.asc())
     if limit is not None:
         stmt = stmt.limit(limit)
@@ -182,8 +175,7 @@ async def daily_series(
     Boş günler döndürülmez (frontend interpolation veya 0 ile doldurma yapar).
     """
     metric_cols = [
-        func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m)
-        for m in metrics
+        func.coalesce(func.sum(getattr(KPIDailyAggregate, m)), 0).label(m) for m in metrics
     ]
     stmt = select(KPIDailyAggregate.date.label("date"), *metric_cols)
     stmt = _apply_daily_filters(
@@ -218,8 +210,7 @@ async def sum_metrics_monthly(
     platforms: list[KPIPlatform] | None = None,
 ) -> dict[str, Decimal]:
     columns = [
-        func.coalesce(func.sum(getattr(KPIMonthlyAggregate, m)), 0).label(m)
-        for m in metrics
+        func.coalesce(func.sum(getattr(KPIMonthlyAggregate, m)), 0).label(m) for m in metrics
     ]
     conditions = [
         KPIMonthlyAggregate.period_month >= period_from,
@@ -228,9 +219,7 @@ async def sum_metrics_monthly(
     if channels:
         conditions.append(KPIMonthlyAggregate.channel.in_(channels))
     if platforms:
-        conditions.append(
-            KPIMonthlyAggregate.platform.in_([p.value for p in platforms])
-        )
+        conditions.append(KPIMonthlyAggregate.platform.in_([p.value for p in platforms]))
     stmt = select(*columns).where(and_(*conditions))
     result = await db.execute(stmt)
     row = result.one()

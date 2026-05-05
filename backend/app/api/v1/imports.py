@@ -11,6 +11,7 @@ Faz 1 (sync) endpoint'leri:
 - GET  → IMPORTS_VIEW
 - DELETE → IMPORTS_DELETE
 """
+
 from __future__ import annotations
 
 import csv
@@ -246,9 +247,7 @@ async def download_import_errors(
     # Excel için UTF-8 BOM
     buffer.write("﻿")
     writer = csv.writer(buffer)
-    writer.writerow(
-        ["source_row_number", "field_name", "error_code", "error_message", "row_data"]
-    )
+    writer.writerow(["source_row_number", "field_name", "error_code", "error_message", "row_data"])
     for r in rows:
         # row_data zaten JSON-serializable dict; CSV için str() yeterli
         row_data_str = "" if r.row_data is None else str(r.row_data)

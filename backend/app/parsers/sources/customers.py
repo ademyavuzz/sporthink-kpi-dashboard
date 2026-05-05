@@ -10,6 +10,7 @@ Notlar:
 - `gender` CSV'de tek harf gelir: 'M'/'F' → 'male'/'female' map.
 - `last_order_date` boş gelebilir (henüz sipariş vermemiş kayıtlar).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -51,9 +52,7 @@ CONFIG = SourceConfig(
             "enum_str",
             required=False,
             # `55+` dataset-spesifik bir bucket — `_post_coerce` 55-64'e remap eder.
-            allowed_values=frozenset(
-                {"18-24", "25-34", "35-44", "45-54", "55-64", "65+", "55+"}
-            ),
+            allowed_values=frozenset({"18-24", "25-34", "35-44", "45-54", "55-64", "65+", "55+"}),
         ),
         ColumnSpec("registration_source", "registration_source", "str", required=False),
         ColumnSpec(

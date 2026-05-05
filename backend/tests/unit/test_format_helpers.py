@@ -1,4 +1,5 @@
 """Cache key + import_service helper testleri."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -10,21 +11,13 @@ from app.services.import_service import _jsonify
 
 class TestCacheKeys:
     def test_kpi_summary_deterministic(self):
-        k1 = cache_keys.kpi_summary(
-            date_from=date(2025, 1, 1), date_to=date(2025, 1, 31)
-        )
-        k2 = cache_keys.kpi_summary(
-            date_from=date(2025, 1, 1), date_to=date(2025, 1, 31)
-        )
+        k1 = cache_keys.kpi_summary(date_from=date(2025, 1, 1), date_to=date(2025, 1, 31))
+        k2 = cache_keys.kpi_summary(date_from=date(2025, 1, 1), date_to=date(2025, 1, 31))
         assert k1 == k2
 
     def test_kpi_summary_different_for_different_dates(self):
-        k1 = cache_keys.kpi_summary(
-            date_from=date(2025, 1, 1), date_to=date(2025, 1, 31)
-        )
-        k2 = cache_keys.kpi_summary(
-            date_from=date(2025, 2, 1), date_to=date(2025, 2, 28)
-        )
+        k1 = cache_keys.kpi_summary(date_from=date(2025, 1, 1), date_to=date(2025, 1, 31))
+        k2 = cache_keys.kpi_summary(date_from=date(2025, 2, 1), date_to=date(2025, 2, 28))
         assert k1 != k2
 
     def test_user_perms_includes_id(self):

@@ -9,6 +9,7 @@ TTL standartları (§9.2):
 
 Invalidasyon: yeni import sonrası `kpi:*`, role değişiminde `user_perms:*`.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -24,10 +25,10 @@ def _hash(payload: Any) -> str:
 
 
 # --- TTL'ler (saniye) ---
-TTL_KPI = 5 * 60         # 5 dk
+TTL_KPI = 5 * 60  # 5 dk
 TTL_USER_PERMS = 5 * 60  # 5 dk
-TTL_FILTERS = 30 * 60    # 30 dk
-TTL_STATIC = 60 * 60     # 1 saat
+TTL_FILTERS = 30 * 60  # 30 dk
+TTL_STATIC = 60 * 60  # 1 saat
 
 
 # --- KPI summary / dashboard sonuçları ---

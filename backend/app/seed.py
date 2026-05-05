@@ -16,6 +16,7 @@ Yapar:
 
 Idempotenttir — birden fazla kez çalıştırmak güvenlidir.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -118,7 +119,7 @@ async def seed_channel_mapping(db: AsyncSession) -> int:
     Returns: yeni eklenen satır sayısı.
     """
     result = await db.execute(select(ChannelMapping.source, ChannelMapping.medium))
-    existing = {(s, m) for s, m in result.all()}
+    existing = set(result.all())
 
     added = 0
     for source, medium, channel_group in _CHANNEL_MAPPING_DEFAULTS:
@@ -170,17 +171,14 @@ async def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
-    async with AsyncSessionLocal() as db:
-        async with db.begin():
-            added, updated, orphans = await sync_permissions(db)
-            created = await ensure_super_admin(db)
-            channel_added = await seed_channel_mapping(db)
+    async with AsyncSessionLocal() as db, db.begin():
+        added, updated, orphans = await sync_permissions(db)
+        created = await ensure_super_admin(db)
+        channel_added = await seed_channel_mapping(db)
 
     logger.info("permission_sync added=%d updated=%d orphans=%d", added, updated, len(orphans))
     if orphans:
-        logger.warning(
-            "DB'de enum dışı izin kodları var (manuel temizlik gerek): %s", orphans
-        )
+        logger.warning("DB'de enum dışı izin kodları var (manuel temizlik gerek): %s", orphans)
     logger.info(
         "super_admin %s email=%s", "created" if created else "exists", settings.super_admin_email
     )

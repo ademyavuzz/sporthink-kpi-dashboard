@@ -17,6 +17,7 @@ Channel haritası:
 - Google Ads → 'Paid Search' (sabit; SEARCH/SHOPPING/PMAX ayrımı sonradan)
 - Orders → `orders.channel` (zaten doğru kanal grubu)
 """
+
 from __future__ import annotations
 
 import logging
@@ -297,9 +298,7 @@ async def rebuild_daily_aggregates(
     ]:
         result = await db.execute(stmt, params)
         counts[source] = result.rowcount or 0
-        logger.info(
-            "daily_aggregate_upsert source=%s rows=%d", source, counts[source]
-        )
+        logger.info("daily_aggregate_upsert source=%s rows=%d", source, counts[source])
 
     await db.commit()
     return counts
@@ -312,9 +311,7 @@ async def rebuild_monthly_aggregates(
     date_to: date,
 ) -> int:
     """Daily aggregate'lerden monthly tablosunu UPSERT eder."""
-    result = await db.execute(
-        _MONTHLY_UPSERT, {"date_from": date_from, "date_to": date_to}
-    )
+    result = await db.execute(_MONTHLY_UPSERT, {"date_from": date_from, "date_to": date_to})
     affected = result.rowcount or 0
     await db.commit()
     logger.info("monthly_aggregate_upsert rows=%d", affected)
@@ -354,12 +351,8 @@ async def rebuild_all(
     date_to: date,
 ) -> dict[str, int | dict[str, int]]:
     """Daily → monthly → campaign sırasıyla full rebuild."""
-    daily_counts = await rebuild_daily_aggregates(
-        db, date_from=date_from, date_to=date_to
-    )
-    monthly_count = await rebuild_monthly_aggregates(
-        db, date_from=date_from, date_to=date_to
-    )
+    daily_counts = await rebuild_daily_aggregates(db, date_from=date_from, date_to=date_to)
+    monthly_count = await rebuild_monthly_aggregates(db, date_from=date_from, date_to=date_to)
     campaign_count = await rebuild_campaign_aggregates(
         db, period_start=date_from, period_end=date_to
     )

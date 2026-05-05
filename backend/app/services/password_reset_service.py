@@ -14,6 +14,7 @@ Davet akışı (`create_invitation`):
 Token formatı: 32-byte URL-safe (`secrets.token_urlsafe(32)`) — ~43 karakter.
 DB'de plaintext değil hash saklanır; verify aşamasında hash karşılaştırılır.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -67,9 +68,7 @@ async def _create_token(
 
     Plaintext token'ı döner — çağıran tarafa mail için; DB'de yalnızca hash.
     """
-    await password_reset_token_repository.revoke_active_for_user(
-        db, user.id, purpose
-    )
+    await password_reset_token_repository.revoke_active_for_user(db, user.id, purpose)
     plain = secrets.token_urlsafe(32)
     if purpose == TokenPurpose.INVITE:
         ttl = timedelta(hours=settings.invite_token_expire_hours)
@@ -127,9 +126,7 @@ async def request_password_reset(
         logger.info("password_reset_requested email=%s outcome=no_user", email_norm)
         return
 
-    token = await _create_token(
-        db, user=user, purpose=TokenPurpose.RESET, requested_ip=ip
-    )
+    token = await _create_token(db, user=user, purpose=TokenPurpose.RESET, requested_ip=ip)
     action_url = build_action_url(token, TokenPurpose.RESET)
 
     await audit_log_repository.add(
@@ -169,9 +166,7 @@ async def create_invitation(
     rastgele bir placeholder ile oluşturulur (login imkânsız) — kullanıcı
     davet linkinden kendi şifresini kurar.
     """
-    token = await _create_token(
-        db, user=user, purpose=TokenPurpose.INVITE, requested_ip=ip
-    )
+    token = await _create_token(db, user=user, purpose=TokenPurpose.INVITE, requested_ip=ip)
     action_url = build_action_url(token, TokenPurpose.INVITE)
 
     await db.commit()
@@ -181,8 +176,7 @@ async def create_invitation(
     send_invitation_email.delay(
         user_email=user.email,
         first_name=user.first_name,
-        inviter_name=f"{inviter.first_name} {inviter.last_name}".strip()
-        or inviter.email,
+        inviter_name=f"{inviter.first_name} {inviter.last_name}".strip() or inviter.email,
         role_name=role_name,
         action_url=action_url,
         expires_in=_format_expires_human(TokenPurpose.INVITE, lang),
@@ -190,9 +184,7 @@ async def create_invitation(
     )
 
 
-async def verify_token(
-    db: AsyncSession, token: str
-) -> tuple[PasswordResetToken, User]:
+async def verify_token(db: AsyncSession, token: str) -> tuple[PasswordResetToken, User]:
     """Token geçerli mi? Geçerliyse (token, user) döner.
 
     Geçersizse `ValidationError("INVALID_OR_EXPIRED_TOKEN")` raise eder.

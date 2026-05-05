@@ -13,6 +13,7 @@ Notlar:
   bulk_insert öncesinde model kolon filtresiyle düşer.
 - Natural unique key yok; dedup boş.
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, FKLookup, SourceConfig
@@ -26,9 +27,7 @@ CONFIG = SourceConfig(
         ColumnSpec("campaign_name", "campaign_name", "str", required=True),
         ColumnSpec("adset_name", "adset_name", "str", required=False),
         ColumnSpec("ad_name", "ad_name", "str", required=False),
-        ColumnSpec(
-            "publisher_platform", "publisher_platform", "str", required=False
-        ),
+        ColumnSpec("publisher_platform", "publisher_platform", "str", required=False),
         ColumnSpec("platform_position", "platform_position", "str", required=False),
         ColumnSpec("impression_device", "impression_device", "str", required=False),
         ColumnSpec("impressions", "impressions", "int", required=False, default=0),

@@ -21,6 +21,7 @@ Notlar:
 - FK opsiyonel: campaign master eksik olabilir, yine de satır yazılır.
 - Natural unique key yok; dedup boş.
 """
+
 from __future__ import annotations
 
 from app.parsers.types import ColumnSpec, FKLookup, SourceConfig
@@ -45,9 +46,7 @@ CONFIG = SourceConfig(
         ColumnSpec("reach", "reach", "int", required=False, default=0),
         ColumnSpec("frequency", "frequency", "decimal", required=False, default=0),
         ColumnSpec("clicks", "clicks", "int", required=False, default=0),
-        ColumnSpec(
-            "inline_link_clicks", "inline_link_clicks", "int", required=False, default=0
-        ),
+        ColumnSpec("inline_link_clicks", "inline_link_clicks", "int", required=False, default=0),
         ColumnSpec("spend", "spend", "decimal", required=False, default=0),
         ColumnSpec("cpc", "cpc", "decimal", required=False, default=0),
         ColumnSpec("cpm", "cpm", "decimal", required=False, default=0),
@@ -60,9 +59,7 @@ CONFIG = SourceConfig(
             required=False,
             default=0,
         ),
-        ColumnSpec(
-            "actions_link_click", "actions:link_click", "int", required=False, default=0
-        ),
+        ColumnSpec("actions_link_click", "actions:link_click", "int", required=False, default=0),
         ColumnSpec(
             "actions_landing_page_view",
             "actions:landing_page_view",
@@ -119,9 +116,7 @@ CONFIG = SourceConfig(
             required=False,
             default=0,
         ),
-        ColumnSpec(
-            "actions_video_view", "actions:video_view", "int", required=False, default=0
-        ),
+        ColumnSpec("actions_video_view", "actions:video_view", "int", required=False, default=0),
     ],
     dedup_keys=[],
     fk_lookups=[

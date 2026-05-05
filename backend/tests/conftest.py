@@ -5,6 +5,7 @@ Her test öncesi super admin durumu (failed_attempts, locked_until)
 sıfırlanır; her testten sonra super admin'e ait refresh token satırları
 temizlenir. Süper admin email'i `.env`'deki SUPER_ADMIN_EMAIL'den okunur.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -37,9 +38,7 @@ async def reset_super_admin_state() -> AsyncIterator[None]:
         result = await db.execute(select(User.id).where(User.email == email))
         sa_id = result.scalar_one()
         await db.execute(
-            update(User)
-            .where(User.id == sa_id)
-            .values(failed_login_attempts=0, locked_until=None)
+            update(User).where(User.id == sa_id).values(failed_login_attempts=0, locked_until=None)
         )
         await db.execute(delete(RefreshToken).where(RefreshToken.user_id == sa_id))
         await db.commit()

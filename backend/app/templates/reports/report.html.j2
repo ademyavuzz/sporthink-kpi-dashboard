@@ -8,19 +8,11 @@
 <body>
 
 <header class="page-header">
-  <div class="brand">
-    <span class="brand-pin"></span>
-    <span class="brand-name">SPORTHINK</span>
-  </div>
-  <div class="header-meta">
-    <div class="header-title">{{ report_title }}</div>
-    <div class="header-range">{{ date_from_str }} — {{ date_to_str }}</div>
-  </div>
+  <img class="header-logo" src="sporthink-logo.png" alt="Sporthink" />
+  <span class="header-range">{{ date_from_str }} — {{ date_to_str }}</span>
 </header>
 
 <footer class="page-footer">
-  <span class="footer-brand">Sporthink</span>
-  <span class="footer-sep">·</span>
   <span>{{ footer_label }}</span>
   <span class="footer-sep">·</span>
   <span>{{ generated_at_str }}</span>
@@ -28,23 +20,90 @@
 
 <!-- ============================== COVER ============================== -->
 <section class="cover">
-  <div class="cover-brand">
-    <span class="brand-pin"></span>
-    <span class="brand-name">SPORTHINK</span>
-  </div>
+  <img class="cover-logo" src="sporthink-logo.png" alt="Sporthink" />
   <h1 class="cover-title">{{ report_title }}</h1>
   <p class="cover-subtitle">{{ subtitle }}</p>
   <div class="cover-pill">{{ date_from_str }} — {{ date_to_str }}</div>
   <div class="cover-meta">
-    <div><span class="cover-meta-label">{{ labels.prepared_by }}:</span> {{ created_by_name }}</div>
-    <div><span class="cover-meta-label">{{ labels.generated_at }}:</span> {{ generated_at_str }}</div>
-    <div><span class="cover-meta-label">{{ labels.sections }}:</span> {{ section_labels | join(' · ') }}</div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">{{ labels.prepared_by }}</span>
+      <span class="cover-meta-value">{{ created_by_name }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">{{ labels.generated_at }}</span>
+      <span class="cover-meta-value">{{ generated_at_str }}</span>
+    </div>
+    <div class="cover-meta-row">
+      <span class="cover-meta-label">{{ labels.sections }}</span>
+      <span class="cover-meta-value">
+        {% set ns = namespace(idx=0) %}
+        {% for s in sections %}{% if s in section_label_map %}{% set ns.idx = ns.idx + 1 %}<span class="toc-item"><span class="toc-num">{{ ns.idx }}.</span> {{ section_label_map[s] }}</span>{% if not loop.last %} · {% endif %}{% endif %}{% endfor %}
+      </span>
+    </div>
   </div>
+</section>
+
+<!-- ============================== EXECUTIVE SUMMARY ============================== -->
+<section class="report-section section-exec">
+  <h2 class="section-title">{{ labels.executive_summary }}</h2>
+  <p class="section-desc">{{ labels.executive_summary_desc }}</p>
+
+  {% if exec_summary.headline_kpis %}
+  <div class="kpi-grid">
+    {% for k in exec_summary.headline_kpis %}
+    <div class="kpi-card kpi-card-headline">
+      <div class="kpi-label">{{ k.label }}</div>
+      <div class="kpi-value">{{ k.value }}</div>
+      {% if k.change is not none %}
+      <div class="kpi-change kpi-change-{{ k.change_dir }}">{{ k.change }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if exec_summary.narrative %}
+  <p class="exec-narrative">{{ exec_summary.narrative }}</p>
+  {% endif %}
+
+  <div class="exec-twocol">
+    <div class="exec-col exec-wins">
+      <div class="exec-col-title">
+        <span class="exec-col-bullet exec-col-bullet-wins"></span>
+        {{ labels.wins_title }}
+      </div>
+      {% if exec_summary.wins %}
+      <ul class="exec-list">
+        {% for w in exec_summary.wins %}
+        <li>{{ w }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="exec-empty">{{ labels.no_wins }}</p>
+      {% endif %}
+    </div>
+    <div class="exec-col exec-concerns">
+      <div class="exec-col-title">
+        <span class="exec-col-bullet exec-col-bullet-concerns"></span>
+        {{ labels.concerns_title }}
+      </div>
+      {% if exec_summary.concerns %}
+      <ul class="exec-list">
+        {% for c in exec_summary.concerns %}
+        <li>{{ c }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="exec-empty">{{ labels.no_concerns }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="exec-footnote">{{ labels.comparison_note }}</p>
 </section>
 
 {% if "overview" in sections %}
 <section class="report-section section-overview">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.overview }}</h2>
   <p class="section-desc">{{ labels.overview_desc }}</p>
 
@@ -71,9 +130,15 @@
 
 {% if "ga4" in sections %}
 <section class="report-section section-ga4">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.ga4 }}</h2>
   <p class="section-desc">{{ labels.ga4_desc }}</p>
+
+  {% if channel_bar_svg %}
+  <div class="chart-block">
+    <div class="chart-title">{{ labels.revenue_by_channel }}</div>
+    {{ channel_bar_svg | safe }}
+  </div>
+  {% endif %}
 
   <table class="data-table">
     <thead>
@@ -105,7 +170,6 @@
 
 {% if "ads" in sections %}
 <section class="report-section section-ads">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.ads }}</h2>
   <p class="section-desc">{{ labels.ads_desc }}</p>
 
@@ -125,7 +189,6 @@
 
 {% if "ecommerce" in sections %}
 <section class="report-section section-ecom">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.ecommerce }}</h2>
   <p class="section-desc">{{ labels.ecommerce_desc }}</p>
 
@@ -140,42 +203,34 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if new_returning_svg %}
+  <div class="chart-block chart-block-tight">
+    <div class="chart-title">{{ labels.new_vs_returning }}</div>
+    <p class="chart-sub">{{ labels.new_vs_returning_desc }}</p>
+    {{ new_returning_svg | safe }}
+  </div>
+  {% endif %}
 </section>
 {% endif %}
 
 {% if "funnel" in sections %}
 <section class="report-section section-funnel">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.funnel }}</h2>
   <p class="section-desc">{{ labels.funnel_desc }}</p>
 
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="t-left">{{ labels.step }}</th>
-        <th class="t-right">{{ labels.count }}</th>
-        <th class="t-right">{{ labels.drop }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in funnel_steps %}
-      <tr>
-        <td class="t-left">{{ s.label }}</td>
-        <td class="t-right">{{ s.count }}</td>
-        <td class="t-right">{{ s.drop }}</td>
-      </tr>
-      {% endfor %}
-      {% if not funnel_steps %}
-      <tr><td colspan="3" class="t-center muted">{{ labels.no_data }}</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
+  {% if funnel_chart_svg %}
+  <div class="chart-block">
+    {{ funnel_chart_svg | safe }}
+  </div>
+  {% else %}
+  <p class="muted">{{ labels.no_data }}</p>
+  {% endif %}
 </section>
 {% endif %}
 
 {% if "top" in sections %}
 <section class="report-section section-top">
-  <div class="section-rule"></div>
   <h2 class="section-title">{{ labels.top }}</h2>
   <p class="section-desc">{{ labels.top_desc }}</p>
 

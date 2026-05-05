@@ -1,4 +1,5 @@
 """User management, audit log, channel mapping, segment, saved view şemaları."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -7,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # --- Role / Permission ---
+
 
 class PermissionItem(BaseModel):
     code: str
@@ -61,6 +63,7 @@ class RoleUpdate(BaseModel):
 
 # --- User management ---
 
+
 class RoleSummaryAdmin(BaseModel):
     id: int
     name: str
@@ -106,6 +109,7 @@ class UserCreateResponse(UserListItem):
     Geçici şifre artık üretilmiyor — kullanıcı maildeki linkle kendi
     şifresini belirler.
     """
+
     invitation_sent: bool = True
 
 
@@ -114,12 +118,14 @@ class AdminPasswordResetResponse(BaseModel):
 
     Reset linki kullanıcının emailine gönderilir; ekrana şifre düşmez.
     """
+
     user_id: int
     email: str
     reset_email_sent: bool = True
 
 
 # --- Audit log ---
+
 
 class AuditLogItem(BaseModel):
     id: int
@@ -134,6 +140,7 @@ class AuditLogItem(BaseModel):
 
 
 # --- Channel mapping ---
+
 
 class ChannelMappingItem(BaseModel):
     id: int
@@ -161,6 +168,7 @@ class ChannelMappingUpdate(BaseModel):
 
 
 # --- Segment ---
+
 
 class SegmentItem(BaseModel):
     id: int
@@ -197,6 +205,7 @@ class SegmentPreviewResponse(BaseModel):
 
 # --- Saved view ---
 
+
 class SavedViewItem(BaseModel):
     id: int
     page: str
@@ -226,6 +235,7 @@ class SavedViewUpdate(BaseModel):
 
 
 # --- RFM ---
+
 
 class RFMRow(BaseModel):
     customer_id: str

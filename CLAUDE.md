@@ -91,7 +91,7 @@ Bu kurallar her katmanda, her dosyada, her PR'da geçerlidir. **İstisna yok.**
 |---|---|---|
 | 1 | `docs/`'taki rakamları, formülleri veya isimleri kodda paralel olarak tanımlamak | Tek doğru kaynak `docs/`. Sapmalar hata üretir. |
 | 2 | KPI formülünü `backend/app/services/kpi_service.py` dışında tanımlamak | Frontend KPI hesaplayamaz, sadece gösterir. |
-| 3 | 37 (kategori 1+2+3+4) izin string'ini herhangi bir yerde plain string olarak yazmak | İzinler tek noktada (`backend/app/core/permissions.py`) enum olarak tanımlı. |
+| 3 | 43 (kategori 1+2+3+4) izin string'ini herhangi bir yerde plain string olarak yazmak | İzinler tek noktada (`backend/app/core/permissions.py`) enum olarak tanımlı. |
 | 4 | Migration'ı elle yazmak veya elle SQL ile DB değiştirmek | Sadece `alembic revision --autogenerate` + review + `alembic upgrade head`. |
 | 5 | `.env` dosyasını commit etmek | `.gitignore`'da. Yeni env değişkeni eklendiğinde `.env.example` da güncellenir. |
 | 6 | Şifre, JWT secret, refresh token, SMTP key, kişisel veri log'a yazmak | KVKK ihlali + güvenlik riski. |

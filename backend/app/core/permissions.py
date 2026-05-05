@@ -2,7 +2,7 @@ from enum import StrEnum
 
 
 class Permission(StrEnum):
-    """40 granüler izin — `docs/overview/05-rbac-security.md` §5.5.4 referans.
+    """43 granüler izin — `docs/overview/05-rbac-security.md` §5.5.4 referans.
 
     DB'deki `permissions` tablosu ile birebir uyumlu. `app/seed.py` her boot'ta
     enum ile DB tablosunu senkronize eder (eksik izin eklenir, fazla izin uyarılır).
@@ -24,7 +24,7 @@ class Permission(StrEnum):
     COHORT_VIEW = "cohort.view"
     PRODUCTS_VIEW = "products.view"
 
-    # --- Kategori 2: Veri İşlemleri (17 izin) ---
+    # --- Kategori 2: Veri İşlemleri (20 izin) ---
     IMPORTS_VIEW = "imports.view"
     IMPORTS_CREATE = "imports.create"
     IMPORTS_DELETE = "imports.delete"
@@ -68,33 +68,72 @@ class Permission(StrEnum):
 # Kategori bazlı meta — seed ve UI grupları için
 PERMISSION_CATEGORIES: dict[Permission, str] = {
     # view
-    **{p: "view" for p in [
-        Permission.DASHBOARD_VIEW, Permission.TRAFFIC_VIEW, Permission.META_ADS_VIEW,
-        Permission.GOOGLE_ADS_VIEW, Permission.ECOMMERCE_VIEW, Permission.CAMPAIGNS_VIEW,
-        Permission.FUNNEL_VIEW, Permission.COHORT_VIEW, Permission.PRODUCTS_VIEW,
-    ]},
+    **{
+        p: "view"
+        for p in [
+            Permission.DASHBOARD_VIEW,
+            Permission.TRAFFIC_VIEW,
+            Permission.META_ADS_VIEW,
+            Permission.GOOGLE_ADS_VIEW,
+            Permission.ECOMMERCE_VIEW,
+            Permission.CAMPAIGNS_VIEW,
+            Permission.FUNNEL_VIEW,
+            Permission.COHORT_VIEW,
+            Permission.PRODUCTS_VIEW,
+        ]
+    },
     # data
-    **{p: "data" for p in [
-        Permission.IMPORTS_VIEW, Permission.IMPORTS_CREATE, Permission.IMPORTS_DELETE,
-        Permission.MAPPINGS_VIEW, Permission.MAPPINGS_CREATE, Permission.MAPPINGS_UPDATE,
-        Permission.MAPPINGS_DELETE, Permission.SEGMENTS_VIEW, Permission.SEGMENTS_CREATE,
-        Permission.SEGMENTS_UPDATE, Permission.SEGMENTS_DELETE, Permission.VIEWS_VIEW,
-        Permission.VIEWS_CREATE, Permission.VIEWS_UPDATE, Permission.VIEWS_DELETE,
-        Permission.EXPORT_CSV, Permission.EXPORT_REPORT,
-        Permission.REPORTS_VIEW, Permission.REPORTS_CREATE, Permission.REPORTS_DELETE,
-    ]},
+    **{
+        p: "data"
+        for p in [
+            Permission.IMPORTS_VIEW,
+            Permission.IMPORTS_CREATE,
+            Permission.IMPORTS_DELETE,
+            Permission.MAPPINGS_VIEW,
+            Permission.MAPPINGS_CREATE,
+            Permission.MAPPINGS_UPDATE,
+            Permission.MAPPINGS_DELETE,
+            Permission.SEGMENTS_VIEW,
+            Permission.SEGMENTS_CREATE,
+            Permission.SEGMENTS_UPDATE,
+            Permission.SEGMENTS_DELETE,
+            Permission.VIEWS_VIEW,
+            Permission.VIEWS_CREATE,
+            Permission.VIEWS_UPDATE,
+            Permission.VIEWS_DELETE,
+            Permission.EXPORT_CSV,
+            Permission.EXPORT_REPORT,
+            Permission.REPORTS_VIEW,
+            Permission.REPORTS_CREATE,
+            Permission.REPORTS_DELETE,
+        ]
+    },
     # admin
-    **{p: "admin" for p in [
-        Permission.USERS_VIEW, Permission.USERS_CREATE, Permission.USERS_UPDATE,
-        Permission.USERS_DELETE, Permission.USERS_RESET_PASSWORD,
-        Permission.ROLES_VIEW, Permission.ROLES_CREATE, Permission.ROLES_UPDATE,
-        Permission.ROLES_DELETE,
-    ]},
+    **{
+        p: "admin"
+        for p in [
+            Permission.USERS_VIEW,
+            Permission.USERS_CREATE,
+            Permission.USERS_UPDATE,
+            Permission.USERS_DELETE,
+            Permission.USERS_RESET_PASSWORD,
+            Permission.ROLES_VIEW,
+            Permission.ROLES_CREATE,
+            Permission.ROLES_UPDATE,
+            Permission.ROLES_DELETE,
+        ]
+    },
     # system
-    **{p: "system" for p in [
-        Permission.LOGS_VIEW_API, Permission.LOGS_VIEW_AUDIT, Permission.LOGS_VIEW_IMPORTS,
-        Permission.SETTINGS_VIEW, Permission.SETTINGS_UPDATE,
-    ]},
+    **{
+        p: "system"
+        for p in [
+            Permission.LOGS_VIEW_API,
+            Permission.LOGS_VIEW_AUDIT,
+            Permission.LOGS_VIEW_IMPORTS,
+            Permission.SETTINGS_VIEW,
+            Permission.SETTINGS_UPDATE,
+        ]
+    },
 }
 
 

@@ -3,6 +3,7 @@
 Repository layer'da iş kuralı yoktur (backend/CLAUDE.md §3). Sadece
 SQLAlchemy sorguları + temel mutasyonlar.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

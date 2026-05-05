@@ -4,6 +4,7 @@ Tüm başarılı response'lar `{success: true, data: ...}` formatında döner
 (`/CLAUDE.md` §6.1). Hatalı response'lar `SporthinkException.to_response()`
 tarafından üretilir.
 """
+
 from __future__ import annotations
 
 from typing import Generic, Literal, TypeVar

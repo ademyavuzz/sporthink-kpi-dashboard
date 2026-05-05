@@ -11,6 +11,7 @@ KPI sorguları **bu tablolar üzerinden** yapılır, raw `ga4_traffic`/`meta_ads
 Aggregation rebuild import sonrası `tasks/normalize_tasks.py::rebuild_aggregations`
 ile tetiklenir.
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type
