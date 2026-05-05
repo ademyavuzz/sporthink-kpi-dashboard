@@ -112,12 +112,13 @@ function ActionBadge({ action }: { action: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
+        "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
         TONE_BADGE[tone],
       )}
+      title={action}
     >
-      <span className={cn("size-1.5 rounded-full", TONE_DOT[tone])} />
-      <span className="font-mono">{action}</span>
+      <span className={cn("size-1.5 shrink-0 rounded-full", TONE_DOT[tone])} />
+      <span className="min-w-0 truncate font-mono">{action}</span>
     </span>
   );
 }
@@ -293,7 +294,7 @@ export default function AuditLogPage() {
               <Table className="table-fixed">
                 <colgroup>
                   <col className="w-[140px]" />
-                  <col className="w-[200px]" />
+                  <col className="w-[260px]" />
                   <col />
                   <col className="w-[120px]" />
                   <col className="w-[90px]" />
@@ -354,7 +355,7 @@ export default function AuditLogPage() {
                             : ""}
                         </div>
                       </TableCell>
-                      <TableCell className="px-3 py-4">
+                      <TableCell className="overflow-hidden px-3 py-4">
                         <ActionBadge action={row.action} />
                       </TableCell>
                       <TableCell className="truncate px-3 py-4 text-xs">
