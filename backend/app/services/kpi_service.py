@@ -343,64 +343,91 @@ async def kpi_conversion_rate(
 _AD_PLATFORMS = [KPIPlatform.META, KPIPlatform.GOOGLE]
 
 
+def _ads(p: list[KPIPlatform] | None) -> list[KPIPlatform]:
+    """Default ad platforms = Meta + Google. None → ikisi birden."""
+    return list(p) if p is not None else _AD_PLATFORMS
+
+
 async def kpi_ad_spend(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Toplam Harcama (§9.4.1)."""
+    plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "spend", date_from=date_from, date_to=date_to, platforms=_AD_PLATFORMS,
+        db, "spend", date_from=date_from, date_to=date_to, platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
         db, "spend", date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     return _build_result("ad_spend", _quantize(cur), _quantize(p))
 
 
 async def kpi_impressions(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Gösterim (§9.4.2)."""
+    plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "impressions", date_from=date_from, date_to=date_to,
-        platforms=_AD_PLATFORMS,
+        db, "impressions", date_from=date_from, date_to=date_to, platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
         db, "impressions", date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     return _build_result("impressions", cur, p)
 
 
 async def kpi_clicks(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Tıklama (§9.4.3)."""
+    plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "clicks", date_from=date_from, date_to=date_to, platforms=_AD_PLATFORMS,
+        db, "clicks", date_from=date_from, date_to=date_to, platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
         db, "clicks", date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     return _build_result("clicks", cur, p)
 
 
 async def kpi_ctr(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """CTR — `clicks/impressions × 100` (§9.4.4)."""
+    plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
         db, ["clicks", "impressions"], date_from=date_from, date_to=date_to,
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     cur = _safe_div(m["clicks"], m["impressions"])
     cur_pct = _quantize(cur * 100, "0.0001") if cur is not None else None
 
     pm = await agg_repo.sum_metrics_daily(
         db, ["clicks", "impressions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
     )
     p = _safe_div(pm["clicks"], pm["impressions"])
     p_pct = _quantize(p * 100, "0.0001") if p is not None else None
@@ -408,36 +435,46 @@ async def kpi_ctr(
 
 
 async def kpi_cpc(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """CPC — `spend/clicks` (§9.4.5)."""
+    plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
-        db, ["spend", "clicks"], date_from=date_from, date_to=date_to,
-        platforms=_AD_PLATFORMS,
+        db, ["spend", "clicks"], date_from=date_from, date_to=date_to, platforms=plats,
     )
     cur = _quantize(_safe_div(m["spend"], m["clicks"]), "0.0001")
     pm = await agg_repo.sum_metrics_daily(
         db, ["spend", "clicks"], date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     p = _quantize(_safe_div(pm["spend"], pm["clicks"]), "0.0001")
     return _build_result("cpc", cur, p)
 
 
 async def kpi_cpm(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """CPM — `spend/impressions × 1000` (§9.4.6)."""
+    plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
         db, ["spend", "impressions"], date_from=date_from, date_to=date_to,
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     cur = _safe_div(m["spend"], m["impressions"])
     cur_v = _quantize(cur * 1000, "0.0001") if cur is not None else None
     pm = await agg_repo.sum_metrics_daily(
         db, ["spend", "impressions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
     )
     p = _safe_div(pm["spend"], pm["impressions"])
     p_v = _quantize(p * 1000, "0.0001") if p is not None else None
@@ -445,51 +482,66 @@ async def kpi_cpm(
 
 
 async def kpi_ad_conversions(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Reklam Dönüşümü (§9.4.7)."""
+    plats = _ads(platforms)
     cur = await agg_repo.sum_metric_daily(
-        db, "ad_conversions", date_from=date_from, date_to=date_to,
-        platforms=_AD_PLATFORMS,
+        db, "ad_conversions", date_from=date_from, date_to=date_to, platforms=plats,
     )
     p = await agg_repo.sum_metric_daily(
         db, "ad_conversions", date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        platforms=plats,
     )
     return _build_result("ad_conversions", _quantize(cur), _quantize(p))
 
 
 async def kpi_cost_per_conversion(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Dönüşüm Başına Maliyet — `spend/ad_conversions` (§9.4.8). Trend ↓ iyi."""
+    plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
         db, ["spend", "ad_conversions"],
-        date_from=date_from, date_to=date_to, platforms=_AD_PLATFORMS,
+        date_from=date_from, date_to=date_to, platforms=plats,
     )
     cur = _quantize(_safe_div(m["spend"], m["ad_conversions"]))
     pm = await agg_repo.sum_metrics_daily(
         db, ["spend", "ad_conversions"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
     )
     p = _quantize(_safe_div(pm["spend"], pm["ad_conversions"]))
     return _build_result("cost_per_conversion", cur, p)
 
 
 async def kpi_roas(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    platforms: list[KPIPlatform] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """ROAS — `ad_revenue/spend` (§9.4.9)."""
+    plats = _ads(platforms)
     m = await agg_repo.sum_metrics_daily(
         db, ["ad_revenue", "spend"],
-        date_from=date_from, date_to=date_to, platforms=_AD_PLATFORMS,
+        date_from=date_from, date_to=date_to, platforms=plats,
     )
     cur = _quantize(_safe_div(m["ad_revenue"], m["spend"]), "0.0001")
     pm = await agg_repo.sum_metrics_daily(
         db, ["ad_revenue", "spend"],
-        date_from=prev["prev_from"], date_to=prev["prev_to"],
-        platforms=_AD_PLATFORMS,
+        date_from=prev["prev_from"], date_to=prev["prev_to"], platforms=plats,
     )
     p = _quantize(_safe_div(pm["ad_revenue"], pm["spend"]), "0.0001")
     return _build_result("roas", cur, p)
