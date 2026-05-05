@@ -24,6 +24,8 @@ export function useDashboardRange(
 
 interface DashboardHeaderProps {
   title: string;
+  /** Opsiyonel açıklama. Verilmezse seçili tarih aralığı muted text olarak gösterilir. */
+  subtitle?: string;
   range: DateRangeValue;
   onChangeRange: (next: DateRangeValue) => void;
   /** Sağ taraftaki ek aksiyonlar (örn: Export butonu). */
@@ -32,20 +34,28 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({
   title,
+  subtitle,
   range,
   onChangeRange,
   actions,
 }: DashboardHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 flex-wrap">
-      <div>
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {dayjs(range.date_from).format("DD.MM.YYYY")} –{" "}
-          {dayjs(range.date_to).format("DD.MM.YYYY")}
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-title-sm font-semibold text-foreground">{title}</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          {subtitle ? (
+            subtitle
+          ) : (
+            <span className="tabular-nums">
+              {dayjs(range.date_from).format("DD.MM.YYYY")}
+              <span className="mx-1 text-text-dim">–</span>
+              {dayjs(range.date_to).format("DD.MM.YYYY")}
+            </span>
+          )}
         </p>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <PresetButton
           onClick={() =>
             onChangeRange({ preset: "last_30", ...computePresetRange("last_30") })
@@ -80,10 +90,23 @@ function PresetButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent transition-colors"
+      className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-semibold text-text-muted hover:bg-muted hover:text-foreground transition-colors"
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Sayfa kök sarmalayıcısı — tüm dashboard sayfalarında aynı genişlik/padding.
+ * `<PageShell>...</PageShell>`
+ */
+export function PageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="container mx-auto max-w-[1400px] space-y-5 px-6 py-6">
+      {children}
+    </div>
   );
 }
