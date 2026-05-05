@@ -1,14 +1,13 @@
 import { Calendar as CalendarIcon } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { dayjs } from "@/lib/dayjs";
+import { cn } from "@/lib/utils";
 
 export type DatePresetId =
   | "today"
@@ -120,12 +119,13 @@ interface DateRangePickerProps {
 }
 
 /**
- * Sticky-top tarih seçici — şimdilik sadece preset dropdown.
- * Sprint 9'da custom calendar (react-day-picker) eklenecek.
+ * Sticky-top tarih seçici — preset dropdown'ı + tarih aralığı tek
+ * trigger içinde. Sprint 9'da custom calendar (react-day-picker) eklenecek.
+ *
+ * Trigger görünümü: `[📅  Son 30 Gün] · 01.03.2025 – 31.03.2025` — preset
+ * label ve seçili tarih aralığı yan yana, dağınık kontrol setine son.
  */
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
-  const { t: _t } = useTranslation("common");
-
   const handlePresetChange = (preset: DatePresetId) => {
     if (preset === "custom") {
       onChange({ ...value, preset });
@@ -136,25 +136,36 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   };
 
   const display = `${dayjs(value.date_from).format("DD.MM.YYYY")} – ${dayjs(value.date_to).format("DD.MM.YYYY")}`;
+  const presetLabel = PRESET_LABELS[value.preset];
 
   return (
-    <div className="flex items-center gap-2">
-      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-      <Select value={value.preset} onValueChange={(v) => handlePresetChange(v as DatePresetId)}>
-        <SelectTrigger className="w-44">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(PRESET_LABELS) as DatePresetId[]).map((p) => (
-            <SelectItem key={p} value={p}>
-              {PRESET_LABELS[p]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <span className="text-xs text-muted-foreground tabular-nums hidden sm:inline">
-        {display}
-      </span>
-    </div>
+    <Select
+      value={value.preset}
+      onValueChange={(v) => handlePresetChange(v as DatePresetId)}
+    >
+      <SelectTrigger
+        className={cn(
+          "h-9 w-auto min-w-[260px] gap-2 rounded-lg border-border bg-surface px-3",
+          "[&>svg:last-child]:ml-1",
+        )}
+        aria-label={presetLabel}
+      >
+        <CalendarIcon className="size-4 shrink-0 text-text-muted" />
+        <span className="flex items-center gap-2 truncate text-left">
+          <span className="text-sm font-semibold text-foreground">
+            {presetLabel}
+          </span>
+          <span className="text-xs text-text-muted opacity-70">·</span>
+          <span className="text-xs tabular-nums text-text-muted">{display}</span>
+        </span>
+      </SelectTrigger>
+      <SelectContent align="end" className="min-w-[200px]">
+        {(Object.keys(PRESET_LABELS) as DatePresetId[]).map((p) => (
+          <SelectItem key={p} value={p}>
+            {PRESET_LABELS[p]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
