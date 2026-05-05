@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import {
   DateRangePicker,
-  computePresetRange,
   type DateRangeValue,
 } from "@/components/feature/DateRangePicker";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
@@ -36,14 +35,15 @@ import { PageShell } from "./_shared";
 /**
  * Overview Page — 9 KPI + revenue trend + kanal donut + funnel + top products.
  *
- * Default tarih: dummy data Ekim 2024 - Mart 2025 (canlıda Last 30 olur,
- * filter store entegre edildiğinde Sprint 9'da güncellenir).
+ * Default tarih: dummy data'nın son ayı (Mart 2025). Önceki dönemle karşılaştırma
+ * doluyor olduğu için her KPI kartında trend pill'i ekrana gelir; production'da
+ * `computePresetRange("last_30")` ile bugünden 30 gün geriye çekilir.
  */
 export default function OverviewPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useState<DateRangeValue>(() => ({
     preset: "custom",
-    date_from: "2024-10-01",
+    date_from: "2025-03-01",
     date_to: "2025-03-31",
   }));
 
@@ -64,47 +64,26 @@ export default function OverviewPage() {
     <PageShell>
       <PageHeader
         title={t("overview.title")}
-        subtitle={`${dayjs(range.date_from).format("DD.MM.YYYY")} – ${dayjs(range.date_to).format("DD.MM.YYYY")} · ${t("overview.subtitle_vs_prev")}`}
-        actions={
-          <>
-            <PresetButton
-              onClick={() =>
-                setRange({ preset: "last_30", ...computePresetRange("last_30") })
-              }
-            >
-              {t("overview.preset_last_30")}
-            </PresetButton>
-            <PresetButton
-              onClick={() =>
-                setRange({
-                  preset: "custom",
-                  date_from: "2024-10-01",
-                  date_to: "2025-03-31",
-                })
-              }
-            >
-              {t("overview.preset_all")}
-            </PresetButton>
-            <DateRangePicker value={range} onChange={setRange} />
-          </>
-        }
+        subtitle={t("overview.subtitle_vs_prev")}
+        actions={<DateRangePicker value={range} onChange={setRange} />}
       />
 
-      {/* KPI grid: 2 / 3 / 5 sütun */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* KPI grid: simetrik 3 sütun (2 / 3 sütun küçük ekranlarda); 9 KPI = 3+3+3.
+       * Sıralama: Para (3) → Verimlilik (3) → Trafik+Reklam (3). */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {isLoading ? (
           Array.from({ length: 9 }).map((_, i) => <KPICardSkeleton key={i} />)
         ) : data ? (
           <>
-            <KPICard kpi={data.summary.revenue} compact />
-            <KPICard kpi={data.summary.orders} compact />
-            <KPICard kpi={data.summary.aov} compact />
-            <KPICard kpi={data.summary.sessions} compact />
-            <KPICard kpi={data.summary.users} compact />
-            <KPICard kpi={data.summary.conversion_rate} compact />
-            <KPICard kpi={data.summary.bounce_rate} compact />
-            <KPICard kpi={data.summary.ad_spend} compact />
-            <KPICard kpi={data.summary.roas} compact />
+            <KPICard kpi={data.summary.revenue} />
+            <KPICard kpi={data.summary.orders} />
+            <KPICard kpi={data.summary.aov} />
+            <KPICard kpi={data.summary.conversion_rate} />
+            <KPICard kpi={data.summary.bounce_rate} />
+            <KPICard kpi={data.summary.roas} />
+            <KPICard kpi={data.summary.sessions} />
+            <KPICard kpi={data.summary.users} />
+            <KPICard kpi={data.summary.ad_spend} />
           </>
         ) : null}
       </div>
@@ -287,24 +266,6 @@ export default function OverviewPage() {
         </CardContent>
       </Card>
     </PageShell>
-  );
-}
-
-function PresetButton({
-  children,
-  onClick,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-semibold text-text-muted hover:bg-muted hover:text-foreground transition-colors"
-    >
-      {children}
-    </button>
   );
 }
 
