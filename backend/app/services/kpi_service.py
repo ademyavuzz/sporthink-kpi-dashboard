@@ -934,6 +934,7 @@ async def campaign_detail(
                 Order.campaign_name == resolved_name,
                 func.date(Order.order_date) >= date_from,
                 func.date(Order.order_date) <= date_to,
+                Order.order_status.in_(("completed", "shipped", "refunded")),
             )
         )
         row = (await db.execute(stmt)).one()
@@ -967,6 +968,7 @@ async def campaign_detail(
                     Order.campaign_name == resolved_name,
                     func.date(Order.order_date) >= date_from,
                     func.date(Order.order_date) <= date_to,
+                    Order.order_status.in_(("completed", "shipped", "refunded")),
                 )
             )
             .group_by(
@@ -1008,6 +1010,7 @@ async def campaign_detail(
                     Order.campaign_name == resolved_name,
                     func.date(Order.order_date) >= date_from,
                     func.date(Order.order_date) <= date_to,
+                    Order.order_status.in_(("completed", "shipped", "refunded")),
                 )
             )
             .group_by(func.date(Order.order_date))
@@ -1120,6 +1123,7 @@ async def new_vs_returning_revenue(
     date_to: date,
 ) -> list[CustomerTypeRevenue]:
     """§9.6.4 — `customers.first_order_date >= date_from` ise 'new'."""
+    realized = Order.order_status.in_(("completed", "shipped", "refunded"))
     new_stmt = (
         select(
             func.coalesce(func.sum(Order.net_revenue), 0).label("revenue"),
@@ -1131,6 +1135,7 @@ async def new_vs_returning_revenue(
                 func.date(Order.order_date) >= date_from,
                 func.date(Order.order_date) <= date_to,
                 Customer.first_order_date >= date_from,
+                realized,
             )
         )
     )
@@ -1145,6 +1150,7 @@ async def new_vs_returning_revenue(
                 func.date(Order.order_date) >= date_from,
                 func.date(Order.order_date) <= date_to,
                 Customer.first_order_date < date_from,
+                realized,
             )
         )
     )
@@ -1262,6 +1268,7 @@ async def top_products(
             and_(
                 func.date(Order.order_date) >= date_from,
                 func.date(Order.order_date) <= date_to,
+                Order.order_status.in_(("completed", "shipped", "refunded")),
             )
         )
         .group_by(Product.id, Product.sku, Product.product_name, Product.brand)
@@ -1407,6 +1414,7 @@ async def cohort_retention(
                 TIMESTAMPDIFF(MONTH, cu.cohort_month, DATE(o.order_date)) AS month_offset
             FROM cohort_users cu
             JOIN orders o ON cu.customer_pk_id = o.customer_pk_id
+                AND o.order_status IN ('completed', 'shipped', 'refunded')
         )
         SELECT cohort_month, month_offset, COUNT(DISTINCT customer_pk_id) AS cnt
         FROM user_orders
@@ -1454,6 +1462,7 @@ async def top_customers(
             and_(
                 func.date(Order.order_date) >= date_from,
                 func.date(Order.order_date) <= date_to,
+                Order.order_status.in_(("completed", "shipped", "refunded")),
             )
         )
         .group_by(

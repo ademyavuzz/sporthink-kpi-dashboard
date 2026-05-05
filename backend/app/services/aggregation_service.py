@@ -63,7 +63,12 @@ _GA4_DAILY_UPSERT = text(
 
 
 # Daily UPSERT — Meta Ads
-# Meta Ads tablosunda device kolonu yok (breakdowns'ta var); NULL bırak.
+#
+# Meta Ads tablosunda device kolonu yok (breakdowns'ta var). Eski sürüm
+# `NULL` bırakıyordu, ama MySQL'de UNIQUE KEY (date, channel, platform,
+# device) constraint'i NULL içeren satırları DUPE saymadığı için her
+# rebuild_aggregations çağrısı yeni satır eklerdi (ON DUPLICATE KEY
+# UPDATE devreye girmezdi). Bunu önlemek için sentinel `'all'` yazıyoruz.
 _META_DAILY_UPSERT = text(
     """
     INSERT INTO kpi_daily_aggregates
@@ -74,7 +79,7 @@ _META_DAILY_UPSERT = text(
         date_start AS date,
         'Paid Social' AS channel,
         'meta' AS platform,
-        NULL AS device,
+        'all' AS device,
         SUM(impressions),
         SUM(clicks),
         SUM(spend),
@@ -128,6 +133,15 @@ _GOOGLE_DAILY_UPSERT = text(
 
 
 # Daily UPSERT — Orders (e-ticaret)
+#
+# Yalnızca **gerçekleşmiş satışlar** sayılır:
+#   - `completed`  — sipariş başarılı, ödeme tamamlandı
+#   - `shipped`    — kargoda; iş kuralı olarak kapalı sayılır
+#   - `refunded`   — sipariş gerçekleşti, sonradan iade edildi.
+#                    `net_revenue` zaten `refund_amount`'ı düşüyor; toplam
+#                    "gerçekleşmiş net gelir" doğrusu için satır dahil.
+# `pending` (henüz onaylanmamış) ve `cancelled` (iptal edilmiş) hariç —
+# bunlar çevrilmemiş gelirdir, KPI'ı şişirir.
 _ORDERS_DAILY_UPSERT = text(
     """
     INSERT INTO kpi_daily_aggregates
@@ -147,6 +161,7 @@ _ORDERS_DAILY_UPSERT = text(
         NOW()
     FROM orders
     WHERE DATE(order_date) BETWEEN :date_from AND :date_to
+      AND order_status IN ('completed', 'shipped', 'refunded')
     GROUP BY DATE(order_date), channel, device
     ON DUPLICATE KEY UPDATE
         orders = VALUES(orders),

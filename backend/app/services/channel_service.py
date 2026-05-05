@@ -126,11 +126,13 @@ async def channel_performance_table(
     )
     rows = (await db.execute(base_stmt)).all()
 
-    # Müşteri sayıları (orders tablosundan, parallel sorgu)
+    # Müşteri sayıları (orders tablosundan, parallel sorgu).
+    # Aggregate ile aynı statü kümesi: gerçekleşmiş satışlar
+    # (completed/shipped/refunded). pending+cancelled sayılmaz.
     cust_filters = [
         Order.order_date >= date_from,
         Order.order_date <= date_to,
-        Order.order_status == "completed",
+        Order.order_status.in_(("completed", "shipped", "refunded")),
     ]
     if channels:
         cust_filters.append(Order.channel.in_(channels))
