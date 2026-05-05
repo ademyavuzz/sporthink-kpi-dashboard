@@ -42,6 +42,9 @@ class Permission(StrEnum):
     VIEWS_DELETE = "views.delete"
     EXPORT_CSV = "export.csv"
     EXPORT_REPORT = "export.report"
+    REPORTS_VIEW = "reports.view"
+    REPORTS_CREATE = "reports.create"
+    REPORTS_DELETE = "reports.delete"
 
     # --- Kategori 3: Kullanıcı ve Rol Yönetimi (9 izin) ---
     USERS_VIEW = "users.view"
@@ -78,6 +81,7 @@ PERMISSION_CATEGORIES: dict[Permission, str] = {
         Permission.SEGMENTS_UPDATE, Permission.SEGMENTS_DELETE, Permission.VIEWS_VIEW,
         Permission.VIEWS_CREATE, Permission.VIEWS_UPDATE, Permission.VIEWS_DELETE,
         Permission.EXPORT_CSV, Permission.EXPORT_REPORT,
+        Permission.REPORTS_VIEW, Permission.REPORTS_CREATE, Permission.REPORTS_DELETE,
     ]},
     # admin
     **{p: "admin" for p in [
@@ -122,6 +126,9 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.VIEWS_DELETE: "Görünüm silme",
     Permission.EXPORT_CSV: "Veriyi CSV formatında dışa aktarma",
     Permission.EXPORT_REPORT: "PDF/Excel rapor dışa aktarma",
+    Permission.REPORTS_VIEW: "Oluşturulmuş raporları görüntüleme",
+    Permission.REPORTS_CREATE: "Yeni rapor oluşturma",
+    Permission.REPORTS_DELETE: "Rapor kaydını silme",
     Permission.USERS_VIEW: "Kullanıcı listesini görme",
     Permission.USERS_CREATE: "Yeni kullanıcı oluşturma",
     Permission.USERS_UPDATE: "Kullanıcı bilgilerini düzenleme",

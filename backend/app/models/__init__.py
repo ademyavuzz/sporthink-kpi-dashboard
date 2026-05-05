@@ -51,6 +51,7 @@ from app.models.password_reset_token import PasswordResetToken, TokenPurpose
 from app.models.permission import Permission
 from app.models.product import Product, ProductGender
 from app.models.refresh_token import RefreshToken
+from app.models.report import Report, ReportSection, ReportStatus
 from app.models.role import Role
 from app.models.role_permission import RolePermission
 from app.models.saved_view import SavedView
@@ -104,6 +105,9 @@ __all__ = [
     "Product",
     "ProductGender",
     "RefreshToken",
+    "Report",
+    "ReportSection",
+    "ReportStatus",
     "Role",
     "RolePermission",
     "SavedView",

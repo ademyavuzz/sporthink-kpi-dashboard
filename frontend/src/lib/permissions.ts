@@ -38,6 +38,9 @@ export const PERMISSIONS = {
   VIEWS_DELETE: "views.delete",
   EXPORT_CSV: "export.csv",
   EXPORT_REPORT: "export.report",
+  REPORTS_VIEW: "reports.view",
+  REPORTS_CREATE: "reports.create",
+  REPORTS_DELETE: "reports.delete",
 
   // Kategori 3: Kullanıcı ve Rol Yönetimi (9)
   USERS_VIEW: "users.view",

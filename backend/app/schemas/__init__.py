@@ -56,6 +56,14 @@ from app.schemas.imports import (
     ImportRunResult,
     ImportSampleError,
 )
+from app.schemas.reports import (
+    ReportCreateRequest,
+    ReportDetailResponse,
+    ReportListItem,
+    ReportSectionKey,
+    ReportSectionMeta,
+    ReportStatusKey,
+)
 from app.schemas.kpi import (
     CampaignMetric,
     ChannelMetric,
@@ -120,6 +128,12 @@ __all__ = [
     "ProductsResponse",
     "ResetPasswordRequest",
     "ResetPasswordResponse",
+    "ReportCreateRequest",
+    "ReportDetailResponse",
+    "ReportListItem",
+    "ReportSectionKey",
+    "ReportSectionMeta",
+    "ReportStatusKey",
     "RoleSummary",
     "SuccessEnvelope",
     "TokenResponse",

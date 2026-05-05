@@ -22,6 +22,7 @@ const CustomersPage = lazy(() => import("@/pages/dashboard/CustomersPage"));
 const ChannelAnalysisPage = lazy(() => import("@/pages/dashboard/ChannelAnalysisPage"));
 const ImportPage = lazy(() => import("@/pages/import/ImportPage"));
 const ImportHistoryPage = lazy(() => import("@/pages/import/ImportHistoryPage"));
+const ReportsPage = lazy(() => import("@/pages/reports/ReportsPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ChannelMappingPage = lazy(() => import("@/pages/admin/ChannelMappingPage"));
@@ -168,6 +169,14 @@ export default function App() {
           }
         />
         <Route
+          path="/reports"
+          element={
+            <ProtectedRoute permission="reports.view">
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/users"
           element={
             <ProtectedRoute permission="users.view">
@@ -235,6 +244,7 @@ export default function App() {
               "customers",
               "channel_analysis",
               "import",
+              "reports",
               "segments",
               "user_management",
               "audit_logs",

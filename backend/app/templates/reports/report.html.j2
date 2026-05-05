@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ report_title }}</title>
+  <style>{{ css | safe }}</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="brand">
+    <span class="brand-pin"></span>
+    <span class="brand-name">SPORTHINK</span>
+  </div>
+  <div class="header-meta">
+    <div class="header-title">{{ report_title }}</div>
+    <div class="header-range">{{ date_from_str }} — {{ date_to_str }}</div>
+  </div>
+</header>
+
+<footer class="page-footer">
+  <span class="footer-brand">Sporthink</span>
+  <span class="footer-sep">·</span>
+  <span>{{ footer_label }}</span>
+  <span class="footer-sep">·</span>
+  <span>{{ generated_at_str }}</span>
+</footer>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div class="cover-brand">
+    <span class="brand-pin"></span>
+    <span class="brand-name">SPORTHINK</span>
+  </div>
+  <h1 class="cover-title">{{ report_title }}</h1>
+  <p class="cover-subtitle">{{ subtitle }}</p>
+  <div class="cover-pill">{{ date_from_str }} — {{ date_to_str }}</div>
+  <div class="cover-meta">
+    <div><span class="cover-meta-label">{{ labels.prepared_by }}:</span> {{ created_by_name }}</div>
+    <div><span class="cover-meta-label">{{ labels.generated_at }}:</span> {{ generated_at_str }}</div>
+    <div><span class="cover-meta-label">{{ labels.sections }}:</span> {{ section_labels | join(' · ') }}</div>
+  </div>
+</section>
+
+{% if "overview" in sections %}
+<section class="report-section section-overview">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.overview }}</h2>
+  <p class="section-desc">{{ labels.overview_desc }}</p>
+
+  <div class="kpi-grid">
+    {% for k in overview_kpis %}
+    <div class="kpi-card">
+      <div class="kpi-label">{{ k.label }}</div>
+      <div class="kpi-value">{{ k.value }}</div>
+      {% if k.change is not none %}
+      <div class="kpi-change kpi-change-{{ k.change_dir }}">{{ k.change }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if overview_chart_svg %}
+  <div class="chart-block">
+    <div class="chart-title">{{ labels.daily_revenue_trend }}</div>
+    {{ overview_chart_svg | safe }}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if "ga4" in sections %}
+<section class="report-section section-ga4">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.ga4 }}</h2>
+  <p class="section-desc">{{ labels.ga4_desc }}</p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.channel }}</th>
+        <th class="t-right">{{ labels.sessions }}</th>
+        <th class="t-right">{{ labels.orders }}</th>
+        <th class="t-right">{{ labels.revenue }}</th>
+        <th class="t-right">{{ labels.conv_rate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in channel_rows %}
+      <tr>
+        <td class="t-left">{{ r.channel }}</td>
+        <td class="t-right">{{ r.sessions }}</td>
+        <td class="t-right">{{ r.orders }}</td>
+        <td class="t-right">{{ r.revenue }}</td>
+        <td class="t-right">{{ r.conv_rate }}</td>
+      </tr>
+      {% endfor %}
+      {% if not channel_rows %}
+      <tr><td colspan="5" class="t-center muted">{{ labels.no_data }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if "ads" in sections %}
+<section class="report-section section-ads">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.ads }}</h2>
+  <p class="section-desc">{{ labels.ads_desc }}</p>
+
+  <div class="kpi-grid">
+    {% for k in ads_kpis %}
+    <div class="kpi-card">
+      <div class="kpi-label">{{ k.label }}</div>
+      <div class="kpi-value">{{ k.value }}</div>
+      {% if k.change is not none %}
+      <div class="kpi-change kpi-change-{{ k.change_dir }}">{{ k.change }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if "ecommerce" in sections %}
+<section class="report-section section-ecom">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.ecommerce }}</h2>
+  <p class="section-desc">{{ labels.ecommerce_desc }}</p>
+
+  <div class="kpi-grid kpi-grid-3">
+    {% for k in ecom_kpis %}
+    <div class="kpi-card">
+      <div class="kpi-label">{{ k.label }}</div>
+      <div class="kpi-value">{{ k.value }}</div>
+      {% if k.change is not none %}
+      <div class="kpi-change kpi-change-{{ k.change_dir }}">{{ k.change }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if "funnel" in sections %}
+<section class="report-section section-funnel">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.funnel }}</h2>
+  <p class="section-desc">{{ labels.funnel_desc }}</p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.step }}</th>
+        <th class="t-right">{{ labels.count }}</th>
+        <th class="t-right">{{ labels.drop }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in funnel_steps %}
+      <tr>
+        <td class="t-left">{{ s.label }}</td>
+        <td class="t-right">{{ s.count }}</td>
+        <td class="t-right">{{ s.drop }}</td>
+      </tr>
+      {% endfor %}
+      {% if not funnel_steps %}
+      <tr><td colspan="3" class="t-center muted">{{ labels.no_data }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if "top" in sections %}
+<section class="report-section section-top">
+  <div class="section-rule"></div>
+  <h2 class="section-title">{{ labels.top }}</h2>
+  <p class="section-desc">{{ labels.top_desc }}</p>
+
+  <h3 class="subsection-title">{{ labels.top_products }}</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.sku }}</th>
+        <th class="t-left">{{ labels.product }}</th>
+        <th class="t-right">{{ labels.units }}</th>
+        <th class="t-right">{{ labels.revenue }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in top_products %}
+      <tr>
+        <td class="t-left">{{ p.sku }}</td>
+        <td class="t-left">{{ p.name }}</td>
+        <td class="t-right">{{ p.units }}</td>
+        <td class="t-right">{{ p.revenue }}</td>
+      </tr>
+      {% endfor %}
+      {% if not top_products %}
+      <tr><td colspan="4" class="t-center muted">{{ labels.no_data }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <h3 class="subsection-title">{{ labels.top_customers }}</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.customer }}</th>
+        <th class="t-left">{{ labels.city }}</th>
+        <th class="t-right">{{ labels.orders }}</th>
+        <th class="t-right">{{ labels.revenue }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in top_customers %}
+      <tr>
+        <td class="t-left">{{ c.name }}</td>
+        <td class="t-left">{{ c.city }}</td>
+        <td class="t-right">{{ c.orders }}</td>
+        <td class="t-right">{{ c.revenue }}</td>
+      </tr>
+      {% endfor %}
+      {% if not top_customers %}
+      <tr><td colspan="4" class="t-center muted">{{ labels.no_data }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+</body>
+</html>
