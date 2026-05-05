@@ -5,7 +5,7 @@ import { dashboardApi } from "@/lib/api/dashboard";
 import { formatCount, formatPercent, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { DashboardHeader, useDashboardRange } from "./_shared";
+import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 const STEP_COLORS = [
   "bg-blue-500/80",
@@ -37,7 +37,7 @@ export default function FunnelPage() {
       : null;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader
         title="Funnel Analizi"
         range={range}
@@ -71,7 +71,7 @@ export default function FunnelPage() {
                           {formatCount(s.count)}
                         </span>
                         {s.drop_from_previous_pct !== null && (
-                          <span className="text-rose-600 text-xs tabular-nums">
+                          <span className="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-error-600 dark:text-error-500">
                             ↓ {formatPercent(s.drop_from_previous_pct, 1)}
                           </span>
                         )}
@@ -95,9 +95,11 @@ export default function FunnelPage() {
               })}
 
               {overallConversion !== null && (
-                <div className="pt-4 mt-4 border-t flex items-baseline justify-between">
-                  <span className="font-semibold">Genel Dönüşüm</span>
-                  <span className="text-xl font-bold tabular-nums">
+                <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
+                  <span className="text-sm font-semibold text-text-muted">
+                    Genel Dönüşüm
+                  </span>
+                  <span className="text-2xl font-bold tabular-nums text-foreground">
                     {overallConversion.toFixed(2)}%
                   </span>
                 </div>
@@ -112,24 +114,24 @@ export default function FunnelPage() {
           <CardTitle>Adım Detayları</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {steps.map((s, idx) => (
               <div
                 key={s.step}
-                className="p-4 rounded-lg border space-y-1"
+                className="space-y-1.5 rounded-xl border border-border bg-surface-2/40 p-4"
               >
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
                   Adım {idx + 1} — {s.label_tr}
                 </p>
-                <p className="text-2xl font-semibold tabular-nums">
+                <p className="text-2xl font-semibold tabular-nums text-foreground">
                   {formatCount(s.count)}
                 </p>
                 {idx === 0 ? (
-                  <p className="text-xs text-muted-foreground">Başlangıç</p>
+                  <p className="text-xs text-text-muted">Başlangıç</p>
                 ) : (
-                  <p className="text-xs">
+                  <p className="text-xs text-text-muted">
                     Önceki adımdan{" "}
-                    <span className="text-rose-600 font-medium">
+                    <span className="font-semibold text-error-600 dark:text-error-500">
                       −{formatPercent(toNumber(s.drop_from_previous_pct) ?? 0, 1)}
                     </span>
                   </p>
@@ -139,6 +141,6 @@ export default function FunnelPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
