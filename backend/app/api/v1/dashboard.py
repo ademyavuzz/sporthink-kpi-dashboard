@@ -235,7 +235,7 @@ async def get_meta(
     prev_from, prev_to = kpi_service.compute_comparison_period(
         date_from, date_to, comparison_mode
     )
-    kw = {"prev_from": prev_from, "prev_to": prev_to}
+    kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.META]}
 
     spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
     impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
@@ -246,8 +246,10 @@ async def get_meta(
         db, date_from=date_from, date_to=date_to, **kw
     )
     roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
+    # Frequency only applies to Meta; doesn't take platforms filter (raw meta_ads).
     freq = await kpi_service.kpi_frequency(
-        db, date_from=date_from, date_to=date_to, **kw
+        db, date_from=date_from, date_to=date_to,
+        prev_from=prev_from, prev_to=prev_to,
     )
     campaigns = await kpi_service.campaign_performance(
         db,
@@ -307,7 +309,7 @@ async def get_google(
     prev_from, prev_to = kpi_service.compute_comparison_period(
         date_from, date_to, comparison_mode
     )
-    kw = {"prev_from": prev_from, "prev_to": prev_to}
+    kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.GOOGLE]}
 
     spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
     impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
