@@ -194,7 +194,7 @@ export default function GoogleAdsPage() {
                         {formatCount(c.clicks)}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                        {c.ctr ? formatPercent(toNumber(c.ctr)! * 100, 2) : "—"}
+                        {formatPercent(c.ctr, 2)}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
                         {formatCurrency(c.cpc)}

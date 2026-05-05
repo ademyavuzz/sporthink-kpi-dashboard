@@ -23,12 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { dashboardApi } from "@/lib/api/dashboard";
-import {
-  formatCount,
-  formatCurrency,
-  formatPercent,
-  toNumber,
-} from "@/lib/format";
+import { formatCount, formatCurrency, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
@@ -203,7 +198,7 @@ export default function CampaignsPage() {
                         {formatCount(c.clicks)}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                        {c.ctr ? formatPercent(toNumber(c.ctr)! * 100, 2) : "—"}
+                        {formatPercent(c.ctr, 2)}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
                         {formatCurrency(c.spend)}
