@@ -35,3 +35,6 @@ build/
 # Docker
 .docker/
 sporthink_dummy_data/
+
+# Local reference files
+pdf-rapor-ornek.pdf
