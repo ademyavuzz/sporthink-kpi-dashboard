@@ -52,11 +52,15 @@ export function LineChart({
     const colors = series.map((s, i) => s.color ?? (base.colors as string[])[i]);
 
     // Multi-axis: her seri için ayrı yaxis tanımı, sağ/sol konum.
+    // Axis title yazılmaz — legend zaten seri adlarını gösteriyor; duplicate
+    // olmasın diye axis border/tick renksiz tutulur, sadece label rengi
+    // serinin kendi rengiyle hizalanır.
     const yaxis: ApexOptions["yaxis"] = multiAxis
       ? series.map((s, i) => ({
           ...base.yaxis,
           seriesName: s.name,
           opposite: (s.yAxisIndex ?? i) % 2 === 1,
+          tickAmount: 5,
           labels: {
             ...((base.yaxis as { labels?: object })?.labels ?? {}),
             formatter: s.formatter ?? yFormatter,
@@ -66,15 +70,12 @@ export function LineChart({
               fontWeight: 500,
             },
           },
-          axisBorder: { show: true, color: colors[i] },
-          axisTicks: { show: true, color: colors[i] },
-          title: {
-            text: s.name,
-            style: { color: colors[i], fontSize: "11px", fontWeight: 600 },
-          },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
         }))
       : {
           ...base.yaxis,
+          tickAmount: 5,
           labels: {
             ...((base.yaxis as { labels?: object })?.labels ?? {}),
             formatter: yFormatter,
@@ -83,12 +84,20 @@ export function LineChart({
 
     return {
       ...base,
-      chart: { ...base.chart, type: "area", height, toolbar: { show: false } },
+      chart: {
+        ...base.chart,
+        type: "area",
+        height,
+        toolbar: { show: false },
+        parentHeightOffset: 0,
+      },
       colors,
       xaxis: {
         ...base.xaxis,
         type: "datetime",
-        tickAmount: 8,
+        tickAmount: 6,
+        axisBorder: { show: false },
+        axisTicks: { show: false },
         labels: {
           ...((base.xaxis as { labels?: object })?.labels ?? {}),
           formatter: (val: string | number) => dayjs(Number(val)).format("DD MMM"),
@@ -99,12 +108,12 @@ export function LineChart({
         type: "gradient",
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: 0.25,
-          opacityTo: 0.02,
-          stops: [0, 95, 100],
+          opacityFrom: 0.18,
+          opacityTo: 0,
+          stops: [0, 100],
         },
       },
-      stroke: { ...base.stroke, width: 2.5, curve: "smooth" },
+      stroke: { ...base.stroke, width: 2.25, curve: "smooth" },
       markers: { ...base.markers, size: 0, hover: { size: 5 } },
       tooltip: {
         ...base.tooltip,

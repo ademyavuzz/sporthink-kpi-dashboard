@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import ReactApexChart from "react-apexcharts";
 
 import { useChartTheme } from "@/hooks/useChartTheme";
+import { CHART_PALETTE } from "@/hooks/useChartTheme";
+import { cn } from "@/lib/utils";
 
 import { ChartEmpty, ChartLoading } from "./ChartEmpty";
 
@@ -20,8 +22,17 @@ interface DonutChartProps {
 const SMALL_SLICE_THRESHOLD = 0.02; // %2
 
 /**
- * Donut chart — center'da total + label, sağda yüzde-yanı legend,
- * küçük slice'ları "Diğer" altında otomatik topla. Mobile'de legend alta düşer.
+ * Donut chart — center'da total + label, **sağda HTML-based custom legend**.
+ *
+ * ApexCharts'ın yerleşik (SVG-rendered) legend'i uzun label'larda truncate
+ * eder ve wrap edemez. Bunun yerine donut'u solda küçük tutuyoruz, sağda
+ * scrollable HTML <ul> render ediyoruz; her satırda renk noktası, label ve
+ * yüzde aynı hizada. Mobile'da legend alta düşer.
+ *
+ * Props:
+ * - `labels` / `values` — eşit uzunlukta dizinler.
+ * - `groupSmallSlices` — %2 altı dilimleri "Diğer" altında toplar (default).
+ * - `valueFormatter` — tooltip ve "Diğer" değer biçimleyicisi.
  */
 export function DonutChart({
   labels,
@@ -68,32 +79,27 @@ export function DonutChart({
   const options = useMemo<ApexOptions>(
     () => ({
       ...base,
-      chart: { ...base.chart, type: "donut", height },
+      chart: {
+        ...base.chart,
+        type: "donut",
+        height,
+        parentHeightOffset: 0,
+      },
       labels: displayLabels,
       stroke: { width: 2, colors: ["transparent"] },
-      legend: {
-        ...base.legend,
-        position: "right",
-        offsetY: 8,
-        formatter: (label: string, opts) => {
-          const idx = opts.seriesIndex as number;
-          const val = displayValues[idx] ?? 0;
-          const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0";
-          return `${label} <span style="opacity:0.6;font-size:11px">${pct}%</span>`;
-        },
-        markers: { size: 9, strokeWidth: 0 },
-        itemMargin: { horizontal: 0, vertical: 6 },
-      },
+      // Built-in legend kapalı — kendi HTML legend'imiz var.
+      legend: { show: false },
       plotOptions: {
         pie: {
           donut: {
-            size: "70%",
+            size: "74%",
             labels: {
               show: true,
               name: {
                 show: true,
-                fontSize: "13px",
+                fontSize: "12px",
                 fontWeight: 500,
+                color: base.theme?.mode === "dark" ? "#a1a1aa" : "#71717a",
                 offsetY: -4,
               },
               value: {
@@ -109,6 +115,7 @@ export function DonutChart({
                 label: totalLabel,
                 fontSize: "12px",
                 fontWeight: 500,
+                color: base.theme?.mode === "dark" ? "#a1a1aa" : "#71717a",
                 formatter: () => fmt(total),
               },
             },
@@ -125,16 +132,8 @@ export function DonutChart({
           },
         },
       },
-      responsive: [
-        {
-          breakpoint: 640,
-          options: {
-            legend: { position: "bottom", offsetY: 0 },
-          },
-        },
-      ],
     }),
-    [base, height, displayLabels, displayValues, total, totalLabel, fmt],
+    [base, height, displayLabels, total, totalLabel, fmt],
   );
 
   if (loading) return <ChartLoading height={height} />;
@@ -142,12 +141,60 @@ export function DonutChart({
     return <ChartEmpty height={height} />;
   }
 
+  // % bazlı dizilim — büyükten küçüğe.
+  const items = displayLabels
+    .map((label, i) => ({
+      label,
+      value: displayValues[i],
+      pct: total > 0 ? (displayValues[i] / total) * 100 : 0,
+      color: CHART_PALETTE[i % CHART_PALETTE.length],
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
   return (
-    <ReactApexChart
-      options={options}
-      series={displayValues}
-      type="donut"
-      height={height}
-    />
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,180px)_1fr] sm:items-center">
+      {/* Donut — sabit dar genişlik, SVG kendi merkez label'ı içinde */}
+      <div className="mx-auto w-full max-w-[200px]">
+        <ReactApexChart
+          options={options}
+          series={displayValues}
+          type="donut"
+          height={height}
+        />
+      </div>
+
+      {/* HTML legend — scrollable, full-label */}
+      <ul
+        className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1 text-sm"
+        role="list"
+      >
+        {items.map((it) => (
+          <li
+            key={it.label}
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
+              "hover:bg-surface-2/50",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: it.color }}
+                aria-hidden="true"
+              />
+              <span className="truncate text-foreground" title={it.label}>
+                {it.label}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-baseline gap-2 text-xs tabular-nums">
+              <span className="font-semibold text-foreground">{fmt(it.value)}</span>
+              <span className="w-12 text-right text-text-muted">
+                {it.pct.toFixed(1).replace(".", ",")}%
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
