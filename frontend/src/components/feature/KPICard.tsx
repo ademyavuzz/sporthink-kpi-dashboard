@@ -155,23 +155,7 @@ interface KPICardProps {
   icon?: IconCmp;
 }
 
-/**
- * KPI kartı — yumuşak tonlu ikon + rafine tipografi + smooth hover.
- *
- * Yapı:
- * - Sol-üst: semantic-tone yumuşak renkli rounded-xl ikon chip
- *   (revenue → primary, ads → violet, traffic → sky, conv → emerald,
- *   bounce/refund → amber)
- * - Etiket: küçük, harf aralığı geniş, yumuşak gri
- * - Değer: tabular-nums, sıkı letter-spacing, kalın
- * - Delta pill: küçük, tonlu (yeşil/kırmızı), `is_positive`'a göre
- *
- * `value === null` → "—" gösterilir. `change_percentage === null` → pill
- * gizlenir.
- */
 export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
-  // Backend `kpi_id` üzerinden i18n key çözeriz; sözlükte yoksa
-  // backward-compat için backend'den gelen `label_tr`'a düşeriz.
   const { t } = useTranslation("dashboard");
 
   if (loading) return <KPICardSkeleton compact={compact} />;
@@ -186,65 +170,58 @@ export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
   return (
     <Card
       className={cn(
-        "group gap-0 py-0 transition-all duration-150",
-        "hover:-translate-y-px hover:border-gray-300 hover:shadow-sm",
+        "gap-0 py-0 transition-all duration-150",
+        "hover:border-gray-300 hover:shadow-sm",
         "dark:hover:border-gray-700",
       )}
     >
-      <CardContent className={cn(compact ? "p-5" : "p-5 md:p-6")}>
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className={cn(compact ? "p-3.5" : "p-4")}>
+        <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-[1.03]",
+              "inline-flex shrink-0 items-center justify-center rounded-lg",
               tone.bg,
-              compact ? "size-11" : "size-12",
+              compact ? "size-7" : "size-8",
             )}
           >
             <Icon
-              className={cn(
-                tone.fg,
-                compact ? "size-5" : "size-[22px]",
-              )}
+              className={cn(tone.fg, compact ? "size-3.5" : "size-4")}
               strokeWidth={2.2}
             />
           </div>
+          <p
+            className="min-w-0 flex-1 truncate text-[12px] font-medium text-text-muted"
+            title={label}
+          >
+            {label}
+          </p>
+        </div>
 
+        <div className="mt-2.5 flex items-baseline justify-between gap-2">
+          <p
+            className={cn(
+              "font-semibold tabular-nums leading-none tracking-tight text-foreground",
+              compact ? "text-[20px]" : "text-[22px] md:text-[24px]",
+            )}
+          >
+            {value}
+          </p>
           {kpi.change_percentage !== null && (
             <span
               className={cn(
-                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0",
-                "ring-1 ring-inset",
+                "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold shrink-0",
                 kpi.is_positive
-                  ? "bg-success-50 text-success-700 ring-success-100 dark:bg-success-500/10 dark:text-success-500 dark:ring-success-500/20"
-                  : "bg-error-50 text-error-700 ring-error-100 dark:bg-error-500/10 dark:text-error-500 dark:ring-error-500/20",
+                  ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500"
+                  : "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-500",
               )}
               title={t("kpi_change_tooltip", {
                 defaultValue: "Önceki döneme göre",
               })}
             >
-              <TrendIcon className="size-3 -ml-0.5" strokeWidth={3} />
+              <TrendIcon className="size-2.5 -ml-0.5" strokeWidth={3} />
               <span className="tabular-nums">{change}</span>
             </span>
           )}
-        </div>
-
-        <div className="mt-5">
-          <p
-            className="text-[13px] font-medium uppercase tracking-[0.04em] text-text-muted line-clamp-1"
-            title={label}
-          >
-            {label}
-          </p>
-          <p
-            className={cn(
-              "mt-1.5 font-bold tabular-nums leading-[1.1] text-foreground",
-              "tracking-tight",
-              compact ? "text-[26px]" : "text-[30px] md:text-[32px]",
-            )}
-            style={{ fontFeatureSettings: '"tnum", "lnum"' }}
-          >
-            {value}
-          </p>
         </div>
       </CardContent>
     </Card>
@@ -254,24 +231,24 @@ export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
 export function KPICardSkeleton({ compact }: { compact?: boolean } = {}) {
   return (
     <Card className="gap-0 py-0">
-      <CardContent className={cn(compact ? "p-5" : "p-5 md:p-6")}>
-        <div className="flex items-start justify-between">
+      <CardContent className={cn(compact ? "p-3.5" : "p-4")}>
+        <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse",
-              compact ? "size-11" : "size-12",
+              "rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse",
+              compact ? "size-7" : "size-8",
             )}
           />
-          <div className="h-5 w-14 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+          <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
-        <div className="mt-5 space-y-2">
-          <div className="h-3.5 w-24 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+        <div className="mt-2.5 flex items-center justify-between">
           <div
             className={cn(
               "rounded bg-gray-100 dark:bg-gray-800 animate-pulse",
-              compact ? "h-7 w-28" : "h-8 w-32",
+              compact ? "h-5 w-24" : "h-6 w-28",
             )}
           />
+          <div className="h-[18px] w-12 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
       </CardContent>
     </Card>
