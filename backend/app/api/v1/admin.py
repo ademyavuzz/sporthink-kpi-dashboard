@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache_keys
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import ResourceNotFoundError, ValidationError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import (
@@ -660,12 +660,16 @@ async def create_segment(
     )
     db.add(seg)
     await db.flush()
-    # Cached count
+    # Cached count — kural doğrulaması ValidationError fırlatırsa yukarı
+    # bırak ki kullanıcı düzeltebilsin; başka beklenmedik hatada count'u
+    # null bırakıp segment'i yine de yarat (count sonradan job ile güncellenir).
     try:
         seg.cached_count = await segment_service.evaluate_count(db, payload.rules)
         from datetime import datetime
 
         seg.cached_at = datetime.now(UTC)
+    except ValidationError:
+        raise
     except Exception:  # noqa: BLE001
         seg.cached_count = None
     await db.commit()

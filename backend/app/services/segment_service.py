@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy import and_, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import ValidationError
 from app.models import Customer, Segment
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,9 @@ def _build_rule_clause(rule: dict[str, Any]) -> Any:
 
     field_name = rule.get("field")
     if field_name not in _FIELD_MAP:
-        raise ValueError(f"Unknown field: {field_name}")
+        raise ValidationError(
+            f"Unknown segment field: {field_name}", field="rules"
+        )
     col = _FIELD_MAP[field_name]
     op = rule.get("op", "==")
     value = rule.get("value")
@@ -71,7 +74,9 @@ def _build_rule_clause(rule: dict[str, Any]) -> Any:
         case "LIKE":
             return col.like(f"%{value}%")
         case _:
-            raise ValueError(f"Unknown operator: {op}")
+            raise ValidationError(
+                f"Unknown segment operator: {op}", field="rules"
+            )
 
 
 async def evaluate_count(db: AsyncSession, rules: dict[str, Any]) -> int:
