@@ -90,9 +90,7 @@ class EcomFilters:
         )
 
 
-async def resolve_segment_customers(
-    db: AsyncSession, segment_id: int
-) -> tuple[int, ...]:
+async def resolve_segment_customers(db: AsyncSession, segment_id: int) -> tuple[int, ...]:
     """Segment kurallarını eval edip customer pk id listesini döner.
 
     Boş segment (eşleşme yok) `()` döner — `customer_pk_ids IN ()` MySQL'de
@@ -160,9 +158,7 @@ def _filtered_orders_select(filters: EcomFilters) -> Select[Any]:
 
 async def _sum_revenue(db: AsyncSession, filters: EcomFilters) -> Decimal:
     """Filtrelenmiş siparişlerin toplam net cirosu."""
-    stmt = select(func.coalesce(func.sum(Order.net_revenue), 0)).where(
-        _orders_filter(filters)
-    )
+    stmt = select(func.coalesce(func.sum(Order.net_revenue), 0)).where(_orders_filter(filters))
     return Decimal(str((await db.execute(stmt)).scalar_one() or 0))
 
 
@@ -182,9 +178,7 @@ async def _sum_items(db: AsyncSession, filters: EcomFilters) -> int:
     return int((await db.execute(stmt)).scalar_one() or 0)
 
 
-async def _sum_refunds_revenue(
-    db: AsyncSession, filters: EcomFilters
-) -> tuple[Decimal, Decimal]:
+async def _sum_refunds_revenue(db: AsyncSession, filters: EcomFilters) -> tuple[Decimal, Decimal]:
     """(Toplam iade, toplam order_revenue) — refund_rate için.
 
     Burada brüt `order_revenue` kullanırız (refund'tan önceki tutar) ki oran
@@ -198,9 +192,7 @@ async def _sum_refunds_revenue(
     return Decimal(str(row[0] or 0)), Decimal(str(row[1] or 0))
 
 
-async def _repeat_purchase_rate(
-    db: AsyncSession, filters: EcomFilters
-) -> Decimal | None:
+async def _repeat_purchase_rate(db: AsyncSession, filters: EcomFilters) -> Decimal | None:
     """Tekrar satın alma oranı (§9.5.6) — filtre kapsamındaki müşterilerle.
 
     Filtreli orders'dan distinct customer'lar; bunların `total_orders >= 2`
@@ -235,9 +227,7 @@ async def kpi_orders(db: AsyncSession, filters: EcomFilters, prev: EcomFilters) 
     return _build_result("orders", cur, p)
 
 
-async def kpi_items_sold(
-    db: AsyncSession, filters: EcomFilters, prev: EcomFilters
-) -> KPIResult:
+async def kpi_items_sold(db: AsyncSession, filters: EcomFilters, prev: EcomFilters) -> KPIResult:
     cur = Decimal(await _sum_items(db, filters))
     p = Decimal(await _sum_items(db, prev))
     return _build_result("items_sold", cur, p)
@@ -254,9 +244,7 @@ async def kpi_aov(db: AsyncSession, filters: EcomFilters, prev: EcomFilters) -> 
     return _build_result("aov", cur, p)
 
 
-async def kpi_refund_rate(
-    db: AsyncSession, filters: EcomFilters, prev: EcomFilters
-) -> KPIResult:
+async def kpi_refund_rate(db: AsyncSession, filters: EcomFilters, prev: EcomFilters) -> KPIResult:
     refunds, gross = await _sum_refunds_revenue(db, filters)
     cur = _safe_div(refunds, gross)
     cur_pct = _quantize(cur * 100) if cur is not None else None
@@ -286,16 +274,11 @@ async def kpi_revenue_per_user(
 
     async def _calc(f: EcomFilters) -> Decimal | None:
         rev = await _sum_revenue(db, f)
-        cust_stmt = (
-            select(func.count(func.distinct(Order.customer_pk_id)))
-            .where(_orders_filter(f))
-        )
+        cust_stmt = select(func.count(func.distinct(Order.customer_pk_id))).where(_orders_filter(f))
         customers = Decimal((await db.execute(cust_stmt)).scalar_one() or 0)
         return _quantize(_safe_div(rev, customers))
 
-    return _build_result(
-        "revenue_per_user", await _calc(filters), await _calc(prev)
-    )
+    return _build_result("revenue_per_user", await _calc(filters), await _calc(prev))
 
 
 # ---------------------------------------------------------------------- #
@@ -303,9 +286,7 @@ async def kpi_revenue_per_user(
 # ---------------------------------------------------------------------- #
 
 
-async def daily_series(
-    db: AsyncSession, filters: EcomFilters
-) -> list[DailySeriesPoint]:
+async def daily_series(db: AsyncSession, filters: EcomFilters) -> list[DailySeriesPoint]:
     """Filtrelenmiş günlük revenue + orders serisi.
 
     `sessions`: filtre yoksa GA4 günlük toplamlarından doldurulur. Filtre
@@ -445,16 +426,12 @@ async def by_category(
         stmt = stmt.where(Product.category.in_(filters.categories))
     rows = (await db.execute(stmt)).all()
     return [
-        DimensionBreakdown(
-            label=r.label, value=_quantize(Decimal(str(r.value))) or Decimal(0)
-        )
+        DimensionBreakdown(label=r.label, value=_quantize(Decimal(str(r.value))) or Decimal(0))
         for r in rows
     ]
 
 
-async def by_device(
-    db: AsyncSession, filters: EcomFilters
-) -> list[DimensionBreakdown]:
+async def by_device(db: AsyncSession, filters: EcomFilters) -> list[DimensionBreakdown]:
     """Cihaz × ciro (donut). 3 sabit değer (mobile/desktop/tablet)."""
     stmt = (
         select(
@@ -491,16 +468,12 @@ async def by_city(
     )
     rows = (await db.execute(stmt)).all()
     return [
-        DimensionBreakdown(
-            label=r.label, value=_quantize(Decimal(str(r.value))) or Decimal(0)
-        )
+        DimensionBreakdown(label=r.label, value=_quantize(Decimal(str(r.value))) or Decimal(0))
         for r in rows
     ]
 
 
-async def by_payment_method(
-    db: AsyncSession, filters: EcomFilters
-) -> list[DimensionBreakdown]:
+async def by_payment_method(db: AsyncSession, filters: EcomFilters) -> list[DimensionBreakdown]:
     """Ödeme yöntemi × ciro (donut)."""
     stmt = (
         select(
@@ -521,9 +494,7 @@ async def by_payment_method(
     ]
 
 
-async def new_vs_returning(
-    db: AsyncSession, filters: EcomFilters
-) -> list[CustomerTypeRevenue]:
+async def new_vs_returning(db: AsyncSession, filters: EcomFilters) -> list[CustomerTypeRevenue]:
     """Yeni vs geri dönen müşteri ciro+sipariş kırılımı (§9.6.4).
 
     `Customer.first_order_date >= filters.date_from` → 'new'.
@@ -653,9 +624,7 @@ async def list_orders(
     Tek sayfada `limit` kayıt; üstte toplam sayım gösterilir. Daha gelişmiş
     pagination için sonraki iterasyonda offset/cursor eklenir.
     """
-    total_stmt = select(func.count(Order.id)).where(
-        _orders_filter(filters, default_realized=False)
-    )
+    total_stmt = select(func.count(Order.id)).where(_orders_filter(filters, default_realized=False))
     total = int((await db.execute(total_stmt)).scalar_one() or 0)
 
     stmt = (
@@ -691,9 +660,7 @@ async def list_orders(
     return items, total
 
 
-async def order_detail(
-    db: AsyncSession, *, order_pk_id: int
-) -> OrderDetailResponse:
+async def order_detail(db: AsyncSession, *, order_pk_id: int) -> OrderDetailResponse:
     """Tek siparişin tam detayı: order header + line items + müşteri özeti."""
     order_stmt = (
         select(

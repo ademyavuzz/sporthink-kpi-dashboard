@@ -33,7 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.exceptions import ConflictError, ResourceNotFoundError, SporthinkException
+from app.core.exceptions import ResourceNotFoundError, SporthinkException
 from app.models import (
     Campaign,
     Customer,
