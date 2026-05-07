@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
 class SporthinkException(Exception):
@@ -89,6 +90,28 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(SporthinkException)
     async def _sporthink_exception_handler(_request: Request, exc: SporthinkException):
         return JSONResponse(status_code=exc.status_code, content=exc.to_response())
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _starlette_http_exception_handler(_request: Request, exc: StarletteHTTPException):
+        # Routing 404 / 405 ve diğer Starlette/FastAPI default HTTPException'ları
+        # `{"detail": "..."}` döner — §6.2 envelope kontratını ihlal eder.
+        # Status code'a göre code map'le, mesajı taşı.
+        code_map = {
+            401: "AUTH_REQUIRED",
+            403: "PERMISSION_DENIED",
+            404: "RESOURCE_NOT_FOUND",
+            405: "METHOD_NOT_ALLOWED",
+            429: "RATE_LIMIT_EXCEEDED",
+        }
+        code = code_map.get(exc.status_code, "INTERNAL_ERROR")
+        message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "success": False,
+                "error": {"code": code, "message": message},
+            },
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _request_validation_exception_handler(_request: Request, exc: RequestValidationError):
