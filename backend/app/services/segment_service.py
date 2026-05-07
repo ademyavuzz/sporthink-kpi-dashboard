@@ -47,9 +47,7 @@ def _build_rule_clause(rule: dict[str, Any]) -> Any:
 
     field_name = rule.get("field")
     if field_name not in _FIELD_MAP:
-        raise ValidationError(
-            f"Unknown segment field: {field_name}", field="rules"
-        )
+        raise ValidationError(f"Unknown segment field: {field_name}", field="rules")
     col = _FIELD_MAP[field_name]
     op = rule.get("op", "==")
     value = rule.get("value")
@@ -74,9 +72,7 @@ def _build_rule_clause(rule: dict[str, Any]) -> Any:
         case "LIKE":
             return col.like(f"%{value}%")
         case _:
-            raise ValidationError(
-                f"Unknown segment operator: {op}", field="rules"
-            )
+            raise ValidationError(f"Unknown segment operator: {op}", field="rules")
 
 
 async def evaluate_count(db: AsyncSession, rules: dict[str, Any]) -> int:

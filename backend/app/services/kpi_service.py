@@ -218,9 +218,7 @@ async def kpi_sessions(
     return _build_result("sessions", cur, p)
 
 
-async def total_ga4_sessions(
-    db: AsyncSession, *, date_from: date, date_to: date
-) -> int:
+async def total_ga4_sessions(db: AsyncSession, *, date_from: date, date_to: date) -> int:
     """GA4 toplam oturum (raw int, KPIResult değil) — funnel başlangıç noktası."""
     total = await agg_repo.sum_metric_daily(
         db,
@@ -1668,7 +1666,9 @@ _CHANNEL_KEYS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-def _build_steps_from_counts(view: int, cart: int, checkout: int, purchase: int) -> list[FunnelStep]:
+def _build_steps_from_counts(
+    view: int, cart: int, checkout: int, purchase: int
+) -> list[FunnelStep]:
     def drop(prev: int, curr: int) -> Decimal | None:
         if prev <= 0:
             return None
@@ -1975,9 +1975,7 @@ async def _traffic_aggregate_metrics(
     sessions_col = func.coalesce(func.sum(GA4Traffic.sessions), 0)
     users_col = func.coalesce(func.sum(GA4Traffic.total_users), 0)
     new_users_col = func.coalesce(func.sum(GA4Traffic.new_users), 0)
-    bounce_sessions_col = func.coalesce(
-        func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0
-    )
+    bounce_sessions_col = func.coalesce(func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0)
     page_views_col = func.coalesce(
         func.sum(GA4Traffic.screen_page_views_per_session * GA4Traffic.sessions), 0
     )
@@ -2065,9 +2063,7 @@ async def traffic_page_kpis(
         "users": _build_result("users", cur["users"], prev["users"]),
         "new_users": _build_result("new_users", cur["new_users"], prev["new_users"]),
         "bounce_rate": _build_result("bounce_rate", _bounce_pct(cur), _bounce_pct(prev)),
-        "pages_per_session": _build_result(
-            "pages_per_session", _pps(cur), _pps(prev)
-        ),
+        "pages_per_session": _build_result("pages_per_session", _pps(cur), _pps(prev)),
         "avg_session_duration": _build_result(
             "avg_session_duration", _avg_dur(cur), _avg_dur(prev)
         ),
@@ -2186,9 +2182,7 @@ async def traffic_landing_pages(
 
     sessions_col = func.coalesce(func.sum(GA4Traffic.sessions), 0)
     users_col = func.coalesce(func.sum(GA4Traffic.total_users), 0)
-    bounce_sessions_col = func.coalesce(
-        func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0
-    )
+    bounce_sessions_col = func.coalesce(func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0)
     duration_col = func.coalesce(func.sum(GA4Traffic.user_engagement_duration), 0)
     transactions_col = func.coalesce(func.sum(GA4Traffic.transactions), 0)
 
@@ -2222,13 +2216,9 @@ async def traffic_landing_pages(
         if sessions_v == 0:
             continue
         sessions_dec = Decimal(str(sessions_v))
-        bounce_pct = _quantize(
-            Decimal(str(r.bounce_sessions or 0)) / sessions_dec * 100
-        )
+        bounce_pct = _quantize(Decimal(str(r.bounce_sessions or 0)) / sessions_dec * 100)
         avg_dur = _quantize(Decimal(str(r.duration or 0)) / sessions_dec)
-        cvr = _quantize(
-            Decimal(str(r.transactions or 0)) / sessions_dec * 100
-        )
+        cvr = _quantize(Decimal(str(r.transactions or 0)) / sessions_dec * 100)
         out.append(
             {
                 "page_path": str(r.page_path),

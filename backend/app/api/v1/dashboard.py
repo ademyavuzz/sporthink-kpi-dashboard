@@ -387,9 +387,7 @@ async def get_google(
         platform=KPIPlatform.GOOGLE,
         limit=200,
     )
-    campaigns = [
-        GoogleCampaignMetric(**c.model_dump(), channel_type=None) for c in campaigns_base
-    ]
+    campaigns = [GoogleCampaignMetric(**c.model_dump(), channel_type=None) for c in campaigns_base]
     top_by_roas = sorted(campaigns, key=lambda c: c.roas or 0, reverse=True)[:10]
     channel_breakdown_raw = await kpi_service.google_channel_breakdown(
         db, date_from=date_from, date_to=date_to

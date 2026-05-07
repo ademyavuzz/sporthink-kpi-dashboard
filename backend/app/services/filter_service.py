@@ -59,10 +59,7 @@ async def distinct_categories(db: AsyncSession) -> list[str]:
 async def distinct_brands(db: AsyncSession) -> list[str]:
     """Aktif ürünlerin distinct markaları (alfabetik)."""
     stmt = (
-        select(Product.brand)
-        .where(Product.deleted_at.is_(None))
-        .distinct()
-        .order_by(Product.brand)
+        select(Product.brand).where(Product.deleted_at.is_(None)).distinct().order_by(Product.brand)
     )
     return [r[0] for r in (await db.execute(stmt)).all() if r[0]]
 

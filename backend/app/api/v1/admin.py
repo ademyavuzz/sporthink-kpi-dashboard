@@ -141,9 +141,7 @@ async def get_filter_categories(
     if cached is not None:
         return SuccessEnvelope(data=cached)
     items = await filter_service.distinct_categories(db)
-    await cache.set_json(
-        cache_keys.filter_categories(), items, ttl=cache_keys.TTL_FILTERS
-    )
+    await cache.set_json(cache_keys.filter_categories(), items, ttl=cache_keys.TTL_FILTERS)
     return SuccessEnvelope(data=items)
 
 
