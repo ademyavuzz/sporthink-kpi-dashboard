@@ -20,5 +20,6 @@
   "boundary_title": "Beklenmeyen bir hata oluştu",
   "boundary_description": "Sayfa render edilemedi. Tekrar denemek için aşağıdaki butona tıklayın veya sayfayı yenileyin.",
   "boundary_reload": "Sayfayı yenile",
-  "boundary_retry": "Tekrar dene"
+  "boundary_retry": "Tekrar dene",
+  "chart_render_failed": "Grafik render edilemedi."
 }

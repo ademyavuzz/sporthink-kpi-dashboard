@@ -1,8 +1,23 @@
 import { AlertTriangle } from "lucide-react";
 import { Component, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 interface State {
   hasError: boolean;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+function ChartErrorFallback({ height }: { height?: number }) {
+  const { t } = useTranslation("errors");
+  return (
+    <div
+      style={{ height: height ?? 300 }}
+      className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border text-text-muted"
+    >
+      <AlertTriangle className="h-6 w-6 opacity-40" />
+      <p className="text-xs">{t("chart_render_failed")}</p>
+    </div>
+  );
 }
 
 /**
@@ -25,20 +40,13 @@ export class ChartErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error) {
+    // Vite prod build esbuild.drop ile production bundle'dan strip eder.
     console.warn("Chart render error (isolated):", error.message);
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div
-          style={{ height: this.props.height ?? 300 }}
-          className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border text-text-muted"
-        >
-          <AlertTriangle className="h-6 w-6 opacity-40" />
-          <p className="text-xs">Grafik render edilemedi.</p>
-        </div>
-      );
+      return <ChartErrorFallback height={this.props.height} />;
     }
     return this.props.children;
   }

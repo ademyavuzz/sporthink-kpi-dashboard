@@ -20,5 +20,6 @@
   "boundary_title": "An unexpected error occurred",
   "boundary_description": "The page could not be rendered. Click the button below or refresh the page to try again.",
   "boundary_reload": "Reload page",
-  "boundary_retry": "Try again"
+  "boundary_retry": "Try again",
+  "chart_render_failed": "Chart could not be rendered."
 }

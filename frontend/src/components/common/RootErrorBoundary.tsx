@@ -65,6 +65,7 @@ export class RootErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Vite prod build esbuild.drop ile production bundle'dan strip eder.
     console.error("Root error boundary caught:", error, info.componentStack);
   }
 
