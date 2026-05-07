@@ -155,7 +155,7 @@ export default function App() {
         <Route
           path="/import"
           element={
-            <ProtectedRoute permission="imports.view">
+            <ProtectedRoute permission="imports.create">
               <ImportPage />
             </ProtectedRoute>
           }
