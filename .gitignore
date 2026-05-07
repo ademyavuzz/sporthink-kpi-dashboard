@@ -3,12 +3,14 @@
 
 # Environments
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.production.example
 
-# IDE
+# IDE / agent local config
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
@@ -38,3 +40,10 @@ sporthink_dummy_data/
 
 # Local reference files
 pdf-rapor-ornek.pdf
+
+# Playwright (E2E test artifacts)
+frontend/test-results/
+frontend/playwright-report/
+
+# TLS certs (Let's Encrypt webroot output, never commit private keys)
+nginx/certs/
