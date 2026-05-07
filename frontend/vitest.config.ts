@@ -15,5 +15,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // Playwright e2e specs ayrı runner ile koşulur (npx playwright test).
+    exclude: ["node_modules", "dist", "tests/e2e/**"],
   },
 });
