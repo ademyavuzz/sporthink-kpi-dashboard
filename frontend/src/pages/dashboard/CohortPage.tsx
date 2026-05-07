@@ -31,7 +31,7 @@ export default function CohortPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const cells = q.data?.cells ?? [];
+  const cells = useMemo(() => q.data?.cells ?? [], [q.data?.cells]);
   const isLoading = q.isPending;
 
   // Cohort × offset matrisini oluştur

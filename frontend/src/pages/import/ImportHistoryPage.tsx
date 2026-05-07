@@ -149,7 +149,7 @@ export default function ImportHistoryPage() {
     },
   });
 
-  const data = listQuery.data ?? [];
+  const data = useMemo(() => listQuery.data ?? [], [listQuery.data]);
   const total = data.length;
 
   const filtered = useMemo(() => {
