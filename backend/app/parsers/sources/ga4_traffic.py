@@ -12,8 +12,12 @@ Notlar:
 - `date` GA4'te YYYYMMDD integer formatında geliyor → DATE'e çevir.
 - `derived_channel` channel_mapping üzerinden post-processing ile doldurulacak;
   parser şu an NULL bırakır.
-- Natural unique key yok — `dedup_keys` boş, aynı satır iki import'ta iki kez
-  görünebilir (yeniden yükleme için import_id ile rollback yapılır).
+- Natural unique key birleşik: `(date, session_source, session_medium,
+  device_category, city)`. docs/overview/08-import-system.md §8.5.5'e uygun.
+  `city` NULL olabilir; MySQL `IN (...)` semantiği gereği NULL eşleşmez,
+  bu da aynı `city=NULL` satırlarının duplicate olarak değil "yeni" olarak
+  yazılmasına neden olur — pratikte GA4 her zaman bir city değeri (boş ise
+  `(not set)`) döndürdüğü için sorun olmuyor.
 """
 
 from __future__ import annotations
@@ -86,5 +90,5 @@ CONFIG = SourceConfig(
         ColumnSpec("purchase_revenue", "purchaseRevenue", "decimal", required=False, default=0),
         ColumnSpec("transactions", "transactions", "int", required=False, default=0),
     ],
-    dedup_keys=[],  # natural key yok
+    dedup_keys=["date", "session_source", "session_medium", "device_category", "city"],
 )

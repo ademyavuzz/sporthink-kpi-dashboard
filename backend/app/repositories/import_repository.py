@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import delete, desc, select, update
+from sqlalchemy import and_, delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
@@ -14,6 +14,18 @@ from app.models import (
     ImportFileFormat,
     ImportRowError,
     ImportStatus,
+)
+
+# Aktif (henüz tamamlanmamış) import'ları sayarken bakılan status'lar.
+# `pending → parsing → validating → committing` Faz 1 sync akışında bile
+# DB'de yarım kalmış (örn. process kill) bir kayıt olabilir.
+_ACTIVE_STATUSES: frozenset[ImportStatus] = frozenset(
+    {
+        ImportStatus.PENDING,
+        ImportStatus.PARSING,
+        ImportStatus.VALIDATING,
+        ImportStatus.COMMITTING,
+    }
 )
 
 
@@ -92,6 +104,24 @@ async def update_counts(
 async def get_by_id(db: AsyncSession, import_id: int) -> Import | None:
     result = await db.execute(select(Import).where(Import.id == import_id))
     return result.scalar_one_or_none()
+
+
+async def count_active_for_user(db: AsyncSession, user_id: int) -> int:
+    """Belirli kullanıcı için aktif (devam eden) import sayısı.
+
+    Eşzamanlı import kısıtı için (docs §8.11). Faz 1 sync akışında pratikte
+    1 olmasa bile, kullanıcı paralel POST atarsa veya önceki istek yarım
+    kalmışsa burada yakalanır.
+    """
+    result = await db.execute(
+        select(func.count(Import.id)).where(
+            and_(
+                Import.user_id == user_id,
+                Import.status.in_(_ACTIVE_STATUSES),
+            )
+        )
+    )
+    return int(result.scalar_one() or 0)
 
 
 async def list_recent(db: AsyncSession, *, limit: int = 50) -> list[Import]:
