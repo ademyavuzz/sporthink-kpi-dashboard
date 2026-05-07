@@ -46,5 +46,6 @@
   },
   "page_overview_title": "Overview",
   "coming_soon": "Coming soon",
-  "coming_soon_description": "This page will be implemented in later sprints."
+  "coming_soon_description": "This page will be implemented in later sprints.",
+  "info_about": "About"
 }

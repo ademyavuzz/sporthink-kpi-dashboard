@@ -9,6 +9,7 @@ import { AuthBootstrap } from "./components/common/AuthBootstrap";
 import { PageLoader } from "./components/common/PageLoader";
 import { RootErrorBoundary } from "./components/common/RootErrorBoundary";
 import { ThemeSync } from "./components/common/ThemeSync";
+import { TooltipProvider } from "./components/ui/tooltip";
 // i18n + dayjs config side-effect imports (store-aware kurulum).
 import "./lib/i18n";
 import "./lib/dayjs";
@@ -28,21 +29,23 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeSync>
-          <BrowserRouter>
-            <AuthBootstrap>
-              <Suspense fallback={<PageLoader />}>
-                <App />
-              </Suspense>
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                theme="system"
-              />
-            </AuthBootstrap>
-          </BrowserRouter>
-        </ThemeSync>
+        <TooltipProvider delayDuration={150}>
+          <ThemeSync>
+            <BrowserRouter>
+              <AuthBootstrap>
+                <Suspense fallback={<PageLoader />}>
+                  <App />
+                </Suspense>
+                <Toaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  theme="system"
+                />
+              </AuthBootstrap>
+            </BrowserRouter>
+          </ThemeSync>
+        </TooltipProvider>
       </QueryClientProvider>
     </RootErrorBoundary>
   </StrictMode>,
