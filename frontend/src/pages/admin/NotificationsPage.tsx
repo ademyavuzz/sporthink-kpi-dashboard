@@ -249,7 +249,7 @@ function NotificationRow({
           </h3>
           <time
             className="shrink-0 text-[11px] text-text-dim"
-            dateTime={new Date(n.createdAt).toISOString()}
+            dateTime={dayjs(n.createdAt).toISOString()}
           >
             {dayjs(n.createdAt).locale(lang).fromNow()}
           </time>
