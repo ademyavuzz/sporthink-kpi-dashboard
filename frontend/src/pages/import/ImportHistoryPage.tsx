@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePermissions } from "@/hooks/usePermissions";
 import { ApiError } from "@/lib/api/client";
 import { importsApi } from "@/lib/api/imports";
 import { dayjs } from "@/lib/dayjs";
@@ -108,6 +109,9 @@ function matchesOutcomeFilter(
 export default function ImportHistoryPage() {
   const { t, i18n } = useTranslation(["imports", "common"]);
   const queryClient = useQueryClient();
+  const { has } = usePermissions();
+  const canCreate = has("imports.create");
+  const canDelete = has("imports.delete");
   const [pendingDelete, setPendingDelete] = useState<ImportListItem | null>(
     null,
   );
@@ -128,13 +132,18 @@ export default function ImportHistoryPage() {
     staleTime: 30 * 60_000,
   });
 
+  // Backend `label_tr` (sabit Türkçe) yerine i18n key kullan; backend label'ı
+  // yalnızca eksik key durumunda fallback olarak kalsın.
   const dataTypeLabel = useMemo(() => {
     const map = new Map<string, string>();
     for (const d of dataTypesQuery.data ?? []) {
-      map.set(d.data_type, d.label_tr);
+      map.set(
+        d.data_type,
+        t(`imports:data_types.${d.data_type}`, { defaultValue: d.label_tr }),
+      );
     }
     return map;
-  }, [dataTypesQuery.data]);
+  }, [dataTypesQuery.data, t, i18n.language]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => importsApi.deleteById(id),
@@ -183,12 +192,14 @@ export default function ImportHistoryPage() {
             {t("imports:history.subtitle")}
           </p>
         </div>
-        <Button asChild className="gap-1.5">
-          <Link to="/import">
-            <Upload className="size-4" />
-            {t("imports:tab_new")}
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild className="gap-1.5">
+            <Link to="/import">
+              <Upload className="size-4" />
+              {t("imports:tab_new")}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -269,8 +280,8 @@ export default function ImportHistoryPage() {
                 icon={History}
                 title={t("imports:history.empty_title")}
                 body={t("imports:history.empty_body")}
-                actionLabel={t("imports:history.empty_cta")}
-                actionTo="/import"
+                actionLabel={canCreate ? t("imports:history.empty_cta") : undefined}
+                actionTo={canCreate ? "/import" : undefined}
               />
             ) : (
               <EmptyState
@@ -413,16 +424,18 @@ export default function ImportHistoryPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setPendingDelete(it)}
-                            aria-label={t("imports:history.btn_delete")}
-                            title={t("imports:history.btn_delete")}
-                            className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                          {canDelete ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setPendingDelete(it)}
+                              aria-label={t("imports:history.btn_delete")}
+                              title={t("imports:history.btn_delete")}
+                              className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     );

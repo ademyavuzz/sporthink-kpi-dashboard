@@ -5,6 +5,19 @@
   "tab_new": "New Import",
   "tab_history": "History",
 
+  "data_types": {
+    "products": "Products",
+    "customers": "Customers",
+    "campaigns": "Campaigns",
+    "orders": "Orders",
+    "order_items": "Order Items",
+    "ga4_traffic": "GA4 Traffic",
+    "ga4_items": "GA4 Item Engagements",
+    "meta_ads": "Meta Ads Performance",
+    "meta_breakdowns": "Meta Ads Breakdowns",
+    "google_ads": "Google Ads Performance"
+  },
+
   "wizard": {
     "step_1": "1. Select File",
     "step_2": "2. Preview",
@@ -39,6 +52,9 @@
 
     "preview_title": "Preview",
     "preview_summary": "First {{previewed}} rows analyzed: {{valid}} valid, {{errors}} errors",
+    "preview_stat_total": "Analyzed",
+    "preview_stat_valid": "Valid",
+    "preview_stat_errors": "Errors",
     "preview_detected_headers": "Detected headers ({{count}})",
     "preview_missing_required": "Missing required columns ({{count}})",
     "preview_unknown_headers": "Unknown columns ({{count}})",
@@ -139,6 +155,7 @@
     "no_file_selected": "Please select a file",
     "no_data_type_selected": "Please select a data source",
     "file_not_csv": "Only CSV files are accepted",
+    "file_too_large": "File size exceeds the {{max}} MB limit (selected: {{size}} MB)",
     "load_data_types_failed": "Failed to load data sources",
     "preview_failed": "Failed to generate preview",
     "import_failed": "Import failed",

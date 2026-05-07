@@ -5,6 +5,19 @@
   "tab_new": "Yeni Import",
   "tab_history": "Geçmiş",
 
+  "data_types": {
+    "products": "Ürünler",
+    "customers": "Müşteriler",
+    "campaigns": "Kampanyalar",
+    "orders": "Siparişler",
+    "order_items": "Sipariş Kalemleri",
+    "ga4_traffic": "GA4 Trafik",
+    "ga4_items": "GA4 Ürün Etkileşimleri",
+    "meta_ads": "Meta Ads Performans",
+    "meta_breakdowns": "Meta Ads Kırılımları",
+    "google_ads": "Google Ads Performans"
+  },
+
   "wizard": {
     "step_1": "1. Dosya Seç",
     "step_2": "2. Önizle",
@@ -39,6 +52,9 @@
 
     "preview_title": "Önizleme",
     "preview_summary": "İlk {{previewed}} satır incelendi: {{valid}} geçerli, {{errors}} hatalı",
+    "preview_stat_total": "İncelenen",
+    "preview_stat_valid": "Geçerli",
+    "preview_stat_errors": "Hatalı",
     "preview_detected_headers": "Bulunan başlıklar ({{count}})",
     "preview_missing_required": "Eksik zorunlu kolonlar ({{count}})",
     "preview_unknown_headers": "Tanınmayan kolonlar ({{count}})",
@@ -139,6 +155,7 @@
     "no_file_selected": "Lütfen bir dosya seçin",
     "no_data_type_selected": "Lütfen veri kaynağı seçin",
     "file_not_csv": "Sadece CSV dosyası kabul edilir",
+    "file_too_large": "Dosya boyutu {{max}} MB sınırını aşıyor (seçilen: {{size}} MB)",
     "load_data_types_failed": "Veri kaynakları yüklenemedi",
     "preview_failed": "Önizleme oluşturulamadı",
     "import_failed": "İmport başarısız",

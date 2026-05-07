@@ -133,6 +133,18 @@ export default function ImportPage() {
       setFile(null);
       return;
     }
+    // Backend `import_max_file_size_mb` ile aynı sınır (config.py default 50).
+    const MAX_MB = 50;
+    if (f.size > MAX_MB * 1024 * 1024) {
+      setErrorMsg(
+        t("imports:errors.file_too_large", {
+          max: MAX_MB,
+          size: (f.size / (1024 * 1024)).toFixed(1),
+        }),
+      );
+      setFile(null);
+      return;
+    }
     setFile(f);
     setErrorMsg(null);
   }
@@ -326,7 +338,11 @@ function SelectStep({
                 <SelectItem key={d.data_type} value={d.data_type}>
                   <span className="flex items-center gap-2">
                     <Database className="size-3.5 text-text-dim" />
-                    <span>{d.label_tr}</span>
+                    <span>
+                      {t(`imports:data_types.${d.data_type}`, {
+                        defaultValue: d.label_tr,
+                      })}
+                    </span>
                     <span className="text-xs text-text-dim">
                       ·{" "}
                       {t("imports:wizard.headers_count", {
@@ -342,7 +358,9 @@ function SelectStep({
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="size-3" />
-                {selectedMeta.label_tr}
+                {t(`imports:data_types.${selectedMeta.data_type}`, {
+                  defaultValue: selectedMeta.label_tr,
+                })}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-text-muted">
                 {t("imports:wizard.headers_count", {
@@ -530,24 +548,26 @@ function PreviewStep({
             {dataTypeMeta && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                 <Database className="size-3" />
-                {dataTypeMeta.label_tr}
+                {t(`data_types.${dataTypeMeta.data_type}`, {
+                  defaultValue: dataTypeMeta.label_tr,
+                })}
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <MiniStat
-              label={t("wizard.preview_summary").split(":")[0] ?? ""}
+              label={t("wizard.preview_stat_total")}
               value={preview.summary.previewed_rows}
               tone="info"
             />
             <MiniStat
-              label={t("result_valid_rows", { defaultValue: "Geçerli" })}
+              label={t("wizard.preview_stat_valid")}
               value={preview.summary.valid_rows}
               tone="success"
             />
             <MiniStat
-              label={t("result_invalid_rows", { defaultValue: "Hatalı" })}
+              label={t("wizard.preview_stat_errors")}
               value={preview.summary.error_rows}
               tone={preview.summary.error_rows > 0 ? "error" : "neutral"}
             />
