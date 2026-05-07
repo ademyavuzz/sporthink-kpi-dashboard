@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.services.segment_service import _build_rule_clause, _rfm_segment_label
 
 
@@ -33,12 +34,13 @@ def test_compound_and_rule():
 
 
 def test_unknown_field_raises():
-    with pytest.raises(ValueError, match="Unknown field"):
+    # ValidationError → API 422 ile döner (ValueError yerine; CLAUDE.md §6.3)
+    with pytest.raises(ValidationError, match="Unknown segment field"):
         _build_rule_clause({"field": "nonexistent_col", "op": "==", "value": 1})
 
 
 def test_unknown_operator_raises():
-    with pytest.raises(ValueError, match="Unknown operator"):
+    with pytest.raises(ValidationError, match="Unknown segment operator"):
         _build_rule_clause({"field": "total_orders", "op": "**", "value": 1})
 
 
