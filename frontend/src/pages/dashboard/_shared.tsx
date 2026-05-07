@@ -14,6 +14,7 @@ import { dayjs } from "@/lib/dayjs";
 import { formatMultiplier, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDashboardRange(
   initial?: Partial<DateRangeValue>,
 ): [DateRangeValue, Dispatch<SetStateAction<DateRangeValue>>] {

@@ -20,12 +20,6 @@ const _trCurrencyDecimal = new Intl.NumberFormat("tr-TR", {
   maximumFractionDigits: 2,
 });
 
-const _trPercent = new Intl.NumberFormat("tr-TR", {
-  style: "percent",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 const _trCompact = new Intl.NumberFormat("tr-TR", {
   notation: "compact",
   maximumFractionDigits: 1,

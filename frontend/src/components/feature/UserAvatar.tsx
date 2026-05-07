@@ -4,7 +4,8 @@ import type { User } from "@/types/auth";
 
 interface UserAvatarProps {
   user:
-    | (Pick<User, "first_name" | "last_name" | "full_name" | "email"> & {
+    | (Pick<User, "first_name" | "last_name" | "email"> & {
+        full_name?: string | null;
         avatar_url?: string | null;
       })
     | null

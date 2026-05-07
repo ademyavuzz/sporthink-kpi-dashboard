@@ -285,8 +285,10 @@ function FunnelTable({
   const max = useMemo(() => Math.max(...steps.map((s) => s.count), 1), [steps]);
   // Genel dönüşüm: ilk adım (görüntüleme) → son adım (satın alma) yüzdesi.
   const overallConversion = useMemo(() => {
-    if (steps.length < 2 || steps[0].count === 0) return null;
-    return (steps[steps.length - 1].count / steps[0].count) * 100;
+    const first = steps[0];
+    const last = steps[steps.length - 1];
+    if (!first || !last || first.count === 0) return null;
+    return (last.count / first.count) * 100;
   }, [steps]);
 
   if (loading) {
@@ -379,12 +381,12 @@ function TopProductsInsightStrip({ products }: { products: TopProduct[] }) {
       .slice(0, 3);
     const top3Sum = top3Brands.reduce((s, [, v]) => s + v, 0);
     const concentrationPct = totalRevenue > 0 ? (top3Sum / totalRevenue) * 100 : 0;
-    let volumeLeader = products[0];
-    let revenueLeader = products[0];
+    let volumeLeader: TopProduct | null = products[0] ?? null;
+    let revenueLeader: TopProduct | null = products[0] ?? null;
     for (const p of products) {
-      if (p.units_sold > volumeLeader.units_sold) volumeLeader = p;
+      if (volumeLeader && p.units_sold > volumeLeader.units_sold) volumeLeader = p;
       const r = toNumber(p.revenue) ?? 0;
-      if (r > (toNumber(revenueLeader.revenue) ?? 0)) revenueLeader = p;
+      if (revenueLeader && r > (toNumber(revenueLeader.revenue) ?? 0)) revenueLeader = p;
     }
     return {
       concentrationPct,
@@ -405,13 +407,17 @@ function TopProductsInsightStrip({ products }: { products: TopProduct[] }) {
       />
       <InsightTile
         label={t("overview.top_products_volume_leader")}
-        valueText={`${formatCount(insight.volumeLeader.units_sold)}`}
-        sub={insight.volumeLeader.product_name ?? "—"}
+        valueText={
+          insight.volumeLeader ? formatCount(insight.volumeLeader.units_sold) : "—"
+        }
+        sub={insight.volumeLeader?.product_name ?? "—"}
       />
       <InsightTile
         label={t("overview.top_products_revenue_leader")}
-        valueText={formatCurrency(insight.revenueLeader.revenue)}
-        sub={insight.revenueLeader.product_name ?? "—"}
+        valueText={
+          insight.revenueLeader ? formatCurrency(insight.revenueLeader.revenue) : "—"
+        }
+        sub={insight.revenueLeader?.product_name ?? "—"}
       />
     </div>
   );

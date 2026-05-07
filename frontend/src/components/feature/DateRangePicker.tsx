@@ -55,6 +55,7 @@ const PRESET_GROUPS: { title: string; items: DatePresetId[] }[] = [
 ];
 
 /** Verilen preset için [from, to] tarihlerini hesaplar (TR İstanbul TZ). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function computePresetRange(
   preset: DatePresetId,
   reference: string = dayjs().tz("Europe/Istanbul").format("YYYY-MM-DD"),

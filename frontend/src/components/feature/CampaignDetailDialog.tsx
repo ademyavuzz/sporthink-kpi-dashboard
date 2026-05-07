@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { Badge } from "@/components/ui/badge";
@@ -57,8 +56,6 @@ export function CampaignDetailDialog({
   dateFrom,
   dateTo,
 }: CampaignDetailDialogProps) {
-  const { t: _t } = useTranslation("common");
-
   const q = useQuery({
     queryKey: ["campaign-detail", campaignName, dateFrom, dateTo],
     queryFn: () =>
