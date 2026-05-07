@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import App from "./App";
 import { AuthBootstrap } from "./components/common/AuthBootstrap";
 import { PageLoader } from "./components/common/PageLoader";
+import { RootErrorBoundary } from "./components/common/RootErrorBoundary";
 import { ThemeSync } from "./components/common/ThemeSync";
 // i18n + dayjs config side-effect imports (store-aware kurulum).
 import "./lib/i18n";
@@ -25,22 +26,24 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeSync>
-        <BrowserRouter>
-          <AuthBootstrap>
-            <Suspense fallback={<PageLoader />}>
-              <App />
-            </Suspense>
-            <Toaster
-              position="top-right"
-              richColors
-              closeButton
-              theme="system"
-            />
-          </AuthBootstrap>
-        </BrowserRouter>
-      </ThemeSync>
-    </QueryClientProvider>
+    <RootErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeSync>
+          <BrowserRouter>
+            <AuthBootstrap>
+              <Suspense fallback={<PageLoader />}>
+                <App />
+              </Suspense>
+              <Toaster
+                position="top-right"
+                richColors
+                closeButton
+                theme="system"
+              />
+            </AuthBootstrap>
+          </BrowserRouter>
+        </ThemeSync>
+      </QueryClientProvider>
+    </RootErrorBoundary>
   </StrictMode>,
 );
