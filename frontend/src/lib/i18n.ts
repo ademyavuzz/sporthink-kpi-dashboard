@@ -14,6 +14,7 @@ import { useLanguageStore } from "@/stores/useLanguageStore";
  */
 
 const initialLang = useLanguageStore.getState().lang;
+document.documentElement.lang = initialLang;
 
 void i18n
   .use(HttpBackend)
@@ -50,6 +51,7 @@ void i18n
 useLanguageStore.subscribe((state, prev) => {
   if (state.lang !== prev.lang) {
     void i18n.changeLanguage(state.lang);
+    document.documentElement.lang = state.lang;
   }
 });
 
