@@ -1,10 +1,11 @@
 import type { ApexOptions } from "apexcharts";
 import { useMemo } from "react";
-import ReactApexChart from "react-apexcharts";
+import { ApexChart } from "./ApexChart";
 
 import { useChartTheme } from "@/hooks/useChartTheme";
 
 import { ChartEmpty, ChartLoading } from "./ChartEmpty";
+import { ChartErrorBoundary } from "./ChartErrorBoundary";
 
 interface BarChartProps {
   categories: string[];
@@ -15,6 +16,8 @@ interface BarChartProps {
   loading?: boolean;
   /** Bar üstünde değer etiketi göster (default: yatay bar'da true). */
   showValueLabel?: boolean;
+  /** Birden fazla seri varsa serileri üst üste stack et. */
+  stacked?: boolean;
 }
 
 /**
@@ -29,6 +32,7 @@ export function BarChart({
   valueFormatter,
   loading,
   showValueLabel,
+  stacked,
 }: BarChartProps) {
   const base = useChartTheme();
   // Yatay bar'da sayı etiketi göstermek varsayılan.
@@ -53,7 +57,7 @@ export function BarChart({
   const options = useMemo<ApexOptions>(
     () => ({
       ...base,
-      chart: { ...base.chart, type: "bar", height: computedHeight },
+      chart: { ...base.chart, type: "bar", height: computedHeight, stacked },
       plotOptions: {
         bar: {
           horizontal,
@@ -126,6 +130,7 @@ export function BarChart({
       valueFormatter,
       showLabel,
       series.length,
+      stacked,
     ],
   );
 
@@ -138,6 +143,13 @@ export function BarChart({
   }
 
   return (
-    <ReactApexChart options={options} series={series} type="bar" height={computedHeight} />
+    <ChartErrorBoundary height={computedHeight}>
+      <ApexChart
+        options={options}
+        series={series}
+        type="bar"
+        height={computedHeight}
+      />
+    </ChartErrorBoundary>
   );
 }

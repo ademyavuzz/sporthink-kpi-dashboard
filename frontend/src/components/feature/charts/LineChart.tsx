@@ -1,11 +1,12 @@
 import type { ApexOptions } from "apexcharts";
 import { useMemo } from "react";
-import ReactApexChart from "react-apexcharts";
+import { ApexChart } from "./ApexChart";
 
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { dayjs } from "@/lib/dayjs";
 
 import { ChartEmpty, ChartLoading } from "./ChartEmpty";
+import { ChartErrorBoundary } from "./ChartErrorBoundary";
 
 interface LineSeries {
   name: string;
@@ -136,5 +137,14 @@ export function LineChart({
   const totalPoints = series.reduce((sum, s) => sum + s.data.length, 0);
   if (totalPoints === 0) return <ChartEmpty height={height} />;
 
-  return <ReactApexChart options={options} series={series} type="area" height={height} />;
+  return (
+    <ChartErrorBoundary height={height}>
+      <ApexChart
+        options={options}
+        series={series}
+        type="area"
+        height={height}
+      />
+    </ChartErrorBoundary>
+  );
 }

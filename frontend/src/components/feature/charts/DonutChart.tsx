@@ -1,12 +1,13 @@
 import type { ApexOptions } from "apexcharts";
 import { useMemo } from "react";
-import ReactApexChart from "react-apexcharts";
+import { ApexChart } from "./ApexChart";
 
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { CHART_PALETTE } from "@/hooks/useChartTheme";
 import { cn } from "@/lib/utils";
 
 import { ChartEmpty, ChartLoading } from "./ChartEmpty";
+import { ChartErrorBoundary } from "./ChartErrorBoundary";
 
 interface DonutChartProps {
   labels: string[];
@@ -17,6 +18,10 @@ interface DonutChartProps {
   loading?: boolean;
   /** %2'den küçük slice'ları "Diğer" altında topla (default: true). */
   groupSmallSlices?: boolean;
+  /** Slice veya legend tıklandığında label döner; aynı label tekrar tıklanırsa null geçer (toggle). */
+  onSliceClick?: (label: string | null) => void;
+  /** Vurgulanacak label — diğer slice'lar soluk render edilir. */
+  selectedLabel?: string | null;
 }
 
 const SMALL_SLICE_THRESHOLD = 0.02; // %2
@@ -42,6 +47,8 @@ export function DonutChart({
   valueFormatter,
   loading,
   groupSmallSlices = true,
+  onSliceClick,
+  selectedLabel,
 }: DonutChartProps) {
   const base = useChartTheme();
 
@@ -55,11 +62,12 @@ export function DonutChart({
     const main: { label: string; value: number }[] = [];
     let other = 0;
     labels.forEach((label, i) => {
-      const ratio = values[i] / total;
+      const v = values[i] ?? 0;
+      const ratio = v / total;
       if (ratio < SMALL_SLICE_THRESHOLD) {
-        other += values[i];
+        other += v;
       } else {
-        main.push({ label, value: values[i] });
+        main.push({ label, value: v });
       }
     });
     if (other > 0) main.push({ label: "Diğer", value: other });
@@ -84,6 +92,15 @@ export function DonutChart({
         type: "donut",
         height,
         parentHeightOffset: 0,
+        events: onSliceClick
+          ? {
+              dataPointSelection: (_e, _ctx, config: { dataPointIndex: number }) => {
+                const label = displayLabels[config.dataPointIndex];
+                if (!label || label === "Diğer") return;
+                onSliceClick(selectedLabel === label ? null : label);
+              },
+            }
+          : undefined,
       },
       labels: displayLabels,
       stroke: { width: 2, colors: ["transparent"] },
@@ -143,24 +160,31 @@ export function DonutChart({
 
   // % bazlı dizilim — büyükten küçüğe.
   const items = displayLabels
-    .map((label, i) => ({
-      label,
-      value: displayValues[i],
-      pct: total > 0 ? (displayValues[i] / total) * 100 : 0,
-      color: CHART_PALETTE[i % CHART_PALETTE.length],
-    }))
+    .map((label, i) => {
+      const v = displayValues[i] ?? 0;
+      return {
+        label,
+        value: v,
+        pct: total > 0 ? (v / total) * 100 : 0,
+        color: CHART_PALETTE[i % CHART_PALETTE.length] ?? CHART_PALETTE[0]!,
+      };
+    })
     .sort((a, b) => b.pct - a.pct);
+
+  const isClickable = !!onSliceClick;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,180px)_1fr] sm:items-center">
       {/* Donut — sabit dar genişlik, SVG kendi merkez label'ı içinde */}
       <div className="mx-auto w-full max-w-[200px]">
-        <ReactApexChart
-          options={options}
-          series={displayValues}
-          type="donut"
-          height={height}
-        />
+        <ChartErrorBoundary height={height}>
+          <ApexChart
+            options={options}
+            series={displayValues}
+            type="donut"
+            height={height}
+          />
+        </ChartErrorBoundary>
       </div>
 
       {/* HTML legend — scrollable, full-label */}
@@ -168,32 +192,49 @@ export function DonutChart({
         className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1 text-sm"
         role="list"
       >
-        {items.map((it) => (
-          <li
-            key={it.label}
-            className={cn(
-              "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
-              "hover:bg-surface-2/50",
-            )}
-          >
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: it.color }}
-                aria-hidden="true"
-              />
-              <span className="truncate text-foreground" title={it.label}>
-                {it.label}
+        {items.map((it) => {
+          const dimmed =
+            selectedLabel !== null &&
+            selectedLabel !== undefined &&
+            selectedLabel !== it.label;
+          const active = selectedLabel === it.label;
+          return (
+            <li
+              key={it.label}
+              className={cn(
+                "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
+                "hover:bg-surface-2/50",
+                isClickable && "cursor-pointer",
+                active && "bg-surface-2",
+                dimmed && "opacity-40",
+              )}
+              onClick={
+                isClickable && it.label !== "Diğer"
+                  ? () => onSliceClick?.(active ? null : it.label)
+                  : undefined
+              }
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: it.color }}
+                  aria-hidden="true"
+                />
+                <span className="truncate text-foreground" title={it.label}>
+                  {it.label}
+                </span>
               </span>
-            </span>
-            <span className="flex shrink-0 items-baseline gap-2 text-xs tabular-nums">
-              <span className="font-semibold text-foreground">{fmt(it.value)}</span>
-              <span className="w-12 text-right text-text-muted">
-                {it.pct.toFixed(1).replace(".", ",")}%
+              <span className="flex shrink-0 items-baseline gap-2 text-xs tabular-nums">
+                <span className="font-semibold text-foreground">
+                  {fmt(it.value)}
+                </span>
+                <span className="w-12 text-right text-text-muted">
+                  {it.pct.toFixed(1).replace(".", ",")}%
+                </span>
               </span>
-            </span>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
