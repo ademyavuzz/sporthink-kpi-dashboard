@@ -47,5 +47,22 @@
   "page_overview_title": "Overview",
   "coming_soon": "Coming soon",
   "coming_soon_description": "This page will be implemented in later sprints.",
-  "info_about": "About"
+  "info_about": "About",
+  "date_range_start": "Start date",
+  "date_range_end": "End date",
+  "apply": "Apply",
+  "preset_today": "Today",
+  "preset_yesterday": "Yesterday",
+  "preset_last_7": "Last 7 Days",
+  "preset_last_14": "Last 14 Days",
+  "preset_last_28": "Last 28 Days",
+  "preset_last_30": "Last 30 Days",
+  "preset_last_90": "Last 90 Days",
+  "preset_this_month": "This Month",
+  "preset_last_month": "Last Month",
+  "preset_this_year": "This Year",
+  "preset_last_year": "Last Year",
+  "preset_custom": "Custom",
+  "other_bucket": "Other",
+  "total": "Total"
 }

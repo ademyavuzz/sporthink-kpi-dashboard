@@ -1,5 +1,6 @@
 import { Calendar as CalendarIcon, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,19 +32,20 @@ export interface DateRangeValue {
   date_to: string;
 }
 
-const PRESET_LABELS: Record<DatePresetId, string> = {
-  today: "Bugün",
-  yesterday: "Dün",
-  last_7: "Son 7 Gün",
-  last_14: "Son 14 Gün",
-  last_28: "Son 28 Gün",
-  last_30: "Son 30 Gün",
-  last_90: "Son 90 Gün",
-  this_month: "Bu Ay",
-  last_month: "Geçen Ay",
-  this_year: "Bu Yıl",
-  last_year: "Geçen Yıl",
-  custom: "Özel",
+/** i18n key suffix tablosu — `t('common:preset_${id}')` ile resolve edilir. */
+const PRESET_KEY: Record<DatePresetId, string> = {
+  today: "preset_today",
+  yesterday: "preset_yesterday",
+  last_7: "preset_last_7",
+  last_14: "preset_last_14",
+  last_28: "preset_last_28",
+  last_30: "preset_last_30",
+  last_90: "preset_last_90",
+  this_month: "preset_this_month",
+  last_month: "preset_last_month",
+  this_year: "preset_this_year",
+  last_year: "preset_last_year",
+  custom: "preset_custom",
 };
 
 /** Popover'da gösterilecek preset sırası — yaygın olanlar üstte, yıllık altta. */
@@ -147,6 +149,7 @@ interface DateRangePickerProps {
  * için iki date input + Apply butonu — Apply'a basana kadar kapanmaz.
  */
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+  const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
   // Custom için draft — Apply'a basılana kadar parent state'i kirletmez.
   const [draftFrom, setDraftFrom] = useState(value.date_from);
@@ -176,7 +179,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   };
 
   const display = `${dayjs(value.date_from).format("DD.MM.YYYY")} – ${dayjs(value.date_to).format("DD.MM.YYYY")}`;
-  const presetLabel = PRESET_LABELS[value.preset];
+  const presetLabel = t(PRESET_KEY[value.preset]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -224,7 +227,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                         : "bg-surface-2/60 text-text-muted hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    {PRESET_LABELS[p]}
+                    {t(PRESET_KEY[p])}
                   </button>
                 );
               })}
@@ -238,7 +241,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         {/* Custom range */}
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-text-dim">
-            {PRESET_LABELS.custom}
+            {t(PRESET_KEY.custom)}
           </p>
           <div className="flex items-center gap-2">
             <Input
@@ -247,7 +250,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               max={draftTo || undefined}
               onChange={(e) => setDraftFrom(e.target.value)}
               className="h-9 text-xs tabular-nums"
-              aria-label="Başlangıç tarihi"
+              aria-label={t("date_range_start")}
             />
             <span className="text-text-muted">–</span>
             <Input
@@ -256,7 +259,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               min={draftFrom || undefined}
               onChange={(e) => setDraftTo(e.target.value)}
               className="h-9 text-xs tabular-nums"
-              aria-label="Bitiş tarihi"
+              aria-label={t("date_range_end")}
             />
           </div>
           <div className="flex justify-end pt-1">
@@ -271,7 +274,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               }
               className="h-8 px-3 text-xs"
             >
-              Uygula
+              {t("apply")}
             </Button>
           </div>
         </div>

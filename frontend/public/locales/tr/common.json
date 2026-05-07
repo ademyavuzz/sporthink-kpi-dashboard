@@ -47,5 +47,22 @@
   "page_overview_title": "Genel Özet",
   "coming_soon": "Yakında",
   "coming_soon_description": "Bu sayfa sonraki sprint'lerde implemente edilecek.",
-  "info_about": "Hakkında"
+  "info_about": "Hakkında",
+  "date_range_start": "Başlangıç tarihi",
+  "date_range_end": "Bitiş tarihi",
+  "apply": "Uygula",
+  "preset_today": "Bugün",
+  "preset_yesterday": "Dün",
+  "preset_last_7": "Son 7 Gün",
+  "preset_last_14": "Son 14 Gün",
+  "preset_last_28": "Son 28 Gün",
+  "preset_last_30": "Son 30 Gün",
+  "preset_last_90": "Son 90 Gün",
+  "preset_this_month": "Bu Ay",
+  "preset_last_month": "Geçen Ay",
+  "preset_this_year": "Bu Yıl",
+  "preset_last_year": "Geçen Yıl",
+  "preset_custom": "Özel",
+  "other_bucket": "Diğer",
+  "total": "Toplam"
 }

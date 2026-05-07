@@ -1,5 +1,6 @@
 import type { ApexOptions } from "apexcharts";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ApexChart } from "./ApexChart";
 
 import { useChartTheme } from "@/hooks/useChartTheme";
@@ -43,14 +44,17 @@ export function DonutChart({
   labels,
   values,
   height = 320,
-  totalLabel = "Toplam",
+  totalLabel,
   valueFormatter,
   loading,
   groupSmallSlices = true,
   onSliceClick,
   selectedLabel,
 }: DonutChartProps) {
+  const { t } = useTranslation("common");
   const base = useChartTheme();
+  const otherLabel = t("other_bucket");
+  const resolvedTotalLabel = totalLabel ?? t("total");
 
   const { displayLabels, displayValues } = useMemo(() => {
     if (!groupSmallSlices || values.length <= 6) {
@@ -70,12 +74,12 @@ export function DonutChart({
         main.push({ label, value: v });
       }
     });
-    if (other > 0) main.push({ label: "Diğer", value: other });
+    if (other > 0) main.push({ label: otherLabel, value: other });
     return {
       displayLabels: main.map((m) => m.label),
       displayValues: main.map((m) => m.value),
     };
-  }, [labels, values, groupSmallSlices]);
+  }, [labels, values, groupSmallSlices, otherLabel]);
 
   const total = displayValues.reduce((a, b) => a + b, 0);
   const fmt = useMemo(
@@ -96,7 +100,7 @@ export function DonutChart({
           ? {
               dataPointSelection: (_e, _ctx, config: { dataPointIndex: number }) => {
                 const label = displayLabels[config.dataPointIndex];
-                if (!label || label === "Diğer") return;
+                if (!label || label === otherLabel) return;
                 onSliceClick(selectedLabel === label ? null : label);
               },
             }
@@ -129,7 +133,7 @@ export function DonutChart({
               total: {
                 show: true,
                 showAlways: true,
-                label: totalLabel,
+                label: resolvedTotalLabel,
                 fontSize: "12px",
                 fontWeight: 500,
                 color: base.theme?.mode === "dark" ? "#a1a1aa" : "#71717a",
@@ -150,7 +154,17 @@ export function DonutChart({
         },
       },
     }),
-    [base, height, displayLabels, total, totalLabel, fmt],
+    [
+      base,
+      height,
+      displayLabels,
+      total,
+      resolvedTotalLabel,
+      fmt,
+      onSliceClick,
+      selectedLabel,
+      otherLabel,
+    ],
   );
 
   if (loading) return <ChartLoading height={height} />;
@@ -209,7 +223,7 @@ export function DonutChart({
                 dimmed && "opacity-40",
               )}
               onClick={
-                isClickable && it.label !== "Diğer"
+                isClickable && it.label !== otherLabel
                   ? () => onSliceClick?.(active ? null : it.label)
                   : undefined
               }

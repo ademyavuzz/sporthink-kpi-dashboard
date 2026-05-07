@@ -3,7 +3,6 @@
   "TOKEN_EXPIRED": "Oturum süreniz doldu, tekrar giriş yapın.",
   "INVALID_CREDENTIALS": "E-posta veya şifre hatalı.",
   "ACCOUNT_LOCKED": "Hesabınız çok sayıda hatalı giriş nedeniyle geçici olarak kilitlendi. Lütfen sonra tekrar deneyin.",
-
   "PERMISSION_DENIED": "Bu işlem için yetkiniz yok.",
   "RESOURCE_NOT_FOUND": "Aradığınız kayıt bulunamadı.",
   "VALIDATION_ERROR": "Form hatası. Lütfen alanları kontrol edin.",
@@ -11,13 +10,15 @@
   "EMAIL_ALREADY_EXISTS": "Bu e-posta zaten kayıtlı.",
   "CONFLICT": "Bu kayıt zaten mevcut.",
   "RATE_LIMIT_EXCEEDED": "Çok fazla istek. Lütfen biraz bekleyin.",
-
   "INTERNAL_ERROR": "Bir hata oluştu. Lütfen tekrar deneyin.",
   "NETWORK_ERROR": "Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.",
-
   "form": {
     "required": "Bu alan zorunludur.",
     "email_invalid": "Geçerli bir e-posta adresi girin.",
     "password_required": "Şifre zorunludur."
-  }
+  },
+  "boundary_title": "Beklenmeyen bir hata oluştu",
+  "boundary_description": "Sayfa render edilemedi. Tekrar denemek için aşağıdaki butona tıklayın veya sayfayı yenileyin.",
+  "boundary_reload": "Sayfayı yenile",
+  "boundary_retry": "Tekrar dene"
 }

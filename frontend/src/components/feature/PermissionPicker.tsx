@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, KeyRound, Loader2, Settings, Shield, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ export function PermissionPicker({
   onChange,
   disabled,
 }: PermissionPickerProps) {
+  const { t } = useTranslation("admin");
   const q = useQuery({
     queryKey: ["permissions", "grouped"],
     queryFn: () => adminApi.listPermissions(),
@@ -72,7 +74,7 @@ export function PermissionPicker({
   if (!q.data) {
     return (
       <p className="text-sm text-destructive py-4 text-center">
-        İzin listesi yüklenemedi.
+        {t("permissions_load_failed")}
       </p>
     );
   }
