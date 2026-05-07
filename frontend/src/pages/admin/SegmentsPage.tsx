@@ -634,7 +634,7 @@ function SegmentBuilder({
                 size="icon"
                 onClick={() => removeRule(idx)}
                 disabled={rules.length === 1}
-                aria-label={t("common:delete", { defaultValue: "Sil" })}
+                aria-label={t("common:delete")}
                 className="size-8 shrink-0 text-text-muted hover:bg-error-500/10 hover:text-error-600 disabled:opacity-30"
               >
                 <Trash2 className="size-3.5" />
