@@ -3,6 +3,7 @@ import {
   ArrowUp,
   BarChart3,
   Eye,
+  Info,
   MousePointerClick,
   Package,
   Percent,
@@ -19,6 +20,11 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatChange, formatKPIValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { KPIResult } from "@/types/dashboard";
@@ -156,10 +162,16 @@ interface KPICardProps {
   compact?: boolean;
   /** İkon override — verilmezse `kpi.kpi_id`'ye göre otomatik seçilir. */
   icon?: IconCmp;
+  /**
+   * Sağ üstte info ikonu + tooltip. Boş geçerse otomatik olarak
+   * `kpi_help.<id>` locale key'inden çekilir. Açıklama yoksa ikon
+   * render edilmez.
+   */
+  info?: string;
 }
 
-export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
-  const { t } = useTranslation("dashboard");
+export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
 
   if (loading) return <KPICardSkeleton compact={compact} />;
 
@@ -169,6 +181,8 @@ export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
   const change = formatChange(kpi.change_percentage);
   const TrendIcon = kpi.direction === "down" ? ArrowDown : ArrowUp;
   const label = t(`kpi.${kpi.kpi_id}`, { defaultValue: kpi.label_tr });
+  const helpText =
+    info ?? t(`kpi_help.${kpi.kpi_id}`, { defaultValue: "" });
 
   return (
     <Card
@@ -198,6 +212,24 @@ export function KPICard({ kpi, loading, compact, icon }: KPICardProps) {
           >
             {label}
           </p>
+          {helpText && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t("common:info_about", {
+                    defaultValue: "Hakkında",
+                  })}
+                  className="shrink-0 rounded-full p-0.5 text-text-muted/60 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Info className="size-3.5" strokeWidth={2.2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="end" className="max-w-[260px]">
+                {helpText}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         <div className="mt-2.5 flex items-baseline justify-between gap-2">
