@@ -33,9 +33,11 @@ export default function FunnelPage() {
   const isLoading = q.isPending;
 
   // Genel dönüşüm: ilk adım → son adım
+  const firstStep = steps[0];
+  const lastStep = steps[steps.length - 1];
   const overallConversion =
-    steps.length >= 2 && steps[0].count > 0
-      ? (steps[steps.length - 1].count / steps[0].count) * 100
+    firstStep && lastStep && firstStep.count > 0
+      ? (lastStep.count / firstStep.count) * 100
       : null;
 
   return (

@@ -23,7 +23,10 @@ import { formatChange, formatKPIValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { KPIResult } from "@/types/dashboard";
 
-type IconCmp = React.ComponentType<{ className?: string }>;
+type IconCmp = React.ComponentType<{
+  className?: string;
+  strokeWidth?: number | string;
+}>;
 
 /** kpi_id → semantic ikon mapping. */
 const ICON_REGISTRY: Record<string, IconCmp> = {

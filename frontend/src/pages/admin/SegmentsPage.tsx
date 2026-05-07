@@ -115,8 +115,13 @@ const RFM_TONE: Record<
   },
 };
 
-function rfmTone(segment: string) {
-  return RFM_TONE[segment] ?? RFM_TONE.Other;
+const RFM_TONE_FALLBACK = {
+  dot: "bg-slate-400",
+  chip: "bg-muted text-text-muted",
+};
+
+function rfmTone(segment: string): { dot: string; chip: string } {
+  return RFM_TONE[segment] ?? RFM_TONE_FALLBACK;
 }
 
 export default function SegmentsPage() {

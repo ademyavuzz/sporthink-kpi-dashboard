@@ -10,7 +10,6 @@ import {
   Loader2,
   Play,
   Sparkles,
-  Trash2,
   Upload,
   X,
   XCircle,
@@ -538,7 +537,7 @@ function PreviewStep({
 
           <div className="grid grid-cols-3 gap-3">
             <MiniStat
-              label={t("wizard.preview_summary").split(":")[0]}
+              label={t("wizard.preview_summary").split(":")[0] ?? ""}
               value={preview.summary.previewed_rows}
               tone="info"
             />
