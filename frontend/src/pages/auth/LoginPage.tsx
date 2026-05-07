@@ -116,7 +116,7 @@ export default function LoginPage() {
                   : "text-text-muted hover:text-foreground",
               )}
             >
-              {l === "tr" ? "🇹🇷 TR" : "🇬🇧 EN"}
+              {l === "tr" ? "TR" : "EN"}
             </button>
           ))}
         </div>
