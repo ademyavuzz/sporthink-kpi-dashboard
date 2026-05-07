@@ -33,7 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.exceptions import ConflictError, SporthinkException
+from app.core.exceptions import ConflictError, ResourceNotFoundError, SporthinkException
 from app.models import (
     Campaign,
     Customer,
@@ -730,7 +730,7 @@ async def delete_import(
     """
     existing = await import_repository.get_by_id(db, import_id)
     if existing is None:
-        raise ConflictError("Import not found")
+        raise ResourceNotFoundError("Import not found")
 
     config = get_config(existing.data_type)
     if config is not None:
