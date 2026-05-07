@@ -46,6 +46,8 @@ from app.schemas.kpi import (
     CustomerTypeRevenue,
     DailySeriesPoint,
     DateRange,
+    FunnelDropoffPoint,
+    FunnelGroup,
     FunnelStep,
     KPIResult,
     KPISummary,
@@ -214,6 +216,20 @@ async def kpi_sessions(
         platforms=[KPIPlatform.GA4],
     )
     return _build_result("sessions", cur, p)
+
+
+async def total_ga4_sessions(
+    db: AsyncSession, *, date_from: date, date_to: date
+) -> int:
+    """GA4 toplam oturum (raw int, KPIResult değil) — funnel başlangıç noktası."""
+    total = await agg_repo.sum_metric_daily(
+        db,
+        "sessions",
+        date_from=date_from,
+        date_to=date_to,
+        platforms=[KPIPlatform.GA4],
+    )
+    return int(total or 0)
 
 
 async def kpi_users(db: AsyncSession, *, date_from: date, date_to: date, **prev: date) -> KPIResult:
@@ -1238,10 +1254,13 @@ def _build_campaign_metric(row: Any, platform: str) -> CampaignMetric:
     cpc = (spend / Decimal(clicks)).quantize(Decimal("0.0001")) if clicks > 0 else None
     roas = (conv_value / spend).quantize(Decimal("0.0001")) if spend > 0 else None
 
+    objective = getattr(row, "objective", None)
+
     return CampaignMetric(
         campaign_id=int(row.pk_id),
         campaign_name=row.campaign_name,
         platform=platform,
+        objective=objective,
         impressions=impressions,
         clicks=clicks,
         spend=spend.quantize(Decimal("0.01")),
@@ -1281,6 +1300,7 @@ async def campaign_performance(
             select(
                 MetaAds.campaign_pk_id.label("pk_id"),
                 func.max(MetaAds.campaign_name).label("campaign_name"),
+                func.max(MetaAds.objective).label("objective"),
                 func.coalesce(func.sum(MetaAds.impressions), 0).label("impressions"),
                 func.coalesce(func.sum(MetaAds.clicks), 0).label("clicks"),
                 func.coalesce(func.sum(MetaAds.spend), 0).label("spend"),
@@ -1338,6 +1358,170 @@ async def campaign_performance(
         reverse=True,
     )
     return metrics[:limit] if limit else metrics
+
+
+async def google_channel_breakdown(
+    db: AsyncSession, *, date_from: date, date_to: date
+) -> list[dict[str, Any]]:
+    """Google Ads `advertising_channel_type` (search/shopping/pmax/display/video)
+    bazında harcama, gösterim, tıklama ve dönüşüm dağılımı.
+
+    `dashboard.py` bu veriyi `GoogleChannelTypeBreakdown` schema'sına paketler.
+    NULL `advertising_channel_type` satırları "unknown" anahtarı altında toplanır
+    (frontend bunu "Diğer/Tanımsız" olarak gösterir).
+    """
+    from app.models import GoogleAds
+
+    stmt = (
+        select(
+            GoogleAds.advertising_channel_type.label("channel_type"),
+            func.coalesce(func.sum(GoogleAds.cost), 0).label("spend"),
+            func.coalesce(func.sum(GoogleAds.impressions), 0).label("impressions"),
+            func.coalesce(func.sum(GoogleAds.clicks), 0).label("clicks"),
+            func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
+        )
+        .where(and_(GoogleAds.date >= date_from, GoogleAds.date <= date_to))
+        .group_by(GoogleAds.advertising_channel_type)
+        .order_by(func.coalesce(func.sum(GoogleAds.cost), 0).desc())
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "channel_type": (
+                r.channel_type.value if hasattr(r.channel_type, "value") else r.channel_type
+            ),
+            "spend": Decimal(str(r.spend)).quantize(Decimal("0.01")),
+            "impressions": int(r.impressions),
+            "clicks": int(r.clicks),
+            "conversions": Decimal(str(r.conversions)).quantize(Decimal("0.01")),
+            "conversions_value": Decimal(str(r.conversions_value)).quantize(Decimal("0.01")),
+        }
+        for r in rows
+    ]
+
+
+async def google_top_keywords(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Google Ads en performanslı `limit` anahtar kelime — Search kampanyaları.
+
+    Boş/NULL `keyword_text` satırları (Shopping, PMax) hariç tutulur. Harcamaya
+    göre sıralanır. CTR yüzde (0-100), CPC ve ROAS sıfır bölme korumalı.
+    """
+    from app.models import GoogleAds
+
+    stmt = (
+        select(
+            GoogleAds.keyword_text.label("keyword"),
+            func.max(GoogleAds.keyword_match_type).label("match_type"),
+            func.coalesce(func.sum(GoogleAds.clicks), 0).label("clicks"),
+            func.coalesce(func.sum(GoogleAds.impressions), 0).label("impressions"),
+            func.coalesce(func.sum(GoogleAds.cost), 0).label("spend"),
+            func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
+        )
+        .where(
+            and_(
+                GoogleAds.date >= date_from,
+                GoogleAds.date <= date_to,
+                GoogleAds.keyword_text.is_not(None),
+                GoogleAds.keyword_text != "",
+            )
+        )
+        .group_by(GoogleAds.keyword_text)
+        .order_by(func.coalesce(func.sum(GoogleAds.cost), 0).desc())
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).all()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        impressions = int(r.impressions)
+        clicks = int(r.clicks)
+        spend = Decimal(str(r.spend))
+        conv_value = Decimal(str(r.conversions_value))
+        ctr = (
+            (Decimal(clicks) / Decimal(impressions) * 100).quantize(Decimal("0.01"))
+            if impressions > 0
+            else None
+        )
+        cpc = (spend / Decimal(clicks)).quantize(Decimal("0.01")) if clicks > 0 else None
+        roas = (conv_value / spend).quantize(Decimal("0.0001")) if spend > 0 else None
+        match_type = r.match_type.value if hasattr(r.match_type, "value") else r.match_type
+        out.append(
+            {
+                "keyword": str(r.keyword),
+                "match_type": match_type,
+                "clicks": clicks,
+                "impressions": impressions,
+                "ctr": ctr,
+                "cpc": cpc,
+                "conversions": Decimal(str(r.conversions)).quantize(Decimal("0.01")),
+                "roas": roas,
+            }
+        )
+    return out
+
+
+async def google_top_products(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Google Ads en performanslı `limit` ürün — Shopping ve Performance Max.
+
+    Boş/NULL `product_item_id` satırları (Search) hariç tutulur. Harcamaya göre
+    sıralanır. ROAS sıfır bölme korumalı.
+    """
+    from app.models import GoogleAds
+
+    stmt = (
+        select(
+            GoogleAds.product_item_id.label("product_id"),
+            func.max(GoogleAds.product_title).label("product_name"),
+            func.coalesce(func.sum(GoogleAds.impressions), 0).label("impressions"),
+            func.coalesce(func.sum(GoogleAds.clicks), 0).label("clicks"),
+            func.coalesce(func.sum(GoogleAds.cost), 0).label("spend"),
+            func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
+        )
+        .where(
+            and_(
+                GoogleAds.date >= date_from,
+                GoogleAds.date <= date_to,
+                GoogleAds.product_item_id.is_not(None),
+                GoogleAds.product_item_id != "",
+            )
+        )
+        .group_by(GoogleAds.product_item_id)
+        .order_by(func.coalesce(func.sum(GoogleAds.cost), 0).desc())
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).all()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        spend = Decimal(str(r.spend))
+        conv_value = Decimal(str(r.conversions_value))
+        roas = (conv_value / spend).quantize(Decimal("0.0001")) if spend > 0 else None
+        out.append(
+            {
+                "product_id": str(r.product_id),
+                "product_name": r.product_name,
+                "impressions": int(r.impressions),
+                "clicks": int(r.clicks),
+                "conversions": Decimal(str(r.conversions)).quantize(Decimal("0.01")),
+                "spend": spend.quantize(Decimal("0.01")),
+                "conversions_value": conv_value.quantize(Decimal("0.01")),
+                "roas": roas,
+            }
+        )
+    return out
 
 
 async def new_vs_returning_revenue(
@@ -1470,6 +1654,171 @@ async def funnel_steps(db: AsyncSession, *, date_from: date, date_to: date) -> l
     ]
 
 
+# Cihaz/kanal kırılımları için sabit etiket/anahtar tabloları.
+_DEVICE_KEYS: tuple[tuple[str, str], ...] = (
+    ("mobile", "Mobil"),
+    ("desktop", "Masaüstü"),
+    ("tablet", "Tablet"),
+)
+_CHANNEL_KEYS: tuple[tuple[str, str, str], ...] = (
+    # (key, db_value, label_tr) — `derived_channel` (channel_mapping.csv) ile eşleşir.
+    ("organic_search", "Organic Search", "Organik Arama"),
+    ("paid_search", "Paid Search", "Ücretli Arama"),
+    ("paid_social", "Paid Social", "Ücretli Sosyal"),
+)
+
+
+def _build_steps_from_counts(view: int, cart: int, checkout: int, purchase: int) -> list[FunnelStep]:
+    def drop(prev: int, curr: int) -> Decimal | None:
+        if prev <= 0:
+            return None
+        return _quantize(Decimal(prev - curr) / Decimal(prev) * 100)
+
+    return [
+        FunnelStep(step="view", label_tr="Görüntüleme", count=view, drop_from_previous_pct=None),
+        FunnelStep(
+            step="add_to_cart",
+            label_tr="Sepete Ekleme",
+            count=cart,
+            drop_from_previous_pct=drop(view, cart),
+        ),
+        FunnelStep(
+            step="checkout",
+            label_tr="Ödeme Başlatma",
+            count=checkout,
+            drop_from_previous_pct=drop(cart, checkout),
+        ),
+        FunnelStep(
+            step="purchase",
+            label_tr="Satın Alma",
+            count=purchase,
+            drop_from_previous_pct=drop(checkout, purchase),
+        ),
+    ]
+
+
+async def funnel_by_device(
+    db: AsyncSession, *, date_from: date, date_to: date
+) -> list[FunnelGroup]:
+    """Cihaz bazında funnel — `ga4_traffic` session payı ile orantısal split.
+
+    `ga4_item_engagement` raw'da cihaz kırılımı yok; `ga4_traffic`'ten her
+    cihazın session oranını alıp toplam funnel sayılarını proportional dağıtır.
+    Yaklaşımın doğal sınırı: cihazlar arası dönüşüm farklılıkları temsil edilmez,
+    sadece hacim payı yansıtılır. Karşılaştırmalı UI için yeterli yaklaşıklık.
+    """
+    from app.models import GA4Traffic
+
+    totals = await funnel_steps(db, date_from=date_from, date_to=date_to)
+    counts = [s.count for s in totals]
+
+    stmt = (
+        select(
+            GA4Traffic.device_category,
+            func.coalesce(func.sum(GA4Traffic.sessions), 0),
+        )
+        .where(and_(GA4Traffic.date >= date_from, GA4Traffic.date <= date_to))
+        .group_by(GA4Traffic.device_category)
+    )
+    rows = (await db.execute(stmt)).all()
+    by_device = {str(r[0]): int(r[1]) for r in rows}
+    total_sessions = sum(by_device.values()) or 1
+
+    groups: list[FunnelGroup] = []
+    for key, label in _DEVICE_KEYS:
+        share = Decimal(by_device.get(key, 0)) / Decimal(total_sessions)
+        scaled = [int(Decimal(c) * share) for c in counts]
+        groups.append(
+            FunnelGroup(
+                key=key,
+                label_tr=label,
+                steps=_build_steps_from_counts(*scaled),
+            )
+        )
+    return groups
+
+
+async def funnel_by_channel(
+    db: AsyncSession, *, date_from: date, date_to: date
+) -> list[FunnelGroup]:
+    """Kanal bazında funnel — Organik Arama / Ücretli Arama / Ücretli Sosyal.
+
+    `ga4_item_engagement` kanal kırılımı içermediği için cihazda olduğu gibi
+    proportional split kullanılır. Kanal kolonu `_channel_expr()` ile alınır
+    (default_channel_group → derived_channel fallback'i): seed/import sürecinde
+    `derived_channel` doldurulmamış olsa bile session payı doğru hesaplanır.
+    """
+    from app.models import GA4Traffic
+
+    totals = await funnel_steps(db, date_from=date_from, date_to=date_to)
+    counts = [s.count for s in totals]
+
+    channel_col = _channel_expr()
+    stmt = (
+        select(
+            channel_col.label("channel"),
+            func.coalesce(func.sum(GA4Traffic.sessions), 0),
+        )
+        .where(and_(GA4Traffic.date >= date_from, GA4Traffic.date <= date_to))
+        .group_by(channel_col)
+    )
+    rows = (await db.execute(stmt)).all()
+    by_channel = {str(r[0] or ""): int(r[1]) for r in rows}
+    total_sessions = sum(by_channel.values()) or 1
+
+    groups: list[FunnelGroup] = []
+    for key, db_value, label in _CHANNEL_KEYS:
+        share = Decimal(by_channel.get(db_value, 0)) / Decimal(total_sessions)
+        scaled = [int(Decimal(c) * share) for c in counts]
+        groups.append(
+            FunnelGroup(
+                key=key,
+                label_tr=label,
+                steps=_build_steps_from_counts(*scaled),
+            )
+        )
+    return groups
+
+
+async def funnel_dropoff_daily(
+    db: AsyncSession, *, date_from: date, date_to: date
+) -> list[FunnelDropoffPoint]:
+    """Drop-off oranlarının günlük trendi (line chart için)."""
+    stmt = (
+        select(
+            GA4ItemEngagement.date,
+            func.coalesce(func.sum(GA4ItemEngagement.items_viewed), 0),
+            func.coalesce(func.sum(GA4ItemEngagement.items_added_to_cart), 0),
+            func.coalesce(func.sum(GA4ItemEngagement.items_checked_out), 0),
+            func.coalesce(func.sum(GA4ItemEngagement.items_purchased), 0),
+        )
+        .where(
+            and_(
+                GA4ItemEngagement.date >= date_from,
+                GA4ItemEngagement.date <= date_to,
+            )
+        )
+        .group_by(GA4ItemEngagement.date)
+        .order_by(GA4ItemEngagement.date)
+    )
+    rows = (await db.execute(stmt)).all()
+
+    def drop(prev: int, curr: int) -> Decimal | None:
+        if prev <= 0:
+            return None
+        return _quantize(Decimal(prev - curr) / Decimal(prev) * 100)
+
+    return [
+        FunnelDropoffPoint(
+            date=r[0],
+            view_to_cart_pct=drop(int(r[1]), int(r[2])),
+            cart_to_checkout_pct=drop(int(r[2]), int(r[3])),
+            checkout_to_purchase_pct=drop(int(r[3]), int(r[4])),
+        )
+        for r in rows
+    ]
+
+
 async def top_products(
     db: AsyncSession, *, date_from: date, date_to: date, limit: int = 20
 ) -> list[TopProductRow]:
@@ -1552,6 +1901,345 @@ async def ga4_traffic_by_city(
     )
     rows = (await db.execute(stmt)).all()
     return [{"city": r[0], "sessions": Decimal(str(r[1] or 0))} for r in rows]
+
+
+# ---------------------------------------------------------------------- #
+# Trafik (Traffic) sayfası — filtre destekli GA4Traffic helper'ları
+# ---------------------------------------------------------------------- #
+#
+# `docs/07` §7.5.2 + `docs/09` §9.3 tek doğru kaynak.
+#
+# Trafik sayfası KPI/chart/tablolarını tek noktada hesaplayan bu blok
+# `kpi_daily_aggregates` yerine `GA4Traffic` ham tablosundan okur — bunun
+# nedeni `kpi_daily_aggregates`'in channel/device/city kırılımına sahip
+# olmaması. Filtre uygulanmadığında sayılar agregat tablosuyla aynı
+# (ufak quantize farkları olabilir).
+#
+# Filter param semantiği:
+# - `channels`: COALESCE(default_channel_group, derived_channel) eşleşmesi.
+# - `devices`: GA4Traffic.device_category enum değerine.
+# - `cities`: GA4Traffic.city eşitliği (NULL şehirler hariç).
+# Üç filtre AND ile birleştirilir; hiçbirinin verilmemesi = filtre yok.
+
+
+def _channel_expr() -> Any:
+    """Kanal kolon expression'u — `default_channel_group` öncelik, yoksa
+    `derived_channel`, ikisi de yoksa "(not set)" string'i."""
+    from app.models import GA4Traffic
+
+    return func.coalesce(
+        GA4Traffic.session_default_channel_group,
+        GA4Traffic.derived_channel,
+        "(not set)",
+    )
+
+
+def _apply_traffic_filters(
+    stmt: Any,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None,
+    devices: list[str] | None,
+    cities: list[str] | None,
+) -> Any:
+    """Tarih aralığı + opsiyonel channel/device/city filtrelerini stmt'e ekler."""
+    from app.models import GA4Traffic
+
+    conds = [GA4Traffic.date >= date_from, GA4Traffic.date <= date_to]
+    if channels:
+        conds.append(_channel_expr().in_(channels))
+    if devices:
+        conds.append(GA4Traffic.device_category.in_(devices))
+    if cities:
+        conds.append(GA4Traffic.city.in_(cities))
+    return stmt.where(and_(*conds))
+
+
+async def _traffic_aggregate_metrics(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None,
+    devices: list[str] | None,
+    cities: list[str] | None,
+) -> dict[str, Decimal]:
+    """Filtreli GA4Traffic toplamları — KPI hesabı için 7 ana metrik.
+
+    Bounce_sessions ≈ bounce_rate × sessions weighted toplamı (her satırın
+    bounce_rate'i 0–1 arasıdır). Page views = pages_per_session × sessions.
+    """
+    from app.models import GA4Traffic
+
+    sessions_col = func.coalesce(func.sum(GA4Traffic.sessions), 0)
+    users_col = func.coalesce(func.sum(GA4Traffic.total_users), 0)
+    new_users_col = func.coalesce(func.sum(GA4Traffic.new_users), 0)
+    bounce_sessions_col = func.coalesce(
+        func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0
+    )
+    page_views_col = func.coalesce(
+        func.sum(GA4Traffic.screen_page_views_per_session * GA4Traffic.sessions), 0
+    )
+    duration_col = func.coalesce(func.sum(GA4Traffic.user_engagement_duration), 0)
+    transactions_col = func.coalesce(func.sum(GA4Traffic.transactions), 0)
+
+    stmt = select(
+        sessions_col.label("sessions"),
+        users_col.label("users"),
+        new_users_col.label("new_users"),
+        bounce_sessions_col.label("bounce_sessions"),
+        page_views_col.label("page_views"),
+        duration_col.label("duration"),
+        transactions_col.label("transactions"),
+    )
+    stmt = _apply_traffic_filters(
+        stmt,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+    row = (await db.execute(stmt)).one()
+    return {
+        "sessions": Decimal(str(row.sessions or 0)),
+        "users": Decimal(str(row.users or 0)),
+        "new_users": Decimal(str(row.new_users or 0)),
+        "bounce_sessions": Decimal(str(row.bounce_sessions or 0)),
+        "page_views": Decimal(str(row.page_views or 0)),
+        "duration": Decimal(str(row.duration or 0)),
+        "transactions": Decimal(str(row.transactions or 0)),
+    }
+
+
+async def traffic_page_kpis(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    prev_from: date,
+    prev_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    cities: list[str] | None = None,
+) -> dict[str, KPIResult]:
+    """Trafik sayfasının 7 KPI'sını filtre kapsamında hesaplar.
+
+    Dönen dict anahtarları: sessions, users, new_users, bounce_rate,
+    pages_per_session, avg_session_duration, conversion_rate.
+    """
+    cur = await _traffic_aggregate_metrics(
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+    prev = await _traffic_aggregate_metrics(
+        db,
+        date_from=prev_from,
+        date_to=prev_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+
+    def _bounce_pct(m: dict[str, Decimal]) -> Decimal | None:
+        ratio = _safe_div(m["bounce_sessions"], m["sessions"])
+        return _quantize(ratio * 100) if ratio is not None else None
+
+    def _pps(m: dict[str, Decimal]) -> Decimal | None:
+        return _quantize(_safe_div(m["page_views"], m["sessions"]))
+
+    def _avg_dur(m: dict[str, Decimal]) -> Decimal | None:
+        return _quantize(_safe_div(m["duration"], m["sessions"]))
+
+    def _cvr(m: dict[str, Decimal]) -> Decimal | None:
+        ratio = _safe_div(m["transactions"], m["sessions"])
+        return _quantize(ratio * 100) if ratio is not None else None
+
+    return {
+        "sessions": _build_result("sessions", cur["sessions"], prev["sessions"]),
+        "users": _build_result("users", cur["users"], prev["users"]),
+        "new_users": _build_result("new_users", cur["new_users"], prev["new_users"]),
+        "bounce_rate": _build_result("bounce_rate", _bounce_pct(cur), _bounce_pct(prev)),
+        "pages_per_session": _build_result(
+            "pages_per_session", _pps(cur), _pps(prev)
+        ),
+        "avg_session_duration": _build_result(
+            "avg_session_duration", _avg_dur(cur), _avg_dur(prev)
+        ),
+        "conversion_rate": _build_result("conversion_rate", _cvr(cur), _cvr(prev)),
+    }
+
+
+async def traffic_daily_series(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    cities: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Filtreli günlük sessions/users/new_users serisi (combo line için)."""
+    from app.models import GA4Traffic
+
+    stmt = (
+        select(
+            GA4Traffic.date.label("date"),
+            func.coalesce(func.sum(GA4Traffic.sessions), 0).label("sessions"),
+            func.coalesce(func.sum(GA4Traffic.total_users), 0).label("users"),
+            func.coalesce(func.sum(GA4Traffic.new_users), 0).label("new_users"),
+        )
+        .group_by(GA4Traffic.date)
+        .order_by(GA4Traffic.date)
+    )
+    stmt = _apply_traffic_filters(
+        stmt,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "date": r.date,
+            "sessions": int(r.sessions or 0),
+            "users": int(r.users or 0),
+            "new_users": int(r.new_users or 0),
+        }
+        for r in rows
+    ]
+
+
+async def traffic_by_dimension(
+    db: AsyncSession,
+    dimension: Literal["channel", "device", "city"],
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    cities: list[str] | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Kanal/cihaz/şehir × oturum kırılımı (bar/donut chart için)."""
+    from app.models import GA4Traffic
+
+    if dimension == "channel":
+        col = _channel_expr()
+    elif dimension == "device":
+        col = GA4Traffic.device_category
+    else:
+        col = GA4Traffic.city
+
+    stmt = (
+        select(
+            col.label("label"),
+            func.coalesce(func.sum(GA4Traffic.sessions), 0).label("sessions"),
+        )
+        .group_by(col)
+        .order_by(func.sum(GA4Traffic.sessions).desc())
+        .limit(limit)
+    )
+    stmt = _apply_traffic_filters(
+        stmt,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+    if dimension == "city":
+        stmt = stmt.where(GA4Traffic.city.isnot(None))
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "label": str(r.label) if r.label is not None else None,
+            "value": Decimal(str(r.sessions or 0)),
+        }
+        for r in rows
+    ]
+
+
+async def traffic_landing_pages(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    cities: list[str] | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Top N landing page performans satırları (filtre kapsamında).
+
+    Bounce rate ve avg_session_duration page-path bazında weighted-avg;
+    conversion_rate = transactions / sessions × 100.
+    """
+    from app.models import GA4Traffic
+
+    sessions_col = func.coalesce(func.sum(GA4Traffic.sessions), 0)
+    users_col = func.coalesce(func.sum(GA4Traffic.total_users), 0)
+    bounce_sessions_col = func.coalesce(
+        func.sum(GA4Traffic.bounce_rate * GA4Traffic.sessions), 0
+    )
+    duration_col = func.coalesce(func.sum(GA4Traffic.user_engagement_duration), 0)
+    transactions_col = func.coalesce(func.sum(GA4Traffic.transactions), 0)
+
+    stmt = (
+        select(
+            GA4Traffic.landing_page_plus_query_string.label("page_path"),
+            sessions_col.label("sessions"),
+            users_col.label("users"),
+            bounce_sessions_col.label("bounce_sessions"),
+            duration_col.label("duration"),
+            transactions_col.label("transactions"),
+        )
+        .group_by(GA4Traffic.landing_page_plus_query_string)
+        .order_by(sessions_col.desc())
+        .limit(limit)
+    )
+    stmt = _apply_traffic_filters(
+        stmt,
+        date_from=date_from,
+        date_to=date_to,
+        channels=channels,
+        devices=devices,
+        cities=cities,
+    )
+    stmt = stmt.where(GA4Traffic.landing_page_plus_query_string.isnot(None))
+    rows = (await db.execute(stmt)).all()
+
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        sessions_v = int(r.sessions or 0)
+        if sessions_v == 0:
+            continue
+        sessions_dec = Decimal(str(sessions_v))
+        bounce_pct = _quantize(
+            Decimal(str(r.bounce_sessions or 0)) / sessions_dec * 100
+        )
+        avg_dur = _quantize(Decimal(str(r.duration or 0)) / sessions_dec)
+        cvr = _quantize(
+            Decimal(str(r.transactions or 0)) / sessions_dec * 100
+        )
+        out.append(
+            {
+                "page_path": str(r.page_path),
+                "sessions": sessions_v,
+                "users": int(r.users or 0),
+                "bounce_rate": bounce_pct,
+                "avg_session_duration": avg_dur,
+                "conversion_rate": cvr,
+            }
+        )
+    return out
 
 
 async def top_categories_brands(

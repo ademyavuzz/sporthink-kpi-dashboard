@@ -62,7 +62,21 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [self.frontend_origin]
+        """Geliştirme modunda lokal Vite dev server ve proxy origin'leri de
+        allowlist'e eklenir. Production'da yalnızca FRONTEND_ORIGIN geçerlidir.
+        """
+        origins: list[str] = [self.frontend_origin]
+        if not self.is_production:
+            origins.extend(
+                [
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "http://localhost:8080",
+                    "http://127.0.0.1:8080",
+                ]
+            )
+        seen: set[str] = set()
+        return [o for o in origins if not (o in seen or seen.add(o))]
 
     @property
     def effective_mail_from(self) -> str:
