@@ -128,6 +128,64 @@ async def get_filter_cities(
     return SuccessEnvelope(data=items)
 
 
+@router.get(
+    "/filters/categories",
+    response_model=SuccessEnvelope[list[str]],
+    summary="Distinct ürün kategorisi listesi",
+)
+async def get_filter_categories(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[list[str]]:
+    cached = await cache.get_json(cache_keys.filter_categories())
+    if cached is not None:
+        return SuccessEnvelope(data=cached)
+    items = await filter_service.distinct_categories(db)
+    await cache.set_json(
+        cache_keys.filter_categories(), items, ttl=cache_keys.TTL_FILTERS
+    )
+    return SuccessEnvelope(data=items)
+
+
+@router.get(
+    "/filters/brands",
+    response_model=SuccessEnvelope[list[str]],
+    summary="Distinct marka listesi",
+)
+async def get_filter_brands(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[list[str]]:
+    cached = await cache.get_json(cache_keys.filter_brands())
+    if cached is not None:
+        return SuccessEnvelope(data=cached)
+    items = await filter_service.distinct_brands(db)
+    await cache.set_json(cache_keys.filter_brands(), items, ttl=cache_keys.TTL_FILTERS)
+    return SuccessEnvelope(data=items)
+
+
+@router.get(
+    "/filters/payment-methods",
+    response_model=SuccessEnvelope[list[str]],
+    summary="Sipariş ödeme yöntemi enum listesi",
+)
+async def get_filter_payment_methods(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.order_payment_methods())
+
+
+@router.get(
+    "/filters/order-statuses",
+    response_model=SuccessEnvelope[list[str]],
+    summary="Sipariş durumu enum listesi",
+)
+async def get_filter_order_statuses(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.order_statuses())
+
+
 # ---------------------------------------------------------------------- #
 # /admin/aggregations/rebuild
 # ---------------------------------------------------------------------- #
@@ -219,6 +277,7 @@ async def create_channel_mapping(
     db.add(row)
     await db.flush()
     await db.commit()
+    await db.refresh(row)
     await cache.delete(cache_keys.channel_mapping_list())
     return SuccessEnvelope(data=ChannelMappingItem.model_validate(row))
 
@@ -242,6 +301,7 @@ async def update_channel_mapping(
         row.notes = payload.notes
     row.updated_by = current.id
     await db.commit()
+    await db.refresh(row)
     await cache.delete(cache_keys.channel_mapping_list())
     return SuccessEnvelope(data=ChannelMappingItem.model_validate(row))
 
@@ -609,6 +669,7 @@ async def create_segment(
     except Exception:  # noqa: BLE001
         seg.cached_count = None
     await db.commit()
+    await db.refresh(seg)
     return SuccessEnvelope(data=SegmentItem.model_validate(seg))
 
 
@@ -664,6 +725,7 @@ async def update_segment(
         seg.is_shared = payload.is_shared
     seg.updated_by = current.id
     await db.commit()
+    await db.refresh(seg)
     return SuccessEnvelope(data=SegmentItem.model_validate(seg))
 
 
@@ -754,6 +816,7 @@ async def create_saved_view(
     db.add(sv)
     await db.flush()
     await db.commit()
+    await db.refresh(sv)
     return SuccessEnvelope(data=SavedViewItem.model_validate(sv))
 
 
@@ -780,6 +843,7 @@ async def update_saved_view(
         sv.is_default = payload.is_default
     sv.updated_by = current.id
     await db.commit()
+    await db.refresh(sv)
     return SuccessEnvelope(data=SavedViewItem.model_validate(sv))
 
 

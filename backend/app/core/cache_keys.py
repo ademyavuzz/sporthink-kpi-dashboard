@@ -115,6 +115,22 @@ def filter_cities() -> str:
     return "filters:cities"
 
 
+def filter_categories() -> str:
+    return "filters:categories"
+
+
+def filter_brands() -> str:
+    return "filters:brands"
+
+
+def filter_payment_methods() -> str:
+    return "filters:payment_methods"
+
+
+def filter_order_statuses() -> str:
+    return "filters:order_statuses"
+
+
 # --- Statik ---
 
 

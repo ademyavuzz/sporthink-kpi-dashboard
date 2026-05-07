@@ -40,6 +40,22 @@ export const adminApi = {
     const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/cities");
     return unwrap(r);
   },
+  async filterCategories(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/categories");
+    return unwrap(r);
+  },
+  async filterBrands(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/brands");
+    return unwrap(r);
+  },
+  async filterPaymentMethods(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/payment-methods");
+    return unwrap(r);
+  },
+  async filterOrderStatuses(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/order-statuses");
+    return unwrap(r);
+  },
 
   // Users
   async listUsers(includeDeleted = false): Promise<UserListItem[]> {
