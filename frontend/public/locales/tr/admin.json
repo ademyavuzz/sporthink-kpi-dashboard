@@ -262,5 +262,6 @@
     "field_newsletter": "Bülten Abonesi",
     "op_in": "İçinde",
     "op_like": "İçeriyor"
-  }
+  },
+  "permissions_load_failed": "İzin listesi yüklenemedi."
 }

@@ -262,5 +262,6 @@
     "field_newsletter": "Newsletter Subscriber",
     "op_in": "In",
     "op_like": "Contains"
-  }
+  },
+  "permissions_load_failed": "Could not load permission list."
 }

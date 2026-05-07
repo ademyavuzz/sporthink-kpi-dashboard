@@ -322,5 +322,24 @@
     "repeat_rate": "Share of returning customers (%).",
     "avg_orders_per_customer": "Average orders per customer.",
     "newsletter_subscription_rate": "Newsletter signup rate (%)."
+  },
+  "campaign_detail": {
+    "title_default": "Campaign Detail",
+    "data_unavailable": "Could not load data.",
+    "section_ad_performance": "Ad Performance",
+    "section_ecom_attribution": "E-Commerce Attribution",
+    "section_ecom_attribution_hint": "campaign-attributed orders",
+    "section_top_products": "Top Selling Products",
+    "section_daily_trend": "Daily Spend vs Revenue Trend",
+    "label_spend": "Spend",
+    "label_aov": "Avg. Basket",
+    "label_orders_short": "Orders",
+    "label_revenue_short": "Revenue",
+    "empty_top_products": "No orders attributed to this campaign.",
+    "table_product": "Product",
+    "table_brand": "Brand",
+    "table_category": "Category",
+    "table_units_sold": "Units",
+    "chart_revenue_series": "Revenue (E-commerce)"
   }
 }

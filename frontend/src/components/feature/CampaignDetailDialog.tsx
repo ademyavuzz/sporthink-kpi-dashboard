@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ export function CampaignDetailDialog({
   dateFrom,
   dateTo,
 }: CampaignDetailDialogProps) {
+  const { t } = useTranslation("dashboard");
   const q = useQuery({
     queryKey: ["campaign-detail", campaignName, dateFrom, dateTo],
     queryFn: () =>
@@ -92,7 +94,7 @@ export function CampaignDetailDialog({
             <span className="flex min-w-0 flex-col gap-1">
               <span className="flex items-center gap-2">
                 <span className="truncate text-base font-semibold tracking-tight">
-                  {campaignName ?? "Kampanya Detayı"}
+                  {campaignName ?? t("campaign_detail.title_default")}
                 </span>
                 {data?.platform && (
                   <Badge
@@ -119,41 +121,41 @@ export function CampaignDetailDialog({
           </div>
         ) : !data ? (
           <p className="py-16 text-center text-sm text-text-muted">
-            Veri yüklenemedi.
+            {t("campaign_detail.data_unavailable")}
           </p>
         ) : (
           <div className="min-w-0 space-y-7 px-6 py-6">
             {/* Reklam performansı */}
-            <Section title="Reklam Performansı">
+            <Section title={t("campaign_detail.section_ad_performance")}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <StatTile
                   icon={Eye}
-                  label="Gösterim"
+                  label={t("kpi.impressions")}
                   value={formatCount(impressions)}
                 />
                 <StatTile
                   icon={MousePointerClick}
-                  label="Tıklama"
+                  label={t("kpi.clicks")}
                   value={formatCount(clicks)}
                 />
                 <StatTile
                   icon={Percent}
-                  label="CTR"
+                  label={t("kpi.ctr")}
                   value={ctr !== null ? formatPercent(ctr, 2) : "—"}
                 />
                 <StatTile
                   icon={Wallet}
-                  label="CPC"
+                  label={t("kpi.cpc")}
                   value={cpc !== null ? formatCurrency(cpc) : "—"}
                 />
                 <StatTile
                   icon={Wallet}
-                  label="Harcama"
+                  label={t("campaign_detail.label_spend")}
                   value={formatCurrency(spend)}
                 />
                 <StatTile
                   icon={TrendingUp}
-                  label="ROAS"
+                  label={t("kpi.roas")}
                   value={roas !== null ? formatMultiplier(roas) : "—"}
                   tone={roas !== null && roas >= 4 ? "good" : "neutral"}
                 />
@@ -161,27 +163,30 @@ export function CampaignDetailDialog({
             </Section>
 
             {/* E-ticaret atfı */}
-            <Section title="E-Ticaret Atfı" hint="kampanya bazlı sipariş eşleşmeleri">
+            <Section
+              title={t("campaign_detail.section_ecom_attribution")}
+              hint={t("campaign_detail.section_ecom_attribution_hint")}
+            >
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatTile
                   icon={ShoppingBag}
-                  label="Sipariş"
+                  label={t("campaign_detail.label_orders_short")}
                   value={formatCount(data.ecom_summary.orders)}
                 />
                 <StatTile
                   icon={Sparkles}
-                  label="Ciro"
+                  label={t("campaign_detail.label_revenue_short")}
                   value={formatCurrency(data.ecom_summary.revenue)}
                   tone="primary"
                 />
                 <StatTile
                   icon={Package}
-                  label="Satılan Ürün"
+                  label={t("kpi.items_sold")}
                   value={formatCount(data.ecom_summary.items_sold)}
                 />
                 <StatTile
                   icon={Wallet}
-                  label="Ort. Sepet"
+                  label={t("campaign_detail.label_aov")}
                   value={
                     data.ecom_summary.aov
                       ? formatCurrency(data.ecom_summary.aov)
@@ -193,13 +198,13 @@ export function CampaignDetailDialog({
 
             {/* Top ürünler */}
             <Section
-              title="En Çok Satan Ürünler"
+              title={t("campaign_detail.section_top_products")}
               count={data.top_products.length}
             >
               {data.top_products.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-surface-2 px-6 py-10 text-center">
                   <p className="text-sm text-text-muted">
-                    Bu kampanyaya atfedilen sipariş yok.
+                    {t("campaign_detail.empty_top_products")}
                   </p>
                 </div>
               ) : (
@@ -209,12 +214,18 @@ export function CampaignDetailDialog({
                       <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
                         <ColHead className="w-10">#</ColHead>
                         <ColHead>SKU</ColHead>
-                        <ColHead>Ürün</ColHead>
-                        <ColHead>Marka</ColHead>
-                        <ColHead>Kategori</ColHead>
-                        <ColHead align="right">Adet</ColHead>
-                        <ColHead align="right">Sipariş</ColHead>
-                        <ColHead align="right">Ciro</ColHead>
+                        <ColHead>{t("campaign_detail.table_product")}</ColHead>
+                        <ColHead>{t("campaign_detail.table_brand")}</ColHead>
+                        <ColHead>{t("campaign_detail.table_category")}</ColHead>
+                        <ColHead align="right">
+                          {t("campaign_detail.table_units_sold")}
+                        </ColHead>
+                        <ColHead align="right">
+                          {t("campaign_detail.label_orders_short")}
+                        </ColHead>
+                        <ColHead align="right">
+                          {t("campaign_detail.label_revenue_short")}
+                        </ColHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -257,14 +268,14 @@ export function CampaignDetailDialog({
 
             {/* Günlük trend */}
             {data.daily_series.length > 0 && (
-              <Section title="Günlük Harcama vs Gelir Trendi">
+              <Section title={t("campaign_detail.section_daily_trend")}>
                 <div className="rounded-xl border border-border bg-card p-4">
                   <LineChart
                     multiAxis
                     height={280}
                     series={[
                       {
-                        name: "Ciro (E-ticaret)",
+                        name: t("campaign_detail.chart_revenue_series"),
                         data: data.daily_series.map((p) => ({
                           x: dayjs(p.date).valueOf(),
                           y: toNumber(p.revenue) ?? 0,
@@ -272,7 +283,7 @@ export function CampaignDetailDialog({
                         formatter: formatCurrency,
                       },
                       {
-                        name: "Reklam Harcaması",
+                        name: t("kpi.ad_spend"),
                         data: data.daily_series.map((p) => ({
                           x: dayjs(p.date).valueOf(),
                           y: toNumber(p.spend) ?? 0,

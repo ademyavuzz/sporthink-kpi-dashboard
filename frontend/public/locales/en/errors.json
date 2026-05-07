@@ -3,7 +3,6 @@
   "TOKEN_EXPIRED": "Your session has expired. Please sign in again.",
   "INVALID_CREDENTIALS": "Email or password is incorrect.",
   "ACCOUNT_LOCKED": "Your account is temporarily locked due to repeated failed attempts. Please try again later.",
-
   "PERMISSION_DENIED": "You don't have permission to perform this action.",
   "RESOURCE_NOT_FOUND": "The requested record was not found.",
   "VALIDATION_ERROR": "Form error. Please check the fields.",
@@ -11,13 +10,15 @@
   "EMAIL_ALREADY_EXISTS": "This email is already registered.",
   "CONFLICT": "This record already exists.",
   "RATE_LIMIT_EXCEEDED": "Too many requests. Please wait a moment.",
-
   "INTERNAL_ERROR": "Something went wrong. Please try again.",
   "NETWORK_ERROR": "Cannot reach the server. Check your connection.",
-
   "form": {
     "required": "This field is required.",
     "email_invalid": "Enter a valid email address.",
     "password_required": "Password is required."
-  }
+  },
+  "boundary_title": "An unexpected error occurred",
+  "boundary_description": "The page could not be rendered. Click the button below or refresh the page to try again.",
+  "boundary_reload": "Reload page",
+  "boundary_retry": "Try again"
 }

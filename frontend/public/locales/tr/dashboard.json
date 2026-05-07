@@ -322,5 +322,24 @@
     "repeat_rate": "Tekrar sipariş veren müşterilerin oranı (%).",
     "avg_orders_per_customer": "Müşteri başına ortalama sipariş sayısı.",
     "newsletter_subscription_rate": "Newsletter aboneliği yapan kullanıcı oranı (%)."
+  },
+  "campaign_detail": {
+    "title_default": "Kampanya Detayı",
+    "data_unavailable": "Veri yüklenemedi.",
+    "section_ad_performance": "Reklam Performansı",
+    "section_ecom_attribution": "E-Ticaret Atfı",
+    "section_ecom_attribution_hint": "kampanya bazlı sipariş eşleşmeleri",
+    "section_top_products": "En Çok Satan Ürünler",
+    "section_daily_trend": "Günlük Harcama vs Gelir Trendi",
+    "label_spend": "Harcama",
+    "label_aov": "Ort. Sepet",
+    "label_orders_short": "Sipariş",
+    "label_revenue_short": "Ciro",
+    "empty_top_products": "Bu kampanyaya atfedilen sipariş yok.",
+    "table_product": "Ürün",
+    "table_brand": "Marka",
+    "table_category": "Kategori",
+    "table_units_sold": "Adet",
+    "chart_revenue_series": "Ciro (E-ticaret)"
   }
 }
