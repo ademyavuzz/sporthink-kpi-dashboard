@@ -28,7 +28,6 @@
     "table_revenue": "Ciro",
     "drop_overall_conversion": "Genel Dönüşüm"
   },
-
   "channel_analysis": {
     "title": "Kanal Analizi",
     "preset_last_30": "Son 30 gün",
@@ -52,7 +51,6 @@
     "col_customers": "Müşteri",
     "empty": "Bu tarih aralığında kanal verisi yok."
   },
-
   "customers": {
     "title": "Müşteri Analizi",
     "preset_last_30": "Son 30 gün",
@@ -79,7 +77,6 @@
     "col_last_order": "Son Sipariş",
     "empty_top": "Henüz müşteri verisi yok."
   },
-
   "traffic": {
     "title": "Trafik (GA4)",
     "trend_card_title": "Günlük Oturum Trendi",
@@ -89,7 +86,6 @@
     "series_sessions": "Oturum",
     "value_sessions_suffix": "oturum"
   },
-
   "meta_ads": {
     "title": "Meta Ads",
     "trend_card_title": "Günlük Harcama vs Gelir",
@@ -106,7 +102,6 @@
     "col_revenue": "Gelir",
     "col_roas": "ROAS"
   },
-
   "google_ads": {
     "title": "Google Ads",
     "trend_card_title": "Günlük Harcama vs Gelir",
@@ -123,7 +118,6 @@
     "col_revenue": "Gelir",
     "col_roas": "ROAS"
   },
-
   "ecom": {
     "title": "E-Ticaret",
     "trend_card_title": "Günlük Ciro & Sipariş",
@@ -141,9 +135,67 @@
     "col_gender": "Cinsiyet",
     "col_age_group": "Yaş Grubu",
     "col_orders": "Sipariş",
-    "col_revenue": "Ciro"
+    "col_revenue": "Ciro",
+    "by_category_card_title": "Kategori Bazlı Ciro",
+    "by_device_card_title": "Cihaz Bazlı Ciro",
+    "by_city_card_title": "Şehir Bazlı Ciro (Top 15)",
+    "by_payment_card_title": "Ödeme Yöntemi Dağılımı",
+    "top_products_card_title": "En Çok Satan Ürünler (Top 20)",
+    "orders_card_title": "Sipariş Listesi",
+    "order_detail_title": "Sipariş Detayı",
+    "showing_n_of_total": "{{shown}} / {{total}} sipariş",
+    "label_period": "Dönem",
+    "label_unknown": "Bilinmiyor",
+    "label_channel": "Kanal",
+    "label_device": "Cihaz",
+    "label_campaign": "Kampanya",
+    "filter_category": "Kategori",
+    "filter_brand": "Marka",
+    "filter_status": "Durum",
+    "filter_payment": "Ödeme",
+    "filter_segment": "Segment",
+    "segment_all": "Tüm Müşteriler",
+    "no_segments": "Kayıtlı segment yok.",
+    "status_completed": "Tamamlandı",
+    "status_shipped": "Kargoda",
+    "status_pending": "Beklemede",
+    "status_cancelled": "İptal",
+    "status_refunded": "İade",
+    "payment_credit_card": "Kredi Kartı",
+    "payment_debit_card": "Banka Kartı",
+    "payment_bank_transfer": "Havale/EFT",
+    "payment_pay_at_door": "Kapıda Ödeme",
+    "device_mobile": "Mobil",
+    "device_desktop": "Masaüstü",
+    "device_tablet": "Tablet",
+    "gender_male": "Erkek",
+    "gender_female": "Kadın",
+    "line_items": "Ürünler",
+    "totals": "Tutarlar",
+    "customer_info": "Müşteri Bilgisi",
+    "gross_revenue": "Brüt Tutar",
+    "shipping": "Kargo",
+    "discount": "İndirim",
+    "refund": "İade",
+    "net_revenue": "Net Ciro",
+    "newsletter": "Bülten",
+    "subscribed": "Abone",
+    "unsubscribed": "Abone Değil",
+    "lifetime_revenue": "Toplam Harcama",
+    "col_customer": "Müşteri",
+    "col_sku": "SKU",
+    "col_product": "Ürün",
+    "col_brand": "Marka",
+    "col_units": "Adet",
+    "col_qty": "Adet",
+    "col_unit_price": "Birim",
+    "col_total": "Toplam",
+    "col_order_id": "Sipariş No",
+    "col_date": "Tarih",
+    "col_amount": "Tutar",
+    "col_status": "Durum",
+    "col_payment": "Ödeme"
   },
-
   "campaigns": {
     "title": "Kampanya Analizi",
     "platform_filter_all": "Tümü",
@@ -160,7 +212,6 @@
     "col_action_detail": "Detay",
     "campaign_detail_aria": "Kampanya detayı"
   },
-
   "funnel": {
     "title": "Funnel Analizi",
     "card_title": "Dönüşüm Hunisi",
@@ -176,7 +227,6 @@
       "purchase": "Satın Alma"
     }
   },
-
   "cohort": {
     "title": "Cohort / Retention",
     "heatmap_card_title": "Retention Heatmap — Kayıt Ayı × Ay Sonra Aktivite",
@@ -188,7 +238,6 @@
     "m1_retention_label": "M1 retention:",
     "empty": "Bu tarih aralığında cohort verisi yok."
   },
-
   "products": {
     "title": "Ürün Performansı",
     "by_category_card_title": "Kategori Bazlı Ciro",
@@ -202,7 +251,6 @@
     "col_units": "Adet",
     "col_revenue": "Ciro"
   },
-
   "kpi": {
     "sessions": "Toplam Oturum",
     "users": "Tekil Kullanıcı",

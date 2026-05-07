@@ -7,12 +7,15 @@ import type {
   CohortResponse,
   CustomersResponse,
   DashboardQuery,
+  EcommerceQuery,
   EcommerceResponse,
   FunnelResponse,
   GoogleAdsResponse,
   MetaAdsResponse,
+  OrderDetailResponse,
   OverviewResponse,
   ProductsResponse,
+  TrafficQuery,
   TrafficResponse,
 } from "@/types/dashboard";
 
@@ -38,9 +41,17 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async traffic(p: DashboardQuery): Promise<TrafficResponse> {
+  async traffic(p: TrafficQuery): Promise<TrafficResponse> {
+    const params = new URLSearchParams({
+      date_from: p.date_from,
+      date_to: p.date_to,
+    });
+    if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+    p.channels?.forEach((c) => params.append("channels", c));
+    p.devices?.forEach((d) => params.append("devices", d));
+    p.cities?.forEach((c) => params.append("cities", c));
     const r = await apiClient.get<ApiEnvelope<TrafficResponse>>(
-      `/dashboard/traffic?${qs(p)}`,
+      `/dashboard/traffic?${params.toString()}`,
     );
     return unwrap(r);
   },
@@ -56,9 +67,26 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async ecom(p: DashboardQuery): Promise<EcommerceResponse> {
+  async ecom(p: EcommerceQuery): Promise<EcommerceResponse> {
+    const params = new URLSearchParams({
+      date_from: p.date_from,
+      date_to: p.date_to,
+    });
+    if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+    p.categories?.forEach((c) => params.append("categories", c));
+    p.brands?.forEach((b) => params.append("brands", b));
+    p.statuses?.forEach((s) => params.append("statuses", s));
+    p.payment_methods?.forEach((m) => params.append("payment_methods", m));
+    if (p.segment_id != null) params.set("segment_id", String(p.segment_id));
+    if (p.orders_limit != null) params.set("orders_limit", String(p.orders_limit));
     const r = await apiClient.get<ApiEnvelope<EcommerceResponse>>(
-      `/dashboard/ecom?${qs(p)}`,
+      `/dashboard/ecom?${params.toString()}`,
+    );
+    return unwrap(r);
+  },
+  async ecomOrderDetail(orderPkId: number): Promise<OrderDetailResponse> {
+    const r = await apiClient.get<ApiEnvelope<OrderDetailResponse>>(
+      `/dashboard/ecom/order-detail?order_pk_id=${orderPkId}`,
     );
     return unwrap(r);
   },

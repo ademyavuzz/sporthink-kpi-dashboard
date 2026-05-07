@@ -59,6 +59,7 @@ export interface CampaignMetric {
   campaign_id: number;
   campaign_name: string | null;
   platform: string | null;
+  objective: string | null;
   impressions: number;
   clicks: number;
   spend: string;
@@ -82,6 +83,19 @@ export interface FunnelStep {
   label_tr: string;
   count: number;
   drop_from_previous_pct: string | null;
+}
+
+export interface FunnelGroup {
+  key: string;
+  label_tr: string;
+  steps: FunnelStep[];
+}
+
+export interface FunnelDropoffPoint {
+  date: string;
+  view_to_cart_pct: string | null;
+  cart_to_checkout_pct: string | null;
+  checkout_to_purchase_pct: string | null;
 }
 
 export interface CustomerTypeRevenue {
@@ -124,6 +138,25 @@ export interface OverviewResponse {
   top_products: TopProductRow[];
 }
 
+export interface TrafficDailyPoint {
+  date: string;
+  sessions: number;
+  users: number;
+  new_users: number;
+}
+
+export interface LandingPageRow {
+  page_path: string;
+  sessions: number;
+  users: number;
+  /** 0-100 yüzde, null = veri yok. */
+  bounce_rate: string | null;
+  /** Saniye. */
+  avg_session_duration: string | null;
+  /** 0-100 yüzde, null = veri yok. */
+  conversion_rate: string | null;
+}
+
 export interface TrafficResponse {
   date_range: DateRange;
   sessions: KPIResult;
@@ -133,10 +166,20 @@ export interface TrafficResponse {
   pages_per_session: KPIResult;
   avg_session_duration: KPIResult;
   conversion_rate: KPIResult;
-  daily_series: DailySeriesPoint[];
+  daily_series: TrafficDailyPoint[];
   by_channel: DimensionBreakdown[];
   by_device: DimensionBreakdown[];
   by_city: DimensionBreakdown[];
+  landing_pages: LandingPageRow[];
+}
+
+export interface TrafficQuery {
+  date_from: string;
+  date_to: string;
+  comparison_mode?: ComparisonMode;
+  channels?: string[];
+  devices?: string[];
+  cities?: string[];
 }
 
 export interface MetaAdsResponse {
@@ -146,11 +189,55 @@ export interface MetaAdsResponse {
   clicks: KPIResult;
   ctr: KPIResult;
   cpc: KPIResult;
+  cpm: KPIResult;
   ad_conversions: KPIResult;
+  cost_per_conversion: KPIResult;
   roas: KPIResult;
   frequency: KPIResult;
   campaigns: CampaignMetric[];
   daily_series: DailySeriesPoint[];
+}
+
+export type GoogleChannelType =
+  | "search"
+  | "shopping"
+  | "performance_max"
+  | "display"
+  | "video";
+
+export interface GoogleCampaignMetric extends CampaignMetric {
+  channel_type: GoogleChannelType | string | null;
+}
+
+export interface GoogleChannelTypeBreakdown {
+  channel_type: GoogleChannelType | string | null;
+  spend: string;
+  impressions: number;
+  clicks: number;
+  conversions: string;
+  conversions_value: string;
+}
+
+export interface GoogleKeywordRow {
+  keyword: string;
+  match_type: "exact" | "phrase" | "broad" | string | null;
+  clicks: number;
+  impressions: number;
+  ctr: string | null;
+  cpc: string | null;
+  conversions: string;
+  roas: string | null;
+}
+
+export interface GoogleProductRow {
+  product_id: string;
+  product_name: string | null;
+  impressions: number;
+  clicks: number;
+  conversions: string;
+  spend: string;
+  conversions_value: string;
+  roas: string | null;
 }
 
 export interface GoogleAdsResponse {
@@ -160,11 +247,82 @@ export interface GoogleAdsResponse {
   clicks: KPIResult;
   ctr: KPIResult;
   cpc: KPIResult;
+  cpm: KPIResult;
   ad_conversions: KPIResult;
   cost_per_conversion: KPIResult;
   roas: KPIResult;
-  campaigns: CampaignMetric[];
+  campaigns: GoogleCampaignMetric[];
+  top_campaigns_by_roas: GoogleCampaignMetric[];
+  channel_breakdown: GoogleChannelTypeBreakdown[];
+  keywords: GoogleKeywordRow[];
+  products: GoogleProductRow[];
   daily_series: DailySeriesPoint[];
+}
+
+export interface OrderListRow {
+  order_pk_id: number;
+  order_id: string;
+  order_date: string; // ISO date
+  customer_id: string;
+  customer_name: string | null;
+  net_revenue: string;
+  order_status: string;
+  payment_method: string;
+}
+
+export interface OrderLineItem {
+  sku: string;
+  product_name: string | null;
+  brand: string | null;
+  category: string | null;
+  quantity: number;
+  unit_price: string;
+  line_total: string;
+}
+
+export interface OrderDetailCustomer {
+  customer_id: string;
+  customer_name: string | null;
+  city: string | null;
+  gender: string | null;
+  age_group: string | null;
+  is_newsletter_subscriber: boolean;
+  total_orders: number;
+  total_revenue: string;
+}
+
+export interface OrderDetailResponse {
+  order_pk_id: number;
+  order_id: string;
+  order_date: string;
+  city: string;
+  device: string;
+  channel: string;
+  source: string | null;
+  medium: string | null;
+  campaign_name: string | null;
+  coupon_code: string | null;
+  order_status: string;
+  payment_method: string;
+  order_revenue: string;
+  shipping_cost: string;
+  discount_amount: string;
+  refund_amount: string;
+  net_revenue: string;
+  line_items: OrderLineItem[];
+  customer: OrderDetailCustomer;
+}
+
+export interface EcommerceQuery {
+  date_from: string;
+  date_to: string;
+  comparison_mode?: ComparisonMode;
+  categories?: string[];
+  brands?: string[];
+  statuses?: string[];
+  payment_methods?: string[];
+  segment_id?: number | null;
+  orders_limit?: number;
 }
 
 export interface EcommerceResponse {
@@ -178,8 +336,15 @@ export interface EcommerceResponse {
   revenue_per_user: KPIResult;
   daily_series: DailySeriesPoint[];
   by_channel: ChannelMetric[];
+  by_category: DimensionBreakdown[];
+  by_device: DimensionBreakdown[];
+  by_city: DimensionBreakdown[];
+  by_payment_method: DimensionBreakdown[];
   new_vs_returning: CustomerTypeRevenue[];
+  top_products: TopProductRow[];
   top_customers: TopCustomerRow[];
+  orders_list: OrderListRow[];
+  orders_total: number;
 }
 
 export interface CampaignAnalysisResponse {
@@ -193,6 +358,10 @@ export interface CampaignAnalysisResponse {
 export interface FunnelResponse {
   date_range: DateRange;
   steps: FunnelStep[];
+  total_sessions: number;
+  by_device: FunnelGroup[];
+  by_channel: FunnelGroup[];
+  dropoff_series: FunnelDropoffPoint[];
 }
 
 export interface CohortCell {

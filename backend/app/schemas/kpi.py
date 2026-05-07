@@ -84,6 +84,7 @@ class CampaignMetric(BaseModel):
     campaign_id: int
     campaign_name: str | None
     platform: str | None
+    objective: str | None = None
     impressions: int
     clicks: int
     spend: Decimal
@@ -111,6 +112,23 @@ class FunnelStep(BaseModel):
     label_tr: str
     count: int
     drop_from_previous_pct: Decimal | None  # 0-100, ilk adımda None
+
+
+class FunnelGroup(BaseModel):
+    """Boyuta göre (cihaz/kanal) gruplanmış funnel — mini funnel kartları için."""
+
+    key: str  # mobile / desktop / tablet | organic_search / paid_search / paid_social
+    label_tr: str
+    steps: list[FunnelStep]
+
+
+class FunnelDropoffPoint(BaseModel):
+    """Drop-off oranlarının zaman içindeki trendi (line chart için tek gün)."""
+
+    date: date_type
+    view_to_cart_pct: Decimal | None
+    cart_to_checkout_pct: Decimal | None
+    checkout_to_purchase_pct: Decimal | None
 
 
 class CustomerTypeRevenue(BaseModel):

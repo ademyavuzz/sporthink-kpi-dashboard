@@ -28,7 +28,6 @@
     "table_revenue": "Revenue",
     "drop_overall_conversion": "Overall Conversion"
   },
-
   "channel_analysis": {
     "title": "Channel Analysis",
     "preset_last_30": "Last 30 days",
@@ -52,7 +51,6 @@
     "col_customers": "Customers",
     "empty": "No channel data for this date range."
   },
-
   "customers": {
     "title": "Customer Analytics",
     "preset_last_30": "Last 30 days",
@@ -79,7 +77,6 @@
     "col_last_order": "Last Order",
     "empty_top": "No customer data yet."
   },
-
   "traffic": {
     "title": "Traffic (GA4)",
     "trend_card_title": "Daily Sessions Trend",
@@ -89,7 +86,6 @@
     "series_sessions": "Sessions",
     "value_sessions_suffix": "sessions"
   },
-
   "meta_ads": {
     "title": "Meta Ads",
     "trend_card_title": "Daily Spend vs Revenue",
@@ -106,7 +102,6 @@
     "col_revenue": "Revenue",
     "col_roas": "ROAS"
   },
-
   "google_ads": {
     "title": "Google Ads",
     "trend_card_title": "Daily Spend vs Revenue",
@@ -123,7 +118,6 @@
     "col_revenue": "Revenue",
     "col_roas": "ROAS"
   },
-
   "ecom": {
     "title": "E-Commerce",
     "trend_card_title": "Daily Revenue & Orders",
@@ -141,9 +135,67 @@
     "col_gender": "Gender",
     "col_age_group": "Age Group",
     "col_orders": "Orders",
-    "col_revenue": "Revenue"
+    "col_revenue": "Revenue",
+    "by_category_card_title": "Revenue by Category",
+    "by_device_card_title": "Revenue by Device",
+    "by_city_card_title": "Revenue by City (Top 15)",
+    "by_payment_card_title": "Payment Method Distribution",
+    "top_products_card_title": "Top Selling Products (Top 20)",
+    "orders_card_title": "Orders",
+    "order_detail_title": "Order Details",
+    "showing_n_of_total": "{{shown}} of {{total}} orders",
+    "label_period": "Period",
+    "label_unknown": "Unknown",
+    "label_channel": "Channel",
+    "label_device": "Device",
+    "label_campaign": "Campaign",
+    "filter_category": "Category",
+    "filter_brand": "Brand",
+    "filter_status": "Status",
+    "filter_payment": "Payment",
+    "filter_segment": "Segment",
+    "segment_all": "All Customers",
+    "no_segments": "No saved segments.",
+    "status_completed": "Completed",
+    "status_shipped": "Shipped",
+    "status_pending": "Pending",
+    "status_cancelled": "Cancelled",
+    "status_refunded": "Refunded",
+    "payment_credit_card": "Credit Card",
+    "payment_debit_card": "Debit Card",
+    "payment_bank_transfer": "Bank Transfer",
+    "payment_pay_at_door": "Pay at Door",
+    "device_mobile": "Mobile",
+    "device_desktop": "Desktop",
+    "device_tablet": "Tablet",
+    "gender_male": "Male",
+    "gender_female": "Female",
+    "line_items": "Items",
+    "totals": "Totals",
+    "customer_info": "Customer Info",
+    "gross_revenue": "Gross Revenue",
+    "shipping": "Shipping",
+    "discount": "Discount",
+    "refund": "Refund",
+    "net_revenue": "Net Revenue",
+    "newsletter": "Newsletter",
+    "subscribed": "Subscribed",
+    "unsubscribed": "Not Subscribed",
+    "lifetime_revenue": "Lifetime Revenue",
+    "col_customer": "Customer",
+    "col_sku": "SKU",
+    "col_product": "Product",
+    "col_brand": "Brand",
+    "col_units": "Units",
+    "col_qty": "Qty",
+    "col_unit_price": "Unit",
+    "col_total": "Total",
+    "col_order_id": "Order ID",
+    "col_date": "Date",
+    "col_amount": "Amount",
+    "col_status": "Status",
+    "col_payment": "Payment"
   },
-
   "campaigns": {
     "title": "Campaign Analysis",
     "platform_filter_all": "All",
@@ -160,7 +212,6 @@
     "col_action_detail": "Detail",
     "campaign_detail_aria": "Campaign detail"
   },
-
   "funnel": {
     "title": "Funnel Analysis",
     "card_title": "Conversion Funnel",
@@ -176,7 +227,6 @@
       "purchase": "Purchase"
     }
   },
-
   "cohort": {
     "title": "Cohort / Retention",
     "heatmap_card_title": "Retention Heatmap — Cohort Month × Activity Month",
@@ -188,7 +238,6 @@
     "m1_retention_label": "M1 retention:",
     "empty": "No cohort data for this date range."
   },
-
   "products": {
     "title": "Product Performance",
     "by_category_card_title": "Revenue by Category",
@@ -202,7 +251,6 @@
     "col_units": "Units",
     "col_revenue": "Revenue"
   },
-
   "kpi": {
     "sessions": "Total Sessions",
     "users": "Unique Users",
