@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -88,3 +89,44 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(SporthinkException)
     async def _sporthink_exception_handler(_request: Request, exc: SporthinkException):
         return JSONResponse(status_code=exc.status_code, content=exc.to_response())
+
+    @app.exception_handler(RequestValidationError)
+    async def _request_validation_exception_handler(_request: Request, exc: RequestValidationError):
+        # FastAPI default `{"detail":[...]}` formatını §6.2 envelope'a çevir.
+        # İlk hatayı temsili olarak field/message'a koy; tüm hatalar params.errors'a.
+        errors = exc.errors()
+        first = errors[0] if errors else {}
+        loc = first.get("loc", [])
+        field = ".".join(str(p) for p in loc[1:]) if len(loc) > 1 else None
+        message = first.get("msg") or "Validation failed"
+        return JSONResponse(
+            status_code=422,
+            content={
+                "success": False,
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": message,
+                    "field": field,
+                    "params": {"errors": _serialize_validation_errors(errors)},
+                },
+            },
+        )
+
+
+def _serialize_validation_errors(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """RequestValidationError.errors() çıktısını JSON-safe forma getirir.
+
+    Pydantic v2 bazı alanlarda `ctx` içinde Exception veya non-serializable
+    obje koyar; envelope'a girmeden önce string'e indir.
+    """
+    cleaned: list[dict[str, Any]] = []
+    for err in errors:
+        loc = err.get("loc", [])
+        cleaned.append(
+            {
+                "field": ".".join(str(p) for p in loc[1:]) if len(loc) > 1 else None,
+                "type": err.get("type"),
+                "message": err.get("msg"),
+            }
+        )
+    return cleaned
