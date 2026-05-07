@@ -33,7 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.exceptions import ResourceNotFoundError, SporthinkException
+from app.core.exceptions import ConflictError, ResourceNotFoundError, SporthinkException
 from app.models import (
     Campaign,
     Customer,
@@ -171,13 +171,32 @@ class InvalidFileFormatError(SporthinkException):
     message = "Only CSV files are supported in this slice"
 
 
+class ImportInProgressError(ConflictError):
+    code = "IMPORT_IN_PROGRESS"
+    message = "Another import is in progress for this user"
+
+
+def _safe_filename(original_name: str) -> str:
+    """Filesystem-safe karakterlere indir (alnum + . _ -). Path traversal yok."""
+    return "".join(c if c.isalnum() or c in "._-" else "_" for c in original_name)
+
+
 def _save_uploaded_file(file: BinaryIO, original_name: str) -> tuple[str, int]:
-    """Upload klasörüne kaydet, (path, size) döner. Boyut limiti aşılırsa
-    `FileTooLargeError` raise eder."""
-    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    """Upload klasöründeki geçici alana kaydet, `(tmp_path, size)` döner.
+
+    Servis layer `import_id`'yi aldıktan sonra `_move_to_final_path` ile
+    bu dosyayı `{upload_dir}/{year}/{month}/{import_id}_{name}` yoluna
+    taşır (docs §8.10.1). Burada düz `upload_dir/.tmp/` altına yazılması
+    klasör enflasyonunu engeller — preview/abort/race senaryolarında
+    sadece tmp temizlenir.
+
+    Boyut limiti aşılırsa `FileTooLargeError` raise eder ve tmp dosyayı siler.
+    """
+    tmp_dir = Path(settings.upload_dir) / ".tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
-    safe_name = "".join(c if c.isalnum() or c in "._-" else "_" for c in original_name)
-    dest_path = os.path.join(settings.upload_dir, f"{timestamp}_{safe_name}")
+    safe_name = _safe_filename(original_name)
+    dest_path = os.path.join(str(tmp_dir), f"{timestamp}_{safe_name}")
 
     max_bytes = settings.import_max_file_size_mb * 1024 * 1024
     written = 0
@@ -193,6 +212,27 @@ def _save_uploaded_file(file: BinaryIO, original_name: str) -> tuple[str, int]:
                 raise FileTooLargeError(params={"max_mb": settings.import_max_file_size_mb})
             out.write(chunk)
     return dest_path, written
+
+
+def _move_to_final_path(
+    tmp_path: str,
+    original_name: str,
+    import_id: int,
+    when: datetime,
+) -> str:
+    """Tmp'teki dosyayı `{upload_dir}/{YYYY}/{MM}/{import_id}_{name}` yoluna taşır.
+
+    docs/overview/08-import-system.md §8.10.1 yapısı. `os.replace` aynı
+    filesystem'de atomik; dest klasör yoksa oluşturulur.
+    """
+    year = when.strftime("%Y")
+    month = when.strftime("%m")
+    final_dir = Path(settings.upload_dir) / year / month
+    final_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = _safe_filename(original_name)
+    final_path = str(final_dir / f"{import_id}_{safe_name}")
+    os.replace(tmp_path, final_path)
+    return final_path
 
 
 def _jsonify(value: Any) -> Any:
@@ -354,21 +394,62 @@ async def run_import(
     if not original_filename.lower().endswith(".csv"):
         raise InvalidFileFormatError(params={"filename": original_filename})
 
-    file_path, file_size = _save_uploaded_file(upload_stream, original_filename)
+    # Eşzamanlı import kısıtı (docs §8.11): aynı kullanıcı için yarım kalmış
+    # / yürüyen bir import varsa reddet. Yeni import dosyayı diske yazmadan
+    # önce kontrol — boşa disk I/O yapmayalım.
+    active = await import_repository.count_active_for_user(db, user_id)
+    if active > 0:
+        raise ImportInProgressError(params={"active": active})
 
-    # imports satırı oluştur
+    tmp_path, file_size = _save_uploaded_file(upload_stream, original_filename)
+
+    # imports satırı oluştur — file_path geçici tmp; import_id alındıktan
+    # sonra `{year}/{month}/{import_id}_{name}` yoluna taşıyıp güncelleriz.
+    now = datetime.now(UTC)
     import_run = await import_repository.create(
         db,
         user_id=user_id,
         file_name=original_filename,
-        file_path=file_path,
+        file_path=tmp_path,
         file_size=file_size,
         file_format=ImportFileFormat.CSV,
         data_type=data_type,
     )
-    await db.commit()
+    await db.flush()
     import_id = import_run.id
+
+    # Tmp → final path. Filesystem hatası ise tmp'te kalır; imports satırı
+    # tmp_path ile commit edilir (rollback yok), bir sonraki upload yine
+    # çalışır. Logger ile uyarı düşeriz.
+    try:
+        final_path = _move_to_final_path(tmp_path, original_filename, import_id, now)
+        import_run.file_path = final_path
+    except OSError:
+        logger.exception(
+            "import_file_move_failed import_id=%s tmp=%s", import_id, tmp_path
+        )
+    await db.commit()
     started_ts = time.monotonic()
+
+    # Audit: import başlangıcı — completion/failure her durumda eşleşen bir
+    # `import.started` satırı bulunur, böylece "neden başladı / kim başlattı"
+    # tarihçesi başarısız import'lar için de kaybolmaz.
+    await audit_log_repository.add(
+        db,
+        action="import.started",
+        user_id=user_id,
+        user_email=user_email,
+        resource_type="import",
+        resource_id=str(import_id),
+        ip_address=ip,
+        user_agent=user_agent,
+        details={
+            "data_type": data_type.value,
+            "file_name": original_filename,
+            "file_size": file_size,
+        },
+    )
+    await db.commit()
 
     parse_errors: list[dict[str, Any]] = []
     parsed_rows: list[ParsedRow] = []
@@ -383,7 +464,8 @@ async def run_import(
         # NOTE: Sync `open()` + streaming CSV parser. backend/CLAUDE.md §8.2
         # gereği import'ların Celery'ye taşınması planlandı; bu yapılana kadar
         # request loop bu noktada bloke olur. Dev/küçük dosyalarda kabul ediliyor.
-        with open(file_path, "rb") as raw:  # noqa: ASYNC230
+        # `import_run.file_path` taşıma başarılı ise final_path, başarısız ise tmp_path.
+        with open(import_run.file_path, "rb") as raw:  # noqa: ASYNC230
             text_stream = io.TextIOWrapper(raw, encoding="utf-8-sig", newline="")
             for item in parse_csv(text_stream, config):
                 if isinstance(item, ParsedRow):
@@ -404,6 +486,20 @@ async def run_import(
                 status=ImportStatus.FAILED,
                 progress_percentage=100,
                 error_message=parse_errors[0]["error_message"],
+            )
+            await audit_log_repository.add(
+                db,
+                action="import.failed",
+                user_id=user_id,
+                user_email=user_email,
+                resource_type="import",
+                resource_id=str(import_id),
+                ip_address=ip,
+                user_agent=user_agent,
+                details={
+                    "data_type": data_type.value,
+                    "reason": "MISSING_HEADERS",
+                },
             )
             await db.commit()
             return await import_repository.get_by_id(db, import_id)  # type: ignore[return-value]
@@ -484,7 +580,10 @@ async def run_import(
         # eski sayıları gösterir; bu satıra kadar tetiklenmesi unutulmuştu.
         _trigger_aggregate_rebuild(prepared_rows, data_type)
 
-    except SQLAlchemyError as exc:
+    except SQLAlchemyError:
+        # Tam exception trace logger'a gider; kullanıcıya generic mesaj +
+        # import_id (destek talebinde referans). DB driver mesajları SQL
+        # parça/parametre içerebilir → KVKK & güvenlik için sızdırma yok.
         logger.exception("import_db_error", extra={"import_id": import_id})
         await db.rollback()
         await import_repository.update_status(
@@ -492,10 +591,21 @@ async def run_import(
             import_id,
             status=ImportStatus.FAILED,
             progress_percentage=100,
-            error_message=str(exc)[:500],
+            error_message=f"Database error during import (ref: {import_id})",
+        )
+        await audit_log_repository.add(
+            db,
+            action="import.failed",
+            user_id=user_id,
+            user_email=user_email,
+            resource_type="import",
+            resource_id=str(import_id),
+            ip_address=ip,
+            user_agent=user_agent,
+            details={"data_type": data_type.value, "reason": "DB_ERROR"},
         )
         await db.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         logger.exception("import_unexpected_error", extra={"import_id": import_id})
         await db.rollback()
         await import_repository.update_status(
@@ -503,7 +613,18 @@ async def run_import(
             import_id,
             status=ImportStatus.FAILED,
             progress_percentage=100,
-            error_message=str(exc)[:500],
+            error_message=f"Unexpected error during import (ref: {import_id})",
+        )
+        await audit_log_repository.add(
+            db,
+            action="import.failed",
+            user_id=user_id,
+            user_email=user_email,
+            resource_type="import",
+            resource_id=str(import_id),
+            ip_address=ip,
+            user_agent=user_agent,
+            details={"data_type": data_type.value, "reason": "UNEXPECTED"},
         )
         await db.commit()
 
