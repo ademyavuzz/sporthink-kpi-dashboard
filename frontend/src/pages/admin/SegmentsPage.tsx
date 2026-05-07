@@ -196,7 +196,7 @@ function CustomSegmentsTab() {
     },
   });
 
-  const data = q.data ?? [];
+  const data = useMemo(() => q.data ?? [], [q.data]);
   const total = data.length;
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();

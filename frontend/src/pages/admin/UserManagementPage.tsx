@@ -1208,7 +1208,7 @@ function RolesTab() {
 
   // Search + stats
   const [search, setSearch] = useState("");
-  const allRoles = q.data ?? [];
+  const allRoles = useMemo(() => q.data ?? [], [q.data]);
 
   const filtered = useMemo(() => {
     const lower = search.trim().toLowerCase();
