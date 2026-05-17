@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Table,
   TableBody,
@@ -106,6 +107,11 @@ export default function UserManagementPage() {
 function UsersTab() {
   const { t, i18n } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
+  const { has } = usePermissions();
+  const canCreate = has("users.create");
+  const canUpdate = has("users.update");
+  const canDelete = has("users.delete");
+  const canResetPw = has("users.reset_password");
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<UserListItem | null>(null);
@@ -262,10 +268,12 @@ function UsersTab() {
           ))}
         </div>
 
-        <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
-          <Plus className="size-4" />
-          {t("admin:users.new_user")}
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
+            <Plus className="size-4" />
+            {t("admin:users.new_user")}
+          </Button>
+        )}
       </div>
 
       {errorMsg && (
@@ -377,6 +385,10 @@ function UsersTab() {
                           <RowActionsMenu
                             user={u}
                             neverLoggedIn={neverLoggedIn}
+                            canEdit={canUpdate}
+                            canResetPassword={canResetPw}
+                            canToggleActive={canUpdate}
+                            canDelete={canDelete}
                             onEdit={() => setEditUser(u)}
                             onResetPassword={() => resetPwMut.mutate(u.id)}
                             onToggleActive={() =>
@@ -578,6 +590,10 @@ function RoleBadge({
 function RowActionsMenu({
   user,
   neverLoggedIn,
+  canEdit,
+  canResetPassword,
+  canToggleActive,
+  canDelete,
   onEdit,
   onResetPassword,
   onToggleActive,
@@ -586,6 +602,10 @@ function RowActionsMenu({
 }: {
   user: UserListItem;
   neverLoggedIn: boolean;
+  canEdit: boolean;
+  canResetPassword: boolean;
+  canToggleActive: boolean;
+  canDelete: boolean;
   onEdit: () => void;
   onResetPassword: () => void;
   onToggleActive: () => void;
@@ -594,6 +614,10 @@ function RowActionsMenu({
 }) {
   const { t } = useTranslation("admin");
   const isSystem = user.role?.is_system === true;
+  // Hiçbir action izni yoksa kebab menü hiç render edilmez (boş popover olmasın)
+  if (!canEdit && !canResetPassword && !canToggleActive && !canDelete) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -608,17 +632,21 @@ function RowActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil />
-          {t("users.action_edit")}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onResetPassword}>
-          {neverLoggedIn ? <Send /> : <KeyRound />}
-          {neverLoggedIn
-            ? t("users.action_resend_invite")
-            : t("users.action_reset_password")}
-        </DropdownMenuItem>
-        {!isSystem && (
+        {canEdit && (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil />
+            {t("users.action_edit")}
+          </DropdownMenuItem>
+        )}
+        {canResetPassword && (
+          <DropdownMenuItem onSelect={onResetPassword}>
+            {neverLoggedIn ? <Send /> : <KeyRound />}
+            {neverLoggedIn
+              ? t("users.action_resend_invite")
+              : t("users.action_reset_password")}
+          </DropdownMenuItem>
+        )}
+        {!isSystem && canToggleActive && (
           <DropdownMenuItem onSelect={onToggleActive}>
             {user.is_active ? <UserX /> : <UserCheck />}
             {user.is_active
@@ -626,7 +654,7 @@ function RowActionsMenu({
               : t("users.action_activate")}
           </DropdownMenuItem>
         )}
-        {!isSystem && (
+        {!isSystem && canDelete && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={onDelete}>
@@ -736,15 +764,22 @@ function RoleIconTile({
 
 function RoleActionsMenu({
   role,
+  canEdit,
+  canDelete,
   onEdit,
   onDelete,
 }: {
   role: RoleListItem;
+  canEdit: boolean;
+  canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation("admin");
   const isSystem = role.is_system;
+  if (!canEdit && !canDelete) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -759,15 +794,19 @@ function RoleActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil />
-          {t("users.action_edit")}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-          <Trash2 />
-          {t("users.action_delete")}
-        </DropdownMenuItem>
+        {canEdit && (
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil />
+            {t("users.action_edit")}
+          </DropdownMenuItem>
+        )}
+        {canEdit && canDelete && <DropdownMenuSeparator />}
+        {canDelete && (
+          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+            <Trash2 />
+            {t("users.action_delete")}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -1138,6 +1177,10 @@ function EmailSentNotice({
 function RolesTab() {
   const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
+  const { has } = usePermissions();
+  const canCreate = has("roles.create");
+  const canUpdate = has("roles.update");
+  const canDelete = has("roles.delete");
   const [createOpen, setCreateOpen] = useState(false);
   const [editRole, setEditRole] = useState<RoleListItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RoleListItem | null>(null);
@@ -1241,10 +1284,12 @@ function RolesTab() {
             className="h-10 pl-9"
           />
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
-          <Plus className="size-4" />
-          {t("admin:roles.new_role")}
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setCreateOpen(true)} className="ml-auto gap-1.5">
+            <Plus className="size-4" />
+            {t("admin:roles.new_role")}
+          </Button>
+        )}
       </div>
 
       {errorMsg && (
@@ -1335,6 +1380,8 @@ function RolesTab() {
                       <TableCell className="text-right">
                         <RoleActionsMenu
                           role={r}
+                          canEdit={canUpdate}
+                          canDelete={canDelete}
                           onEdit={() => setEditRole(r)}
                           onDelete={() => setPendingDelete(r)}
                         />

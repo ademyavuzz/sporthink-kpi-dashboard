@@ -42,6 +42,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissions } from "@/hooks/usePermissions";
 import { adminApi } from "@/lib/api/admin";
 import { formatCount, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -166,6 +167,9 @@ export default function SegmentsPage() {
 function CustomSegmentsTab() {
   const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
+  const { has } = usePermissions();
+  const canCreate = has("segments.create");
+  const canDelete = has("segments.delete");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [pendingDelete, setPendingDelete] = useState<SegmentItem | null>(null);
@@ -226,10 +230,12 @@ function CustomSegmentsTab() {
             <span className="text-text-dim">/ {total}</span>
           )}
         </span>
-        <Button onClick={() => setOpen(true)} className="ml-auto gap-1.5">
-          <Plus className="size-4" />
-          {t("admin:segments.new_segment")}
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setOpen(true)} className="ml-auto gap-1.5">
+            <Plus className="size-4" />
+            {t("admin:segments.new_segment")}
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -340,16 +346,18 @@ function CustomSegmentsTab() {
                         )}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setPendingDelete(s)}
-                          aria-label={t("admin:segments.delete_title")}
-                          title={t("admin:segments.delete_title")}
-                          className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setPendingDelete(s)}
+                            aria-label={t("admin:segments.delete_title")}
+                            title={t("admin:segments.delete_title")}
+                            className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
