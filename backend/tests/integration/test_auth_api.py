@@ -105,8 +105,12 @@ async def test_me_with_valid_access_token_returns_user_and_permissions(
     body = r.json()
     assert body["success"] is True
     assert body["data"]["user"]["email"] == super_admin_credentials["email"]
-    # Süper admin → enum'daki tüm 43 izin
-    assert len(body["data"]["permissions"]) == 43
+    # Süper admin → enum'daki tüm izinler (sayı hardcode değil; enum tek
+    # doğru kaynak, yeni izin eklenince test otomatik uyum sağlar)
+    from app.core.permissions import Permission as PermissionEnum
+
+    expected = {p.value for p in PermissionEnum}
+    assert set(body["data"]["permissions"]) == expected
     assert "dashboard.view" in body["data"]["permissions"]
 
 

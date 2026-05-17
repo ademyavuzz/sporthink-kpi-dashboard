@@ -139,7 +139,7 @@ export default function App() {
         <Route
           path="/customers"
           element={
-            <ProtectedRoute permission="ecommerce.view">
+            <ProtectedRoute permission="customers.view">
               <CustomersPage />
             </ProtectedRoute>
           }
@@ -147,7 +147,7 @@ export default function App() {
         <Route
           path="/channel-analysis"
           element={
-            <ProtectedRoute permission="traffic.view">
+            <ProtectedRoute permission="channel_analysis.view">
               <ChannelAnalysisPage />
             </ProtectedRoute>
           }

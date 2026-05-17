@@ -13,7 +13,7 @@ class Permission(StrEnum):
     3. Seed komutu çalıştırılır → `permissions` tablosu güncellenir.
     """
 
-    # --- Kategori 1: Veri Görüntüleme (9 izin) ---
+    # --- Kategori 1: Veri Görüntüleme (11 izin) ---
     DASHBOARD_VIEW = "dashboard.view"
     TRAFFIC_VIEW = "traffic.view"
     META_ADS_VIEW = "meta_ads.view"
@@ -23,6 +23,8 @@ class Permission(StrEnum):
     FUNNEL_VIEW = "funnel.view"
     COHORT_VIEW = "cohort.view"
     PRODUCTS_VIEW = "products.view"
+    CUSTOMERS_VIEW = "customers.view"
+    CHANNEL_ANALYSIS_VIEW = "channel_analysis.view"
 
     # --- Kategori 2: Veri İşlemleri (20 izin) ---
     IMPORTS_VIEW = "imports.view"
@@ -80,6 +82,8 @@ PERMISSION_CATEGORIES: dict[Permission, str] = {
             Permission.FUNNEL_VIEW,
             Permission.COHORT_VIEW,
             Permission.PRODUCTS_VIEW,
+            Permission.CUSTOMERS_VIEW,
+            Permission.CHANNEL_ANALYSIS_VIEW,
         ]
     },
     # data
@@ -148,6 +152,8 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.FUNNEL_VIEW: "Dönüşüm Hunisi sayfasını görme",
     Permission.COHORT_VIEW: "Müşteri Cohort sayfasını görme",
     Permission.PRODUCTS_VIEW: "Ürünler sayfasını görme",
+    Permission.CUSTOMERS_VIEW: "Müşteri analizi sayfasını görme",
+    Permission.CHANNEL_ANALYSIS_VIEW: "Kanal Analizi sayfasını görme",
     Permission.IMPORTS_VIEW: "Import işlem geçmişini görme",
     Permission.IMPORTS_CREATE: "Yeni veri import etme",
     Permission.IMPORTS_DELETE: "Import kaydını silme",

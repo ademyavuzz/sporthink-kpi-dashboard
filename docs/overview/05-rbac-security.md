@@ -157,13 +157,13 @@ Süper Admin yeni kullanıcı eklerken aynı ekranda kullanıcıya özel rol olu
 
 **Mevcut Rolden Seçme:** Daha önce oluşturulmuş roller dropdown'da listelenir. Aynı rol birden fazla kullanıcıya atanabilir.
 
-### 5.5.4 İzin Listesi (43 İzin)
+### 5.5.4 İzin Listesi (45 İzin)
 
 İzinler 4 kategoriye ayrılır.
 
-**Kategori 1: Veri Görüntüleme - 9 İzin**
+**Kategori 1: Veri Görüntüleme - 11 İzin**
 
-`dashboard.view`, `traffic.view`, `meta_ads.view`, `google_ads.view`, `ecommerce.view`, `campaigns.view`, `funnel.view`, `cohort.view`, `products.view`
+`dashboard.view`, `traffic.view`, `meta_ads.view`, `google_ads.view`, `ecommerce.view`, `campaigns.view`, `funnel.view`, `cohort.view`, `products.view`, `customers.view`, `channel_analysis.view`
 
 **Kategori 2: Veri İşlemleri - 20 İzin**
 
@@ -192,8 +192,8 @@ Tek doğru kaynak. Yeni sayfa eklenirken bu tabloya eklenir; frontend `nav-items
 | `funnel` | `/funnel` | `funnel.view` | `GET /dashboard/funnel` |
 | `cohort` | `/cohort` | `cohort.view` | `GET /dashboard/cohort` |
 | `products` | `/products` | `products.view` | `GET /dashboard/products` |
-| `customers` | `/customers` | `ecommerce.view` | `GET /dashboard/customers` |
-| `channel_analysis` | `/channel-analysis` | `traffic.view` | `GET /dashboard/channel-analysis` |
+| `customers` | `/customers` | `customers.view` | `GET /dashboard/customers` |
+| `channel_analysis` | `/channel-analysis` | `channel_analysis.view` | `GET /dashboard/channel-analysis` |
 | `import` | `/import` | `imports.create` | `POST /imports` |
 | `import/history` | `/import/history` | `imports.view` | `GET /imports` |
 | `reports` | `/reports` | `reports.view` | `GET /reports`, `/reports/sections` |
@@ -201,13 +201,14 @@ Tek doğru kaynak. Yeni sayfa eklenirken bu tabloya eklenir; frontend `nav-items
 | `channel_mapping` | `/channel-mappings` | `mappings.view` | `GET /admin/channel-mappings` |
 | `user_management` | `/users` | `users.view` | `GET /users`, `/roles`, `/permissions` |
 | `audit_logs` | `/audit-logs` | `logs.view_audit` | `GET /admin/audit-logs` |
-| `notifications` | `/notifications` | — (izinsiz) | yok (client-only Zustand store) |
-| `settings` | `/settings/profile`, `/settings/security` | — (izinsiz) | `PATCH /auth/me`, `/auth/me/change-password` |
+| `notifications` | `/notifications` | — (kişisel) | yok (client-only Zustand store) |
+| `settings` | `/settings/profile`, `/settings/security` | — (kişisel) | `PATCH /auth/me`, `/auth/me/change-password` |
 
-**Notlar:**
-- "İzinsiz" sayfalar her oturum açan kullanıcıya açıktır (`<ProtectedRoute>` permission prop'u verilmez, sadece auth guard çalışır). Bunlar kişisel sayfalardır — kendi profil ayarları, kendi bildirim merkezi.
-- `customers` ve `channel_analysis` için ayrı izin yaratılmadı: müşteri analizi domain olarak e-ticaret kapsamında, kanal analizi trafik kaynaklarının kıyaslaması olduğu için trafik izniyle açılır.
-- Sistem ayarları (`settings.view` / `settings.update`) ileride ayrı bir sayfa olarak eklenirse — bu tabloya yeni satır ile gelir, mevcut `/settings/profile` ile karıştırılmaz.
+#### Kişisel Sayfalar (izin matrisi dışında)
+
+`/notifications`, `/settings/profile`, `/settings/security` rotaları **izin matrisinin dışındadır**: her oturum açan kullanıcıya açıktırlar. Frontend tarafında `<ProtectedRoute>` `permission` prop'u almaz; backend tarafında ilgili endpoint'ler `Depends(get_current_user)` ile sadece auth ister, `require_permission` koymaz. Gerekçe: bunlar kullanıcının **kendi** verilerine eriştiği kişisel ekranlardır (kendi bildirim merkezi, kendi profil bilgileri, kendi parolası); izin yaratıp kapatmak anlamsızdır.
+
+Sistem ayarları (`settings.view` / `settings.update` izinleri) **farklı bir sayfadır**, ileride `/admin/settings` veya benzeri bir route altında ayrı eklenir; mevcut `/settings/profile` ile karıştırılmaz.
 
 ### 5.5.5 Yetki Kontrolü Implementasyonu
 
