@@ -3,6 +3,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import api_router
@@ -22,10 +24,21 @@ app = FastAPI(
     title="Sporthink KPI Dashboard API",
     version="0.1.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    # FastAPI default ReDoc CDN URL'i (redoc@next) jsdelivr'de 404 dönüyor.
+    # Default'u kapatıp aşağıda Redocly'nin resmi CDN'i ile manuel serve.
+    redoc_url=None,
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
+
+
+@app.get("/api/redoc", include_in_schema=False, response_class=HTMLResponse)
+async def custom_redoc_html() -> HTMLResponse:
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - ReDoc",
+        redoc_js_url="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js",
+    )
 
 app.add_middleware(
     CORSMiddleware,
