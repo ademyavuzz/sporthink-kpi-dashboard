@@ -27,7 +27,13 @@ export interface NavItem {
   id: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  permission: PermissionCode;
+  /**
+   * Kullanıcının görmesi için gerekli izin.
+   *
+   * `undefined` → her oturum açan kullanıcı görür (kişisel sayfalar:
+   * bildirimler, kendi profil/güvenlik ayarları).
+   */
+  permission?: PermissionCode;
 }
 
 /** Sidebar'da nav item'larını gruplama anahtarı (i18n: `common.nav_group.<id>`). */
@@ -61,8 +67,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "funnel", path: "/funnel", icon: Filter, permission: PERMISSIONS.FUNNEL_VIEW },
       { id: "cohort", path: "/cohort", icon: BarChart3, permission: PERMISSIONS.COHORT_VIEW },
       { id: "products", path: "/products", icon: Package, permission: PERMISSIONS.PRODUCTS_VIEW },
-      { id: "customers", path: "/customers", icon: UserRound, permission: PERMISSIONS.DASHBOARD_VIEW },
-      { id: "channel_analysis", path: "/channel-analysis", icon: LineChartIcon, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "customers", path: "/customers", icon: UserRound, permission: PERMISSIONS.ECOMMERCE_VIEW },
+      { id: "channel_analysis", path: "/channel-analysis", icon: LineChartIcon, permission: PERMISSIONS.TRAFFIC_VIEW },
     ],
   },
   {
@@ -77,10 +83,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     id: "system",
     items: [
-      { id: "notifications", path: "/notifications", icon: Bell, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "notifications", path: "/notifications", icon: Bell },
       { id: "audit_logs", path: "/audit-logs", icon: Activity, permission: PERMISSIONS.LOGS_VIEW_AUDIT },
       { id: "user_management", path: "/users", icon: UserCog, permission: PERMISSIONS.USERS_VIEW },
-      { id: "settings", path: "/settings", icon: Settings, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { id: "settings", path: "/settings", icon: Settings },
     ],
   },
 ] as const;

@@ -32,7 +32,7 @@ export function Sidebar() {
 
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((item) => has(item.permission)),
+    items: g.items.filter((item) => !item.permission || has(item.permission)),
   })).filter((g) => g.items.length > 0);
 
   return (

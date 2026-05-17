@@ -139,7 +139,7 @@ export default function App() {
         <Route
           path="/customers"
           element={
-            <ProtectedRoute permission="dashboard.view">
+            <ProtectedRoute permission="ecommerce.view">
               <CustomersPage />
             </ProtectedRoute>
           }
@@ -147,7 +147,7 @@ export default function App() {
         <Route
           path="/channel-analysis"
           element={
-            <ProtectedRoute permission="dashboard.view">
+            <ProtectedRoute permission="traffic.view">
               <ChannelAnalysisPage />
             </ProtectedRoute>
           }
@@ -208,10 +208,15 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/*
+          Bildirimler ve Ayarlar (profil/güvenlik) izinsizdir — kişisel
+          sayfalar her oturum açan kullanıcıya açıktır. Sistem ayarları
+          (`settings.view`) sayfası ileride eklenirse ayrı route olarak gelir.
+        */}
         <Route
           path="/notifications"
           element={
-            <ProtectedRoute permission="dashboard.view">
+            <ProtectedRoute>
               <NotificationsPage />
             </ProtectedRoute>
           }
@@ -219,7 +224,7 @@ export default function App() {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute permission="dashboard.view">
+            <ProtectedRoute>
               <SettingsLayout />
             </ProtectedRoute>
           }

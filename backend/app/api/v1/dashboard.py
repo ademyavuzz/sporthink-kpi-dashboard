@@ -825,7 +825,7 @@ async def get_products(
 async def get_customers(
     date_from: date = Query(...),
     date_to: date = Query(...),
-    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CustomersResponse]:
     """Müşteri overview sayfası.
@@ -881,7 +881,7 @@ async def get_channel_analysis(
     roas_max: float | None = Query(None),
     conversion_min: float | None = Query(None),
     conversion_max: float | None = Query(None),
-    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    _user: User = Depends(require_permission(Permission.TRAFFIC_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[ChannelAnalysisResponse]:
     """Kanal performans sayfası — doc 6. bölüm "Kanal Analizi" karşılığı.
