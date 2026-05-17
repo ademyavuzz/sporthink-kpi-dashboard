@@ -69,6 +69,8 @@ export default function LoginPage() {
         accessToken: tokens.access_token,
         permissions: me.permissions,
       });
+      // "Hoş geldiniz" toast — anlık geri bildirim, kalıcı bildirim merkezine
+      // girmez (backend-driven, sadece anlamlı eventler için notification yazar).
       const firstName = tokens.user.first_name || tokens.user.email;
       const welcomeTitle =
         lang === "tr"

@@ -70,7 +70,6 @@ export default function SecurityPage() {
         type: "success",
         title: t("settings:password_changed_title"),
         message: t("settings:password_changed_message"),
-        toast: true,
       });
       reset();
       // Backend tüm refresh tokenları revoke etti; clean logout + login redirect.

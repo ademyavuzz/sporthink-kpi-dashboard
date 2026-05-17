@@ -1,24 +1,20 @@
 /**
- * Bildirim tipleri.
+ * Bildirim tipleri — backend `app/schemas/notification.py` ile birebir.
  *
- * `Notification` kaydı kullanıcıya özel localStorage'da yaşar (Zustand persist).
- * İleride backend tarafından da doldurulabilir; o aşamada `source: 'server'`
- * ayrımı eklenebilir.
+ * Eskiden client-side Zustand store'da yaşıyordu (cihaz bazlı). Şimdi
+ * backend-driven user_id bazlı; frontend TanStack Query ile polling yapar.
  */
 
 export type NotificationType = "info" | "success" | "warning" | "error";
 
 export interface Notification {
-  id: string;
+  id: number;
   type: NotificationType;
   title: string;
-  /** İsteğe bağlı tek satırlık ek metin. */
-  message?: string;
-  /** Unix ms — `Date.now()`. dayjs ile UI'da formatlanır. */
-  createdAt: number;
-  read: boolean;
-  /** Tıklandığında yönlendirilecek route (opsiyonel). */
-  link?: string;
-  /** İleride backend kaynaklı bildirimleri ayırmak için. */
-  source?: "client" | "server";
+  message?: string | null;
+  link?: string | null;
+  is_read: boolean;
+  read_at?: string | null;
+  /** Backend ISO 8601 string. dayjs.utc(...).tz(...) ile gösterilir. */
+  created_at: string;
 }

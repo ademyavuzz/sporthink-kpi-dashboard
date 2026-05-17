@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   CheckCheck,
@@ -13,13 +14,12 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Pagination } from "@/components/ui/pagination";
+import { notificationsApi } from "@/lib/api/notifications";
 import { dayjs } from "@/lib/dayjs";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useLanguageStore } from "@/stores/useLanguageStore";
-import {
-  selectUnreadCount,
-  useNotificationsStore,
-} from "@/stores/useNotificationsStore";
 import type { Notification, NotificationType } from "@/types/notifications";
 
 const TYPE_ICON: Record<NotificationType, typeof Info> = {
@@ -29,7 +29,6 @@ const TYPE_ICON: Record<NotificationType, typeof Info> = {
   error: CircleAlert,
 };
 
-/** Tile (icon background) — solid soft tint per type. */
 const TYPE_TILE: Record<NotificationType, string> = {
   info: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
   success:
@@ -40,7 +39,6 @@ const TYPE_TILE: Record<NotificationType, string> = {
     "bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-500",
 };
 
-/** Left accent stripe for unread rows. */
 const TYPE_ACCENT: Record<NotificationType, string> = {
   info: "bg-blue-500",
   success: "bg-success-500",
@@ -49,34 +47,77 @@ const TYPE_ACCENT: Record<NotificationType, string> = {
 };
 
 type Filter = "all" | "unread" | NotificationType;
+const PAGE_SIZE = 25;
+const POLL_MS = 30_000;
 
 export default function NotificationsPage() {
   const { t } = useTranslation(["notifications", "common"]);
   const lang = useLanguageStore((s) => s.lang);
-
-  const notifications = useNotificationsStore((s) => s.notifications);
-  const unread = useNotificationsStore(selectUnreadCount);
-  const markRead = useNotificationsStore((s) => s.markRead);
-  const markAllRead = useNotificationsStore((s) => s.markAllRead);
-  const remove = useNotificationsStore((s) => s.remove);
-  const clear = useNotificationsStore((s) => s.clear);
-
+  const qc = useQueryClient();
+  const isAuthed = useAuthStore((s) => s.user !== null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [page, setPage] = useState(1);
 
+  // Server-side pagination + 30sn polling
+  const listQ = useQuery({
+    queryKey: ["notifications", "list", page, PAGE_SIZE],
+    queryFn: () => notificationsApi.list(page, PAGE_SIZE),
+    enabled: isAuthed,
+    refetchInterval: POLL_MS,
+    staleTime: POLL_MS / 2,
+  });
+  const unreadQ = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => notificationsApi.unreadCount(),
+    enabled: isAuthed,
+    refetchInterval: POLL_MS,
+    staleTime: POLL_MS / 2,
+  });
+
+  const markReadMut = useMutation({
+    mutationFn: (id: number) => notificationsApi.markRead(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+  const markAllReadMut = useMutation({
+    mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+  const removeMut = useMutation({
+    mutationFn: (id: number) => notificationsApi.deleteOne(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const items: Notification[] = useMemo(
+    () => listQ.data?.items ?? [],
+    [listQ.data],
+  );
+  const total = listQ.data?.total ?? 0;
+  const unread = unreadQ.data ?? 0;
+
+  // Filtre + sayım — server-side full count olmadığı için client-side
+  // mevcut sayfa üzerinden hesaplar. Tüm DB üzerindeki tipsel sayım UI
+  // chip'lerinde "mevcut sayfada N" anlamında — uzun vadede /unread-count
+  // gibi /type-counts endpoint'i eklenebilir (backlog).
   const counts = useMemo(() => {
     const acc = { info: 0, success: 0, warning: 0, error: 0 };
-    for (const n of notifications) acc[n.type] += 1;
+    for (const n of items) acc[n.type] += 1;
     return acc;
-  }, [notifications]);
+  }, [items]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return notifications;
-    if (filter === "unread") return notifications.filter((n) => !n.read);
-    return notifications.filter((n) => n.type === filter);
-  }, [notifications, filter]);
+    if (filter === "all") return items;
+    if (filter === "unread") return items.filter((n) => !n.is_read);
+    return items.filter((n) => n.type === filter);
+  }, [items, filter]);
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: t("filter_all"), count: notifications.length },
+    { id: "all", label: t("filter_all"), count: total },
     { id: "unread", label: t("filter_unread"), count: unread },
     { id: "info", label: t("type_info"), count: counts.info },
     { id: "success", label: t("type_success"), count: counts.success },
@@ -99,22 +140,12 @@ export default function NotificationsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => markAllRead()}
+              onClick={() => markAllReadMut.mutate()}
+              disabled={markAllReadMut.isPending}
               className="gap-1.5"
             >
               <CheckCheck className="size-4" />
               {t("mark_all_read")}
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => clear()}
-              className="gap-1.5 text-text-muted hover:text-destructive"
-            >
-              <Trash2 className="size-4" />
-              {t("clear_all")}
             </Button>
           )}
         </div>
@@ -181,12 +212,19 @@ export default function NotificationsPage() {
               key={n.id}
               n={n}
               lang={lang}
-              onMarkRead={() => markRead(n.id)}
-              onRemove={() => remove(n.id)}
+              onMarkRead={() => markReadMut.mutate(n.id)}
+              onRemove={() => removeMut.mutate(n.id)}
             />
           ))}
         </ul>
       )}
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
@@ -209,23 +247,18 @@ function NotificationRow({
     <div
       className={cn(
         "group relative flex items-start gap-3 overflow-hidden rounded-xl border bg-card pl-4 pr-3 py-3.5 transition-all",
-        n.read
+        n.is_read
           ? "border-border hover:border-border/80"
           : "border-primary/20 bg-primary/[0.025] shadow-xs",
       )}
     >
-      {/* Left accent stripe — unread only */}
-      {!n.read && (
+      {!n.is_read && (
         <span
-          className={cn(
-            "absolute inset-y-0 left-0 w-1",
-            TYPE_ACCENT[n.type],
-          )}
+          className={cn("absolute inset-y-0 left-0 w-1", TYPE_ACCENT[n.type])}
           aria-hidden
         />
       )}
 
-      {/* Type tile */}
       <span
         className={cn(
           "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
@@ -235,12 +268,11 @@ function NotificationRow({
         <Icon className="size-4" />
       </span>
 
-      {/* Content */}
       <div className="flex flex-1 flex-col gap-0.5 min-w-0">
         <div className="flex items-start justify-between gap-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
             {n.title}
-            {!n.read && (
+            {!n.is_read && (
               <span
                 className="inline-block size-1.5 shrink-0 rounded-full bg-primary"
                 aria-hidden
@@ -249,9 +281,9 @@ function NotificationRow({
           </h3>
           <time
             className="shrink-0 text-[11px] text-text-dim"
-            dateTime={dayjs(n.createdAt).toISOString()}
+            dateTime={n.created_at}
           >
-            {dayjs(n.createdAt).locale(lang).fromNow()}
+            {dayjs.utc(n.created_at).tz("Europe/Istanbul").locale(lang).fromNow()}
           </time>
         </div>
         {n.message && (
@@ -259,9 +291,8 @@ function NotificationRow({
         )}
       </div>
 
-      {/* Actions — appear on hover, always visible on touch */}
       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        {!n.read && (
+        {!n.is_read && (
           <button
             type="button"
             onClick={(e) => {
@@ -296,7 +327,7 @@ function NotificationRow({
   return (
     <li>
       {n.link ? (
-        <Link to={n.link} onClick={() => !n.read && onMarkRead()}>
+        <Link to={n.link} onClick={() => !n.is_read && onMarkRead()}>
           {Inner}
         </Link>
       ) : (

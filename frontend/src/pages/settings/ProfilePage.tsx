@@ -142,7 +142,6 @@ export default function ProfilePage() {
         type: "success",
         title: t("settings:profile_saved_title"),
         message: t("settings:profile_saved_message"),
-        toast: true,
       });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -185,7 +184,6 @@ export default function ProfilePage() {
       notify({
         type: "success",
         title: t("settings:avatar_updated_title"),
-        toast: true,
       });
       setCropImageSrc(null);
     } catch (err) {
@@ -208,7 +206,6 @@ export default function ProfilePage() {
       notify({
         type: "info",
         title: t("settings:avatar_removed_title"),
-        toast: true,
       });
     } catch (err) {
       setAvatarError(

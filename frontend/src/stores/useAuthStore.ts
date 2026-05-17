@@ -51,7 +51,17 @@ export const useAuthStore = create<AuthState>()(
         set((s) =>
           s.user ? { user: { ...s.user, avatar_url: avatarUrl } } : s,
         ),
-      clearAuth: () => set({ user: null, accessToken: null, permissions: [] }),
+      clearAuth: () => {
+        // Eski sürümlerden kalan client-side bildirim localStorage'ını da
+        // temizle — bildirimler artık backend-driven (user_id bazlı). Bu
+        // satır migration garantisi; key zaten yoksa noop.
+        try {
+          localStorage.removeItem("sporthink-notifications");
+        } catch {
+          // SSR/eski tarayıcı — sessiz geç
+        }
+        set({ user: null, accessToken: null, permissions: [] });
+      },
     }),
     {
       name: "sporthink_auth",
