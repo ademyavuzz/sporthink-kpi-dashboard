@@ -814,6 +814,12 @@ async def list_imports(db: AsyncSession, *, limit: int = 50) -> list[Import]:
     return await import_repository.list_recent(db, limit=limit)
 
 
+async def list_imports_paginated(
+    db: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[Import], int]:
+    return await import_repository.list_paginated(db, page=page, page_size=page_size)
+
+
 async def get_import(db: AsyncSession, import_id: int) -> Import | None:
     return await import_repository.get_by_id(db, import_id)
 

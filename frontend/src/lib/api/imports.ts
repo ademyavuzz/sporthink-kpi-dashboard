@@ -47,7 +47,11 @@ export const importsApi = {
   },
 
   async list(): Promise<ImportListItem[]> {
-    const r = await apiClient.get<ApiEnvelope<ImportListItem[]>>("/imports");
+    // Backend artık sayfalı (max page_size=200). UI'da pagination kontrolü
+    // yok — geçici olarak tek sayfada 200 satır çekiyoruz.
+    const r = await apiClient.get<ApiEnvelope<ImportListItem[]>>(
+      "/imports?page=1&page_size=200",
+    );
     return unwrap(r);
   },
 
