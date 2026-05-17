@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePermissions } from "@/hooks/usePermissions";
 import { adminApi } from "@/lib/api/admin";
 import { cn } from "@/lib/utils";
 import type { ChannelMappingItem } from "@/types/admin";
@@ -41,6 +42,9 @@ import type { ChannelMappingItem } from "@/types/admin";
 export default function ChannelMappingPage() {
   const { t } = useTranslation(["admin", "common"]);
   const qc = useQueryClient();
+  const { has } = usePermissions();
+  const canCreate = has("mappings.create");
+  const canDelete = has("mappings.delete");
   const [open, setOpen] = useState(false);
   const [pendingDelete, setPendingDelete] =
     useState<ChannelMappingItem | null>(null);
@@ -98,10 +102,12 @@ export default function ChannelMappingPage() {
             {t("admin:channels.subtitle")}
           </p>
         </div>
-        <Button onClick={() => setOpen(true)} className="gap-1.5">
-          <Plus className="size-4" />
-          {t("admin:channels.new_mapping")}
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setOpen(true)} className="gap-1.5">
+            <Plus className="size-4" />
+            {t("admin:channels.new_mapping")}
+          </Button>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -226,16 +232,18 @@ export default function ChannelMappingPage() {
                         )}
                       </TableCell>
                       <TableCell className="px-3 py-3.5 text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setPendingDelete(m)}
-                          aria-label={t("admin:channels.delete_title")}
-                          title={t("admin:channels.delete_title")}
-                          className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setPendingDelete(m)}
+                            aria-label={t("admin:channels.delete_title")}
+                            title={t("admin:channels.delete_title")}
+                            className="size-8 text-text-muted hover:bg-error-500/10 hover:text-error-600"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache_keys
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import ConflictError, ResourceNotFoundError
 from app.models import ChannelMapping
 from app.services.cache_service import cache
 
@@ -43,6 +43,23 @@ async def create_mapping(
     notes: str | None,
     actor_id: int,
 ) -> ChannelMapping:
+    # Aktif (source, medium) zaten varsa explicit ConflictError. DB-level
+    # `uk_source_medium_active` generated column üzerinde aynısını engelliyor
+    # (son güvenlik ağı), ama bu check temiz 409 + i18n key üretir.
+    existing = await db.execute(
+        select(ChannelMapping).where(
+            ChannelMapping.source == source,
+            ChannelMapping.medium == medium,
+            ChannelMapping.deleted_at.is_(None),
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise ConflictError(
+            "Channel mapping with this (source, medium) already exists",
+            field="source_medium",
+            params={"source": source, "medium": medium},
+        )
+
     row = ChannelMapping(
         source=source,
         medium=medium,
