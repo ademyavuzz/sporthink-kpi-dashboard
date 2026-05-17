@@ -69,9 +69,9 @@ describe("formatPercent", () => {
 });
 
 describe("formatMultiplier", () => {
-  it("appends x suffix with 2 decimals", () => {
-    expect(formatMultiplier(4.5)).toBe("4.50x");
-    expect(formatMultiplier("12.345")).toBe("12.35x");
+  it("appends x suffix with 2 decimals (TR locale: virgül)", () => {
+    expect(formatMultiplier(4.5)).toBe("4,50x");
+    expect(formatMultiplier("12.345")).toBe("12,35x");
   });
 });
 
@@ -104,7 +104,7 @@ describe("formatKPIValue dispatcher", () => {
   it("dispatches by unit", () => {
     expect(formatKPIValue(1500000, "currency")).toMatch(/₺/);
     expect(formatKPIValue(45.6, "percent")).toMatch(/%/);
-    expect(formatKPIValue(4.5, "multiplier")).toBe("4.50x");
+    expect(formatKPIValue(4.5, "multiplier")).toBe("4,50x");
     expect(formatKPIValue(125, "duration_seconds")).toBe("2dk 5sn");
     expect(formatKPIValue(1234, "count")).toMatch(/Bn|1,2/);
   });

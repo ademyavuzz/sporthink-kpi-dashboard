@@ -195,7 +195,7 @@ export default function App() {
         <Route
           path="/channel-mappings"
           element={
-            <ProtectedRoute permission="settings.update">
+            <ProtectedRoute permission="mappings.view">
               <ChannelMappingPage />
             </ProtectedRoute>
           }
