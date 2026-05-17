@@ -8,6 +8,18 @@ export interface SuccessEnvelope<T> {
   data: T;
 }
 
+export interface PaginationMeta {
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface PaginatedEnvelope<T> {
+  success: true;
+  data: T[];
+  pagination: PaginationMeta;
+}
+
 export interface ErrorEnvelope {
   success: false;
   error: {
@@ -19,3 +31,4 @@ export interface ErrorEnvelope {
 }
 
 export type ApiEnvelope<T> = SuccessEnvelope<T> | ErrorEnvelope;
+export type PaginatedApiEnvelope<T> = PaginatedEnvelope<T> | ErrorEnvelope;

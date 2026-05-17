@@ -63,14 +63,18 @@ class ForgotPasswordResponse(BaseModel):
 class VerifyResetTokenResponse(BaseModel):
     """`GET /auth/verify-reset-token?token=...` cevabı.
 
-    Token geçerliyse `valid=True` ve maskelenmiş email döner; geçersizse
-    422 + `INVALID_OR_EXPIRED_TOKEN` exception (handler'a düşer).
+    Endpoint adı zaten "verify" (sorgulama) olduğu için geçersiz token
+    durumunda exception fırlatmak yerine `valid=False` döndürürüz. Frontend
+    reset sayfası tek shape parse eder; hata akışı yok.
+
+    - Geçerli token: `valid=True` + purpose + maskelenmiş email + first_name
+    - Geçersiz/expired token: `valid=False`, diğer alanlar `None`
     """
 
     valid: bool
-    purpose: str  # "invite" | "reset"
-    user_email: str  # maskelenmiş: "ad***@domain.com"
-    first_name: str
+    purpose: str | None = None  # "invite" | "reset" (geçerliyse)
+    user_email: str | None = None  # maskelenmiş, geçerliyse
+    first_name: str | None = None
 
 
 class ResetPasswordRequest(BaseModel):

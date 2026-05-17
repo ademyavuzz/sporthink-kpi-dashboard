@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.exceptions import RefreshTokenMissingError
+from app.core.exceptions import InvalidOrExpiredTokenError, RefreshTokenMissingError
 from app.dependencies import get_current_user, get_db
 from app.models import User
 from app.schemas import (
@@ -336,9 +336,18 @@ async def verify_reset_token(
     token: str,
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[VerifyResetTokenResponse]:
-    """Frontend reset sayfası mount olunca çağırır — token bozuk veya süresi
-    dolmuşsa kullanıcıya hata mesajı gösterir."""
-    row, user = await password_reset_service.verify_token(db, token)
+    """Frontend reset sayfası mount olunca çağırır.
+
+    Geçerli/geçersiz iki durumun ikisinde de 200 + envelope döner; frontend
+    `data.valid` field'ına bakar. Exception fırlatmak (eskiden 422) endpoint
+    adının semantiğine (verify = sorgu) ters düşüyordu — UX olarak tek path
+    daha temiz.
+    """
+    try:
+        row, user = await password_reset_service.verify_token(db, token)
+    except InvalidOrExpiredTokenError:
+        return SuccessEnvelope(data=VerifyResetTokenResponse(valid=False))
+
     return SuccessEnvelope(
         data=VerifyResetTokenResponse(
             valid=True,

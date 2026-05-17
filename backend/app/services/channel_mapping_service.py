@@ -19,12 +19,38 @@ from app.services.cache_service import cache
 
 
 async def list_mappings(db: AsyncSession) -> list[ChannelMapping]:
+    """Geriye uyumlu basit liste (cache, export gibi non-paginated kullanım)."""
     result = await db.execute(
         select(ChannelMapping)
         .where(ChannelMapping.deleted_at.is_(None))
         .order_by(ChannelMapping.id)
     )
     return list(result.scalars().all())
+
+
+async def list_mappings_paginated(
+    db: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[ChannelMapping], int]:
+    """Returns: (page_rows, total)."""
+    from sqlalchemy import func
+
+    total = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(ChannelMapping)
+                .where(ChannelMapping.deleted_at.is_(None))
+            )
+        ).scalar_one()
+    )
+    result = await db.execute(
+        select(ChannelMapping)
+        .where(ChannelMapping.deleted_at.is_(None))
+        .order_by(ChannelMapping.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return list(result.scalars().all()), total
 
 
 async def get_mapping(db: AsyncSession, mapping_id: int) -> ChannelMapping:

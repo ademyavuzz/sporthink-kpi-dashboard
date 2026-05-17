@@ -65,5 +65,11 @@
   "preset_last_year": "Last Year",
   "preset_custom": "Custom",
   "other_bucket": "Other",
-  "total": "Total"
+  "total": "Total",
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page_of": "Page {{page}} / {{totalPages}}",
+    "total_items": "{{total}} records"
+  }
 }

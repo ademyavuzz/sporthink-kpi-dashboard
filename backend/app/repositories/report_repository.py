@@ -51,6 +51,30 @@ async def list_recent(db: AsyncSession, *, limit: int = 50) -> list[Report]:
     return list(result.scalars().all())
 
 
+async def list_paginated(
+    db: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[Report], int]:
+    from sqlalchemy import func
+
+    total = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(Report)
+                .where(Report.deleted_at.is_(None))
+            )
+        ).scalar_one()
+    )
+    result = await db.execute(
+        select(Report)
+        .where(Report.deleted_at.is_(None))
+        .order_by(desc(Report.created_at))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return list(result.scalars().all()), total
+
+
 async def mark_generating(db: AsyncSession, report_id: int) -> None:
     await db.execute(
         update(Report)

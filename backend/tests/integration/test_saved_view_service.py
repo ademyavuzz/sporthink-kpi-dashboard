@@ -68,12 +68,12 @@ async def test_saved_view_full_crud_roundtrip(
         created_ids.append(sv["id"])
 
         # LIST (page filter) — sadece overview page görünmeli
-        list_r = await client.get(f"{BASE}?page=overview", headers=headers)
+        list_r = await client.get(f"{BASE}?page_name=overview", headers=headers)
         assert list_r.status_code == 200
         assert any(v["id"] == sv["id"] for v in list_r.json()["data"])
 
         # LIST (başka page) — bizim view burada olmamalı
-        other_r = await client.get(f"{BASE}?page=traffic", headers=headers)
+        other_r = await client.get(f"{BASE}?page_name=traffic", headers=headers)
         assert other_r.status_code == 200
         assert all(v["id"] != sv["id"] for v in other_r.json()["data"])
 
@@ -95,7 +95,7 @@ async def test_saved_view_full_crud_roundtrip(
         assert del_r.status_code == 200
 
         # Tekrar GET ile listede olmamalı
-        list_after = await client.get(f"{BASE}?page=overview", headers=headers)
+        list_after = await client.get(f"{BASE}?page_name=overview", headers=headers)
         assert all(v["id"] != sv["id"] for v in list_after.json()["data"])
     finally:
         await _cleanup(created_ids)
