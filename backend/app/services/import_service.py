@@ -48,6 +48,7 @@ from app.models import (
     ImportStatus,
     MetaAds,
     MetaAdsBreakdowns,
+    NotificationType,
     Order,
     OrderItem,
     Product,
@@ -56,6 +57,7 @@ from app.parsers.csv_parser import parse_csv
 from app.parsers.sources import REGISTRY, get_config
 from app.parsers.types import ParsedRow, ParseError, SourceConfig
 from app.repositories import audit_log_repository, data_writer, import_repository
+from app.services import notification_service
 from app.services.cache_service import cache
 
 logger = logging.getLogger(__name__)
@@ -504,6 +506,14 @@ async def run_import(
                     "reason": "MISSING_HEADERS",
                 },
             )
+            await notification_service.create_for_user(
+                db,
+                user_id=user_id,
+                type_=NotificationType.ERROR,
+                title=f"İmport başarısız: {original_filename}",
+                message=parse_errors[0]["error_message"],
+                link="/import/history",
+            )
             await db.commit()
             return await import_repository.get_by_id(db, import_id)  # type: ignore[return-value]
 
@@ -576,6 +586,21 @@ async def run_import(
                 "errors": len(all_errors),
             },
         )
+        # User-facing notification — import'u başlatan kullanıcının bildirim
+        # merkezine "Import tamamlandı" satırı düşer (fail-safe; başarısız
+        # olursa ana akış kesilmez).
+        await notification_service.create_for_user(
+            db,
+            user_id=user_id,
+            type_=NotificationType.SUCCESS if len(all_errors) == 0 else NotificationType.WARNING,
+            title=f"İmport tamamlandı: {original_filename}",
+            message=(
+                f"{inserted} satır eklendi"
+                + (f", {len(all_errors)} hata" if all_errors else "")
+                + (f", {skipped} satır atlandı" if skipped else "")
+            ),
+            link="/import/history",
+        )
         await db.commit()
 
         # KPI cache invalidation — yeni veri geldi, dashboard'larda cached
@@ -615,6 +640,14 @@ async def run_import(
             user_agent=user_agent,
             details={"data_type": data_type.value, "reason": "DB_ERROR"},
         )
+        await notification_service.create_for_user(
+            db,
+            user_id=user_id,
+            type_=NotificationType.ERROR,
+            title=f"İmport başarısız: {original_filename}",
+            message=f"Veritabanı hatası (ref: {import_id})",
+            link="/import/history",
+        )
         await db.commit()
     except Exception:  # noqa: BLE001
         logger.exception("import_unexpected_error", extra={"import_id": import_id})
@@ -636,6 +669,14 @@ async def run_import(
             ip_address=ip,
             user_agent=user_agent,
             details={"data_type": data_type.value, "reason": "UNEXPECTED"},
+        )
+        await notification_service.create_for_user(
+            db,
+            user_id=user_id,
+            type_=NotificationType.ERROR,
+            title=f"İmport başarısız: {original_filename}",
+            message=f"Beklenmedik hata (ref: {import_id})",
+            link="/import/history",
         )
         await db.commit()
 
