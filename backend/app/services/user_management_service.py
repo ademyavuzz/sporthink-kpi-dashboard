@@ -20,9 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ResourceNotFoundError, ValidationError
 from app.core.security import hash_password
-from app.models import Role, User
+from app.models import NotificationType, Role, User
 from app.repositories import audit_log_repository
-from app.services import password_reset_service
+from app.services import notification_service, password_reset_service
 
 logger = logging.getLogger(__name__)
 
@@ -282,6 +282,21 @@ async def admin_send_password_reset(
         lang=lang,
         ip=ip,
     )
+
+    # Hedef kullanıcının bildirim merkezine güvenlik uyarısı düşür
+    # (logout olmadıysa, sıradaki oturumunda görür).
+    await notification_service.create_for_user(
+        db,
+        user_id=user.id,
+        type_=NotificationType.WARNING,
+        title="Şifreniz sıfırlandı",
+        message=(
+            f"{actor.full_name} tarafından şifre sıfırlama maili e-posta adresinize gönderildi. "
+            "İsteğiniz dışı ise sistem yöneticisiyle iletişime geçin."
+        ),
+        link="/settings/security",
+    )
+    await db.commit()
     return user
 
 

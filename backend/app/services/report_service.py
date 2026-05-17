@@ -22,12 +22,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.exceptions import ResourceNotFoundError, ValidationError
-from app.models import Report, User
+from app.models import NotificationType, Report, User
 from app.repositories import report_repository as repo
 from app.schemas.reports import ReportSectionMeta
 from app.services import (
     customer_service,
     kpi_service,
+    notification_service,
     pdf_render_service,
 )
 
@@ -485,9 +486,29 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
             file_path=str(output_path),
             file_size_bytes=size,
         )
+        if report.user_id:
+            await notification_service.create_for_user(
+                db,
+                user_id=report.user_id,
+                type_=NotificationType.SUCCESS,
+                title=f"Rapor hazır: {report.name}",
+                message="PDF rapor üretildi, indirebilirsiniz.",
+                link="/reports",
+            )
+        await db.commit()
         logger.info("report_generation_complete report_id=%d size=%d", report_id, size)
 
     except Exception as e:  # noqa: BLE001 — task üst seviye guard
         logger.exception("report_generation_failed report_id=%d", report_id)
         await repo.mark_failed(db, report_id, error_message=str(e))
+        if report.user_id:
+            await notification_service.create_for_user(
+                db,
+                user_id=report.user_id,
+                type_=NotificationType.ERROR,
+                title=f"Rapor üretilemedi: {report.name}",
+                message="Rapor üretimi sırasında hata oluştu.",
+                link="/reports",
+            )
+            await db.commit()
         raise
