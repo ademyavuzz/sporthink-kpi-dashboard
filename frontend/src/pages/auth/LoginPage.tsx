@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
+import { showWelcomeToast } from "@/components/feature/WelcomeToast";
 import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api/auth";
 import { ApiError, NetworkError } from "@/lib/api/client";
-import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useLanguageStore, type Lang } from "@/stores/useLanguageStore";
@@ -69,21 +69,14 @@ export default function LoginPage() {
         accessToken: tokens.access_token,
         permissions: me.permissions,
       });
-      // "Hoş geldiniz" toast — anlık geri bildirim, kalıcı bildirim merkezine
-      // girmez (backend-driven, sadece anlamlı eventler için notification yazar).
+      // Branded karşılama toast'ı — avatar + selamlama. Kalıcı bildirim
+      // merkezine girmez (notification merkezi backend-driven).
       const firstName = tokens.user.first_name || tokens.user.email;
-      const welcomeTitle =
-        lang === "tr"
-          ? `Hoş geldiniz, ${firstName}`
-          : `Welcome, ${firstName}`;
-      const welcomeMessage =
-        lang === "tr"
-          ? "Sporthink KPI Dashboard'a giriş yaptınız."
-          : "You're signed in to Sporthink KPI Dashboard.";
-      notify({
-        type: "success",
-        title: welcomeTitle,
-        message: welcomeMessage,
+      showWelcomeToast({
+        user: tokens.user,
+        title: t("auth:welcome_toast.title", { name: firstName }),
+        subtitle: t("auth:welcome_toast.subtitle"),
+        closeLabel: t("auth:welcome_toast.close"),
       });
       const from = (location.state as LocationState | null)?.from ?? "/";
       navigate(from, { replace: true });
@@ -126,7 +119,9 @@ export default function LoginPage() {
           variant="outline"
           size="icon"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? t("common:theme_light") : t("common:theme_dark")}
+          aria-label={
+            theme === "dark" ? t("common:theme_light") : t("common:theme_dark")
+          }
           className="border-border bg-surface"
         >
           {theme === "dark" ? <Sun /> : <Moon />}
@@ -145,7 +140,10 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
             <div className="flex flex-col gap-1.5">
               <Label
                 htmlFor="email"
@@ -193,10 +191,18 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? t("auth:hide_password") : t("auth:show_password")}
+                  aria-label={
+                    showPassword
+                      ? t("auth:hide_password")
+                      : t("auth:show_password")
+                  }
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex size-8 items-center justify-center rounded-md text-text-muted hover:bg-muted hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
                 </button>
               </div>
               {errors.password && (
@@ -266,7 +272,6 @@ export default function LoginPage() {
           {t("auth:footer_copyright")}
         </p>
       </div>
-
     </div>
   );
 }
