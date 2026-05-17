@@ -31,6 +31,7 @@ from typing import Any, Literal
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import ResourceNotFoundError
 from app.models import (
     Customer,
     GA4ItemEngagement,
@@ -983,10 +984,14 @@ async def campaign_detail(
     if campaign_pk_id is None and campaign_name is None:
         raise ValueError("campaign_pk_id veya campaign_name verilmeli")
 
-    # Kampanya kaydını bul (master tablodan ad alma + adı normalize)
+    # Kampanya kaydını bul (master tablodan ad alma + adı normalize).
+    # Bulunamazsa 404 — eskiden boş payload dönüyordu, frontend "bulunamadı"
+    # ayrımı yapamıyordu.
     if campaign_pk_id is not None:
         campaign = await db.get(Campaign, campaign_pk_id)
-        resolved_name = campaign.campaign_name if campaign else None
+        if campaign is None or campaign.deleted_at is not None:
+            raise ResourceNotFoundError(params={"campaign_pk_id": campaign_pk_id})
+        resolved_name = campaign.campaign_name
         resolved_pk_id = campaign_pk_id
     else:
         stmt = (
@@ -1000,8 +1005,10 @@ async def campaign_detail(
             .limit(1)
         )
         campaign = (await db.execute(stmt)).scalar_one_or_none()
+        if campaign is None:
+            raise ResourceNotFoundError(params={"campaign_name": campaign_name})
         resolved_name = campaign_name
-        resolved_pk_id = campaign.id if campaign else None
+        resolved_pk_id = campaign.id
 
     # 1) Ad performance — kpi_campaign_aggregates (period match)
     ad_metrics = {

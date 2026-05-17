@@ -147,7 +147,9 @@ async def test_refresh_with_cookie_returns_new_access_and_rotates_cookie(
 async def test_refresh_without_cookie_returns_401(client: AsyncClient) -> None:
     r = await client.post("/api/v1/auth/refresh")
     assert r.status_code == 401
-    assert r.json()["error"]["code"] == "INVALID_CREDENTIALS"
+    # Eskiden INVALID_CREDENTIALS dönüyordu; semantik açıklayıcı olsun diye
+    # ayrıldı — "session bitmiş, tekrar giriş yap" mesajı bu kodla tetiklenir.
+    assert r.json()["error"]["code"] == "REFRESH_TOKEN_MISSING"
 
 
 # ─── /logout ─────────────────────────────────────────────────────────────────

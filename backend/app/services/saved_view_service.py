@@ -25,10 +25,11 @@ async def list_views(db: AsyncSession, *, user_id: int, page: str | None = None)
     return list(result.scalars().all())
 
 
-async def _get_owned(db: AsyncSession, view_id: int, user_id: int) -> SavedView:
+async def get_view(db: AsyncSession, view_id: int, *, user_id: int) -> SavedView:
+    """View'ı sahibine göre getir. Sahibi olmayan kullanıcı için de 404
+    (varlığı sızdırmamak — 403 demek "var ama göremezsin" anlamına gelir)."""
     sv = await db.get(SavedView, view_id)
     if sv is None or sv.deleted_at is not None or sv.user_id != user_id:
-        # Sahibi olmayan view için de 404 — varlığı sızdırmamak için 403 değil.
         raise ResourceNotFoundError(params={"view_id": view_id})
     return sv
 
@@ -69,7 +70,7 @@ async def update_view(
     filters: dict[str, Any] | None,
     is_default: bool | None,
 ) -> SavedView:
-    sv = await _get_owned(db, view_id, user_id)
+    sv = await get_view(db, view_id, user_id=user_id)
     if name is not None:
         sv.name = name
     if description is not None:
@@ -85,6 +86,6 @@ async def update_view(
 
 
 async def soft_delete_view(db: AsyncSession, view_id: int, *, user_id: int) -> None:
-    sv = await _get_owned(db, view_id, user_id)
+    sv = await get_view(db, view_id, user_id=user_id)
     sv.deleted_at = datetime.now(UTC)
     await db.commit()

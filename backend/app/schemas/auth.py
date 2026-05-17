@@ -16,13 +16,15 @@ from app.schemas.user import UserResponse
 class LoginRequest(BaseModel):
     """Login isteği.
 
-    `email` burada `str` — kayıtlı kullanıcı string'iyle eşleşmesi yeter.
-    RFC katı doğrulaması user-creation şemalarında yapılır.
+    `email` `EmailStr` — Pydantic katmanında format doğrulanır, malformed
+    payload backend'de DB lookup'a düşmeden 422 ile reddedilir. Davranış
+    güvenli (yetkisiz erişim zaten 401'di) ama frontend için "format hatası"
+    daha açıklayıcı.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    email: str = Field(min_length=3, max_length=255)
+    email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=1, max_length=128)
     # `False` ise refresh cookie session-only (browser kapanınca silinir);
     # `True` ise `refresh_token_expire_days` kadar persist eder.

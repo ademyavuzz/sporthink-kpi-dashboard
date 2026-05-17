@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache_keys
+from app.core.exceptions import ResourceNotFoundError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import Role, User
@@ -235,6 +236,20 @@ async def list_channel_mappings(
     return SuccessEnvelope(data=[ChannelMappingItem.model_validate(r) for r in rows])
 
 
+@router.get(
+    "/admin/channel-mappings/{mapping_id}",
+    response_model=SuccessEnvelope[ChannelMappingItem],
+    summary="Tek channel mapping detayı",
+)
+async def get_channel_mapping(
+    mapping_id: int = Path(..., ge=1),
+    _user: User = Depends(require_permission(Permission.MAPPINGS_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[ChannelMappingItem]:
+    row = await channel_mapping_service.get_mapping(db, mapping_id)
+    return SuccessEnvelope(data=ChannelMappingItem.model_validate(row))
+
+
 @router.post(
     "/admin/channel-mappings",
     response_model=SuccessEnvelope[ChannelMappingItem],
@@ -443,6 +458,21 @@ async def list_users(
     users = await user_management_service.list_users(db, include_deleted=include_deleted)
     roles_map = await user_management_service.load_roles_for_users(db, users)
     return SuccessEnvelope(data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users])
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=SuccessEnvelope[UserListItem],
+    summary="Tek kullanıcı detayı",
+)
+async def get_user_endpoint(
+    user_id: int = Path(..., ge=1),
+    _user: User = Depends(require_permission(Permission.USERS_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[UserListItem]:
+    user = await user_management_service.get_user_or_404(db, user_id)
+    role = await db.get(Role, user.role_id) if user.role_id else None
+    return SuccessEnvelope(data=_user_to_item(user, role))
 
 
 @router.post(
@@ -676,6 +706,27 @@ async def get_rfm(
     )
 
 
+# `/segments/{segment_id}` (GET) burada — `/segments/rfm`'den SONRA tanımlandı
+# çünkü FastAPI route'ları sırayla eşler; aksi halde "rfm" int parse'a düşer
+# ve 422 alırız. PATCH/DELETE `{segment_id}` farklı method olduğu için yukarıda
+# tanımlı olsa da çakışma yapmaz.
+@router.get(
+    "/segments/{segment_id}",
+    response_model=SuccessEnvelope[SegmentItem],
+    summary="Tek segment detayı (sahibi olmasa bile shared ise görür)",
+)
+async def get_segment_endpoint(
+    segment_id: int = Path(..., ge=1),
+    current: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[SegmentItem]:
+    seg = await segment_service.get_segment(db, segment_id)
+    # Görünürlük kuralı list_for_user ile aynı: kendi segmenti VEYA paylaşılmış.
+    if seg.user_id != current.id and not seg.is_shared:
+        raise ResourceNotFoundError(params={"segment_id": segment_id})
+    return SuccessEnvelope(data=SegmentItem.model_validate(seg))
+
+
 # ---------------------------------------------------------------------- #
 # /saved-views — CRUD
 # ---------------------------------------------------------------------- #
@@ -692,6 +743,20 @@ async def list_saved_views(
 ) -> SuccessEnvelope[list[SavedViewItem]]:
     rows = await saved_view_service.list_views(db, user_id=current.id, page=page)
     return SuccessEnvelope(data=[SavedViewItem.model_validate(r) for r in rows])
+
+
+@router.get(
+    "/saved-views/{view_id}",
+    response_model=SuccessEnvelope[SavedViewItem],
+    summary="Tek saved view detayı (sadece kendi view'ı)",
+)
+async def get_saved_view(
+    view_id: int = Path(..., ge=1),
+    current: User = Depends(require_permission(Permission.VIEWS_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[SavedViewItem]:
+    sv = await saved_view_service.get_view(db, view_id, user_id=current.id)
+    return SuccessEnvelope(data=SavedViewItem.model_validate(sv))
 
 
 @router.post(

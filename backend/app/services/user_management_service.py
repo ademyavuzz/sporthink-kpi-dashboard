@@ -56,6 +56,18 @@ async def get_user(db: AsyncSession, user_id: int) -> User | None:
     return await db.get(User, user_id)
 
 
+async def get_user_or_404(db: AsyncSession, user_id: int) -> User:
+    """Soft-deleted dahil herhangi bir kullanıcı kaydını getir, yoksa 404.
+
+    `get_user` opsiyonel döner (mevcut iç çağrılar için bozulmasın); router
+    GET handler'ı doğrudan bu helper'ı kullanır.
+    """
+    user = await db.get(User, user_id)
+    if user is None or user.deleted_at is not None:
+        raise ResourceNotFoundError(params={"user_id": user_id})
+    return user
+
+
 async def create_user(
     db: AsyncSession,
     *,

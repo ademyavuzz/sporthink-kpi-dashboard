@@ -2,6 +2,7 @@
   "AUTH_REQUIRED": "You need to sign in to continue.",
   "TOKEN_EXPIRED": "Your session has expired. Please sign in again.",
   "INVALID_CREDENTIALS": "Email or password is incorrect.",
+  "REFRESH_TOKEN_MISSING": "Your session was not found. Please sign in again.",
   "ACCOUNT_LOCKED": "Your account is temporarily locked due to repeated failed attempts. Please try again later.",
   "PERMISSION_DENIED": "You don't have permission to perform this action.",
   "RESOURCE_NOT_FOUND": "The requested record was not found.",

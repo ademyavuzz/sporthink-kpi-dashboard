@@ -21,7 +21,7 @@ from typing import Any
 from sqlalchemy import and_, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ValidationError
+from app.core.exceptions import ResourceNotFoundError, ValidationError
 from app.models import Customer, Segment
 
 logger = logging.getLogger(__name__)
@@ -127,9 +127,8 @@ async def list_for_user(db: AsyncSession, *, user_id: int) -> list[Segment]:
     return list((await db.execute(stmt)).scalars().all())
 
 
-async def _get_active(db: AsyncSession, segment_id: int) -> Segment:
-    from app.core.exceptions import ResourceNotFoundError
-
+async def get_segment(db: AsyncSession, segment_id: int) -> Segment:
+    """Aktif (soft-deleted olmayan) segment kaydını getir, yoksa 404."""
     seg = await db.get(Segment, segment_id)
     if seg is None or seg.deleted_at is not None:
         raise ResourceNotFoundError(params={"segment_id": segment_id})
@@ -186,7 +185,7 @@ async def update_segment(
     rules: dict[str, Any] | None,
     is_shared: bool | None,
 ) -> Segment:
-    seg = await _get_active(db, segment_id)
+    seg = await get_segment(db, segment_id)
     if name is not None:
         seg.name = name
     if description is not None:
@@ -204,7 +203,7 @@ async def update_segment(
 
 
 async def soft_delete_segment(db: AsyncSession, segment_id: int) -> None:
-    seg = await _get_active(db, segment_id)
+    seg = await get_segment(db, segment_id)
     seg.deleted_at = datetime.now(UTC)
     await db.commit()
 
