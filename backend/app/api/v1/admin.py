@@ -18,7 +18,7 @@ from app.core.exceptions import ResourceNotFoundError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import Role, User
-from app.schemas import SuccessEnvelope
+from app.schemas import PaginatedEnvelope, PaginationMeta, SuccessEnvelope
 from app.schemas.admin import (
     AdminPasswordResetResponse,
     AuditLogItem,
@@ -205,17 +205,23 @@ async def rebuild_aggregations(
 
 @router.get(
     "/admin/audit-logs",
-    response_model=SuccessEnvelope[list[AuditLogItem]],
-    summary="Audit log listesi (son N kayıt)",
+    response_model=PaginatedEnvelope[AuditLogItem],
+    summary="Audit log listesi — sayfalı (en yeni → eski)",
 )
 async def list_audit_logs(
-    limit: int = Query(100, ge=1, le=1000),
+    page: int = Query(1, ge=1, description="Sayfa numarası (1-bazlı)"),
+    page_size: int = Query(50, ge=1, le=200, description="Sayfa boyutu (max 200)"),
     action: str | None = Query(None, description="Action prefix filtresi"),
     _user: User = Depends(require_permission(Permission.LOGS_VIEW_AUDIT)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[AuditLogItem]]:
-    items = await user_management_service.list_audit_logs(db, limit=limit, action_filter=action)
-    return SuccessEnvelope(data=[AuditLogItem(**i) for i in items])
+) -> PaginatedEnvelope[AuditLogItem]:
+    items, total = await user_management_service.list_audit_logs(
+        db, page=page, page_size=page_size, action_filter=action
+    )
+    return PaginatedEnvelope(
+        data=[AuditLogItem(**i) for i in items],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 # ---------------------------------------------------------------------- #
@@ -447,17 +453,24 @@ def _user_to_item(u: User, role: Role | None = None) -> UserListItem:
 
 @router.get(
     "/users",
-    response_model=SuccessEnvelope[list[UserListItem]],
-    summary="Kullanıcı listesi",
+    response_model=PaginatedEnvelope[UserListItem],
+    summary="Kullanıcı listesi — sayfalı",
 )
 async def list_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     include_deleted: bool = Query(False),
     _user: User = Depends(require_permission(Permission.USERS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[UserListItem]]:
-    users = await user_management_service.list_users(db, include_deleted=include_deleted)
+) -> PaginatedEnvelope[UserListItem]:
+    users, total = await user_management_service.list_users(
+        db, include_deleted=include_deleted, page=page, page_size=page_size
+    )
     roles_map = await user_management_service.load_roles_for_users(db, users)
-    return SuccessEnvelope(data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users])
+    return PaginatedEnvelope(
+        data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get(
@@ -842,7 +855,12 @@ async def export_data(
     # de istense daha doğru olurdu; mevcut tasarımda EXPORT_CSV kapısı yeter
     # ama yine de listelemeyi user_management_service'ten alıyoruz).
     if kind == "audit_logs":
-        rows = await user_management_service.list_audit_logs(db, limit=limit)
+        # Export tüm audit log'ları ister (filtre yok). Pagination'a uymak
+        # için page_size=200 max sayıdaki kadar çekiyoruz; export'un kendisi
+        # ileride streaming/chunked'a dönüşürse pagination kapısı kalır.
+        rows, _total = await user_management_service.list_audit_logs(
+            db, page=1, page_size=min(max(limit, 1), 200)
+        )
     else:
         rows = await export_service.get_rows(db, kind, limit=limit)
 

@@ -129,6 +129,24 @@ async def list_recent(db: AsyncSession, *, limit: int = 50) -> list[Import]:
     return list(result.scalars().all())
 
 
+async def list_paginated(
+    db: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[Import], int]:
+    """Returns: (page_rows, total)."""
+    from sqlalchemy import func
+
+    total = int(
+        (await db.execute(select(func.count()).select_from(Import))).scalar_one()
+    )
+    result = await db.execute(
+        select(Import)
+        .order_by(desc(Import.id))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return list(result.scalars().all()), total
+
+
 async def delete_by_id(db: AsyncSession, import_id: int) -> None:
     """Cascade ile import_errors + raw tablo satırları (FK ON DELETE CASCADE)
     otomatik silinir; sadece imports satırını sil."""

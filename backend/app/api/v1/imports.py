@@ -17,7 +17,7 @@ from __future__ import annotations
 import csv
 import io
 
-from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Path, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +34,8 @@ from app.schemas import (
     ImportPreviewSummary,
     ImportRunResult,
     ImportSampleError,
+    PaginatedEnvelope,
+    PaginationMeta,
     SuccessEnvelope,
 )
 from app.services import import_service
@@ -150,15 +152,19 @@ async def upload_import(
 
 @router.get(
     "",
-    response_model=SuccessEnvelope[list[ImportListItem]],
-    summary="Son import işlemlerini listele",
+    response_model=PaginatedEnvelope[ImportListItem],
+    summary="Import işlemleri — sayfalı (en yeni → eski)",
 )
 async def list_imports(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _current_user: User = Depends(require_permission(Permission.IMPORTS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[ImportListItem]]:
-    items = await import_service.list_imports(db, limit=50)
-    return SuccessEnvelope(
+) -> PaginatedEnvelope[ImportListItem]:
+    items, total = await import_service.list_imports_paginated(
+        db, page=page, page_size=page_size
+    )
+    return PaginatedEnvelope(
         data=[
             ImportListItem(
                 id=it.id,
@@ -176,7 +182,8 @@ async def list_imports(
                 created_at=it.created_at,
             )
             for it in items
-        ]
+        ],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
     )
 
 

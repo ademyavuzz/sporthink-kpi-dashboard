@@ -15,7 +15,7 @@ import secrets
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ResourceNotFoundError, ValidationError
@@ -36,11 +36,33 @@ def _generate_placeholder_password() -> str:
     return secrets.token_urlsafe(32)
 
 
-async def list_users(db: AsyncSession, *, include_deleted: bool = False) -> list[User]:
-    stmt = select(User).order_by(User.id)
+async def list_users(
+    db: AsyncSession,
+    *,
+    include_deleted: bool = False,
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[list[User], int]:
+    """Returns: (page_rows, total_count).
+
+    Pagination zorunlu (default page=1, page_size=50, max 200).
+    Frontend büyük listeleri sayfalı çeker; tek seferde tüm tablo dönmemeli.
+    """
+    base_where = []
     if not include_deleted:
-        stmt = stmt.where(User.deleted_at.is_(None))
-    return list((await db.execute(stmt)).scalars().all())
+        base_where.append(User.deleted_at.is_(None))
+
+    count_stmt = select(func.count()).select_from(User)
+    if base_where:
+        count_stmt = count_stmt.where(*base_where)
+    total = int((await db.execute(count_stmt)).scalar_one())
+
+    stmt = select(User).order_by(User.id)
+    if base_where:
+        stmt = stmt.where(*base_where)
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+    rows = list((await db.execute(stmt)).scalars().all())
+    return rows, total
 
 
 async def load_roles_for_users(db: AsyncSession, users: list[User]) -> dict[int, Role]:
@@ -266,21 +288,36 @@ async def admin_send_password_reset(
 async def list_audit_logs(
     db: AsyncSession,
     *,
-    limit: int = 100,
+    page: int = 1,
+    page_size: int = 50,
     action_filter: str | None = None,
-) -> list[dict[str, Any]]:
-    """Audit log listesi (en yeni → eski)."""
+) -> tuple[list[dict[str, Any]], int]:
+    """Audit log listesi (en yeni → eski). Returns: (page_rows, total).
+
+    Pagination zorunlu — audit_logs hızla büyür (her mutating endpoint
+    için bir satır), tek seferde tüm tablo dönmemeli.
+    """
     from app.models import AuditLog
 
     conditions = []
     if action_filter:
         conditions.append(AuditLog.action.like(f"{action_filter}%"))
+
+    count_stmt = select(func.count()).select_from(AuditLog)
+    if conditions:
+        count_stmt = count_stmt.where(and_(*conditions))
+    total = int((await db.execute(count_stmt)).scalar_one())
+
     stmt = select(AuditLog)
     if conditions:
         stmt = stmt.where(and_(*conditions))
-    stmt = stmt.order_by(AuditLog.id.desc()).limit(limit)
+    stmt = (
+        stmt.order_by(AuditLog.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     rows = (await db.execute(stmt)).scalars().all()
-    return [
+    items = [
         {
             "id": r.id,
             "action": r.action,
@@ -294,3 +331,4 @@ async def list_audit_logs(
         }
         for r in rows
     ]
+    return items, total

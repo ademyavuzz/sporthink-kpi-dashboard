@@ -24,7 +24,7 @@ from app.schemas.campaign_detail import (
     CampaignEcomSummary,
     CampaignTopProduct,
 )
-from app.schemas.common import SuccessEnvelope
+from app.schemas.common import PaginatedEnvelope, PaginationMeta, SuccessEnvelope
 from app.schemas.dashboard import (
     CampaignAnalysisResponse,
     ChannelAnalysisResponse,
@@ -148,6 +148,8 @@ __all__ = [
     "OrderLineItem",
     "OrderListRow",
     "OverviewResponse",
+    "PaginatedEnvelope",
+    "PaginationMeta",
     "ProductsResponse",
     "ResetPasswordRequest",
     "ResetPasswordResponse",

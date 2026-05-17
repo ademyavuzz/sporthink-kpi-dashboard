@@ -61,8 +61,11 @@ export const adminApi = {
 
   // Users
   async listUsers(includeDeleted = false): Promise<UserListItem[]> {
+    // Backend artık sayfalı (max page_size=200). UI'da henüz pagination
+    // kontrolü yok — geçici olarak tek sayfada 200 satır çekiyoruz; gerçek
+    // pagination UI'ı eklendiğinde page parametresi de geçilecek.
     const r = await apiClient.get<ApiEnvelope<UserListItem[]>>(
-      `/users?include_deleted=${includeDeleted}`,
+      `/users?page=1&page_size=200&include_deleted=${includeDeleted}`,
     );
     return unwrap(r);
   },
@@ -116,7 +119,13 @@ export const adminApi = {
 
   // Audit logs
   async listAuditLogs(limit = 100, action?: string): Promise<AuditLogItem[]> {
-    const params = new URLSearchParams({ limit: String(limit) });
+    // Backend artık sayfalı (max page_size=200). UI'da pagination UI yok;
+    // çağrıdaki `limit` parametresi page_size'a maple, sayfa 1.
+    const pageSize = Math.min(Math.max(limit, 1), 200);
+    const params = new URLSearchParams({
+      page: "1",
+      page_size: String(pageSize),
+    });
     if (action) params.set("action", action);
     const r = await apiClient.get<ApiEnvelope<AuditLogItem[]>>(
       `/admin/audit-logs?${params}`,
