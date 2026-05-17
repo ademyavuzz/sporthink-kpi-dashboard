@@ -14,9 +14,11 @@ import type {
   RoleUpdate,
   SavedViewCreate,
   SavedViewItem,
+  SavedViewUpdate,
   SegmentCreate,
   SegmentItem,
   SegmentPreviewResponse,
+  SegmentUpdate,
   UserCreate,
   UserCreateResponse,
   UserListItem,
@@ -174,6 +176,10 @@ export const adminApi = {
     const r = await apiClient.post<ApiEnvelope<SegmentItem>>("/segments", p);
     return unwrap(r);
   },
+  async updateSegment(id: number, p: SegmentUpdate): Promise<SegmentItem> {
+    const r = await apiClient.patch<ApiEnvelope<SegmentItem>>(`/segments/${id}`, p);
+    return unwrap(r);
+  },
   async deleteSegment(id: number): Promise<void> {
     await apiClient.delete<ApiEnvelope<{ deleted: boolean }>>(`/segments/${id}`);
   },
@@ -193,6 +199,10 @@ export const adminApi = {
   },
   async createSavedView(p: SavedViewCreate): Promise<SavedViewItem> {
     const r = await apiClient.post<ApiEnvelope<SavedViewItem>>("/saved-views", p);
+    return unwrap(r);
+  },
+  async updateSavedView(id: number, p: SavedViewUpdate): Promise<SavedViewItem> {
+    const r = await apiClient.patch<ApiEnvelope<SavedViewItem>>(`/saved-views/${id}`, p);
     return unwrap(r);
   },
   async deleteSavedView(id: number): Promise<void> {
