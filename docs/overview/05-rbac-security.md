@@ -177,6 +177,38 @@ Süper Admin yeni kullanıcı eklerken aynı ekranda kullanıcıya özel rol olu
 
 `logs.view_api`, `logs.view_audit`, `logs.view_imports`, `settings.view`, `settings.update`
 
+#### Sayfa → İzin Mapping Tablosu
+
+Tek doğru kaynak. Yeni sayfa eklenirken bu tabloya eklenir; frontend `nav-items.ts` ve `App.tsx`, backend ilgili endpoint, **bu tabloya birebir uyar**.
+
+| Sayfa (frontend nav id) | URL | Gerekli izin | Backend endpoint(leri) |
+|---|---|---|---|
+| `overview` | `/overview` | `dashboard.view` | `GET /dashboard/overview` |
+| `traffic` | `/traffic` | `traffic.view` | `GET /dashboard/traffic` |
+| `meta_ads` | `/meta-ads` | `meta_ads.view` | `GET /dashboard/meta` |
+| `google_ads` | `/google-ads` | `google_ads.view` | `GET /dashboard/google` |
+| `ecommerce` | `/ecommerce` | `ecommerce.view` | `GET /dashboard/ecom` |
+| `campaigns` | `/campaigns` | `campaigns.view` | `GET /dashboard/campaign`, `/campaign-detail` |
+| `funnel` | `/funnel` | `funnel.view` | `GET /dashboard/funnel` |
+| `cohort` | `/cohort` | `cohort.view` | `GET /dashboard/cohort` |
+| `products` | `/products` | `products.view` | `GET /dashboard/products` |
+| `customers` | `/customers` | `ecommerce.view` | `GET /dashboard/customers` |
+| `channel_analysis` | `/channel-analysis` | `traffic.view` | `GET /dashboard/channel-analysis` |
+| `import` | `/import` | `imports.create` | `POST /imports` |
+| `import/history` | `/import/history` | `imports.view` | `GET /imports` |
+| `reports` | `/reports` | `reports.view` | `GET /reports`, `/reports/sections` |
+| `segments` | `/segments` | `segments.view` | `GET /segments` |
+| `channel_mapping` | `/channel-mappings` | `mappings.view` | `GET /admin/channel-mappings` |
+| `user_management` | `/users` | `users.view` | `GET /users`, `/roles`, `/permissions` |
+| `audit_logs` | `/audit-logs` | `logs.view_audit` | `GET /admin/audit-logs` |
+| `notifications` | `/notifications` | — (izinsiz) | yok (client-only Zustand store) |
+| `settings` | `/settings/profile`, `/settings/security` | — (izinsiz) | `PATCH /auth/me`, `/auth/me/change-password` |
+
+**Notlar:**
+- "İzinsiz" sayfalar her oturum açan kullanıcıya açıktır (`<ProtectedRoute>` permission prop'u verilmez, sadece auth guard çalışır). Bunlar kişisel sayfalardır — kendi profil ayarları, kendi bildirim merkezi.
+- `customers` ve `channel_analysis` için ayrı izin yaratılmadı: müşteri analizi domain olarak e-ticaret kapsamında, kanal analizi trafik kaynaklarının kıyaslaması olduğu için trafik izniyle açılır.
+- Sistem ayarları (`settings.view` / `settings.update`) ileride ayrı bir sayfa olarak eklenirse — bu tabloya yeni satır ile gelir, mevcut `/settings/profile` ile karıştırılmaz.
+
 ### 5.5.5 Yetki Kontrolü Implementasyonu
 
 Her API endpoint, gerektirdiği izni FastAPI dependency olarak deklare eder.
