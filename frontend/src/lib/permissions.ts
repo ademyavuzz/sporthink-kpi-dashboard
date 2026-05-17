@@ -20,7 +20,7 @@ export const PERMISSIONS = {
   COHORT_VIEW: "cohort.view",
   PRODUCTS_VIEW: "products.view",
 
-  // Kategori 2: Veri İşlemleri (17)
+  // Kategori 2: Veri İşlemleri (20)
   IMPORTS_VIEW: "imports.view",
   IMPORTS_CREATE: "imports.create",
   IMPORTS_DELETE: "imports.delete",

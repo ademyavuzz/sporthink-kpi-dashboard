@@ -71,7 +71,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "import", path: "/import", icon: Upload, permission: PERMISSIONS.IMPORTS_VIEW },
       { id: "reports", path: "/reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW },
       { id: "segments", path: "/segments", icon: Users, permission: PERMISSIONS.SEGMENTS_VIEW },
-      { id: "channel_mapping", path: "/channel-mappings", icon: GitBranch, permission: PERMISSIONS.SETTINGS_UPDATE },
+      { id: "channel_mapping", path: "/channel-mappings", icon: GitBranch, permission: PERMISSIONS.MAPPINGS_VIEW },
     ],
   },
   {
