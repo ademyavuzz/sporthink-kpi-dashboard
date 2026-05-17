@@ -22,6 +22,21 @@ ExportKind = Literal[
 ]
 
 
+def _cell_safe(value: Any) -> Any:
+    """Hücre değerini CSV/XLSX'in kabul edeceği primitive'e indirger.
+
+    `audit_logs` gibi tablolarda `details` JSON kolonu dict döner; openpyxl
+    primitive olmayan tipi reddeder (`ValueError: Cannot convert ...`).
+    Dict/list değerleri kompakt JSON string'ine çevirir; None'u olduğu gibi
+    bırakır (Excel boş hücre olarak gösterir).
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict | list):
+        return json.dumps(value, ensure_ascii=False, default=str)
+    return value
+
+
 def to_csv(rows: Iterable[dict[str, Any]], headers: list[str] | None = None) -> bytes:
     """UTF-8 BOM ile CSV (Excel uyumlu)."""
     buffer = io.StringIO()
@@ -33,7 +48,7 @@ def to_csv(rows: Iterable[dict[str, Any]], headers: list[str] | None = None) -> 
     cols = headers or list(rows_list[0].keys())
     writer.writerow(cols)
     for row in rows_list:
-        writer.writerow([row.get(c, "") for c in cols])
+        writer.writerow([_cell_safe(row.get(c, "")) for c in cols])
     return buffer.getvalue().encode("utf-8")
 
 
@@ -58,7 +73,7 @@ def to_xlsx(rows: Iterable[dict[str, Any]], sheet_name: str = "Data") -> bytes:
         cols = list(rows_list[0].keys())
         ws.append(cols)
         for row in rows_list:
-            ws.append([row.get(c) for c in cols])
+            ws.append([_cell_safe(row.get(c)) for c in cols])
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
