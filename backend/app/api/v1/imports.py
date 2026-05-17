@@ -19,13 +19,12 @@ import io
 
 from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ResourceNotFoundError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
-from app.models import ImportDataType, ImportRowError, User
+from app.models import ImportDataType, User
 from app.schemas import (
     DataTypeColumn,
     DataTypeMeta,
@@ -236,12 +235,7 @@ async def download_import_errors(
     if it is None:
         raise ResourceNotFoundError(params={"import_id": import_id})
 
-    result = await db.execute(
-        select(ImportRowError)
-        .where(ImportRowError.import_id == import_id)
-        .order_by(ImportRowError.source_row_number, ImportRowError.id)
-    )
-    rows = result.scalars().all()
+    rows = await import_service.list_all_errors(db, import_id)
 
     buffer = io.StringIO()
     # Excel için UTF-8 BOM

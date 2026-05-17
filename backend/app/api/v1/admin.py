@@ -662,7 +662,7 @@ async def update_segment(
     seg = await segment_service.update_segment(
         db,
         segment_id,
-        actor_id=current.id,
+        actor=current,
         name=payload.name,
         description=payload.description,
         rules=payload.rules,
@@ -677,10 +677,10 @@ async def update_segment(
 )
 async def delete_segment(
     segment_id: int = Path(..., ge=1),
-    _user: User = Depends(require_permission(Permission.SEGMENTS_DELETE)),
+    current: User = Depends(require_permission(Permission.SEGMENTS_DELETE)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[dict]:
-    await segment_service.soft_delete_segment(db, segment_id)
+    await segment_service.soft_delete_segment(db, segment_id, actor=current)
     return SuccessEnvelope(data={"deleted": True, "id": segment_id})
 
 
