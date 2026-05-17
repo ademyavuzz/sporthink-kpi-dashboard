@@ -8,6 +8,8 @@
   "RESOURCE_NOT_FOUND": "Aradığınız kayıt bulunamadı.",
   "VALIDATION_ERROR": "Form hatası. Lütfen alanları kontrol edin.",
   "INVALID_OR_EXPIRED_TOKEN": "Bağlantı geçersiz veya süresi dolmuş.",
+  "LAST_SUPER_ADMIN": "Bu işlem yapılamaz: sistemde en az bir aktif Süper Admin kalmalı.",
+  "SELF_DESTRUCTIVE_ACTION_FORBIDDEN": "Kendi hesabınız üzerinde bu işlemi yapamazsınız — başka bir yöneticinin yapması gerekir.",
   "EMAIL_ALREADY_EXISTS": "Bu e-posta zaten kayıtlı.",
   "CONFLICT": "Bu kayıt zaten mevcut.",
   "RATE_LIMIT_EXCEEDED": "Çok fazla istek. Lütfen biraz bekleyin.",

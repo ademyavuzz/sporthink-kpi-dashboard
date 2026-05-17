@@ -18,6 +18,7 @@ from app.core.exceptions import ResourceNotFoundError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import Role, User
+from app.repositories import user_repository
 from app.schemas import PaginatedEnvelope, PaginationMeta, SuccessEnvelope
 from app.schemas.admin import (
     AdminPasswordResetResponse,
@@ -483,6 +484,22 @@ async def list_users(
         data=[_user_to_item(u, roles_map.get(u.role_id)) for u in users],
         pagination=PaginationMeta(page=page, page_size=page_size, total=total),
     )
+
+
+@router.get(
+    "/users/super-admins/count",
+    response_model=SuccessEnvelope[dict],
+    summary="Aktif Süper Admin sayısı — frontend son admin guard'ı için",
+)
+async def get_super_admin_count(
+    _user: User = Depends(require_permission(Permission.USERS_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[dict]:
+    """Pattern C invariant kontrolü için kullanılır: frontend, sayı=1 iken
+    Süper Admin silme/düşürme butonlarını disable eder ve tooltip gösterir.
+    """
+    count = await user_repository.count_active_super_admins(db)
+    return SuccessEnvelope(data={"count": count})
 
 
 @router.get(

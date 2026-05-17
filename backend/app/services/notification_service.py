@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import logging
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ResourceNotFoundError
-from app.models import Notification, NotificationType
+from app.models import Notification, NotificationType, Role, User
 from app.repositories import notification_repository
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,50 @@ async def create_for_user(
         return None
 
 
+async def notify_other_super_admins(
+    db: AsyncSession,
+    *,
+    actor_id: int,
+    target_id: int,
+    title: str,
+    message: str,
+    link: str | None = None,
+    type_: NotificationType | str = NotificationType.WARNING,
+) -> int:
+    """Diğer aktif Super Admin'lere (actor ve target hariç) bildirim gönder.
+
+    Pattern C için: Super Admin atama/düşürme/silme/pasifleştirme olduğunda
+    sessizce ele geçirilmesin diye diğer tüm Super Admin'lere bilgi düşülür.
+    Fail-safe: tek tek bildirim hatasında akış durmaz (her biri create_for_user
+    içinde try/except).
+    """
+    result = await db.execute(
+        select(User.id)
+        .join(Role, Role.id == User.role_id)
+        .where(
+            User.is_active.is_(True),
+            User.deleted_at.is_(None),
+            Role.is_system.is_(True),
+            User.id != actor_id,
+            User.id != target_id,
+        )
+    )
+    recipient_ids = [row[0] for row in result.all()]
+    sent = 0
+    for uid in recipient_ids:
+        notif = await create_for_user(
+            db,
+            user_id=uid,
+            type_=type_,
+            title=title,
+            message=message,
+            link=link,
+        )
+        if notif is not None:
+            sent += 1
+    return sent
+
+
 async def list_for_user(
     db: AsyncSession, *, user_id: int, page: int = 1, page_size: int = 50
 ) -> tuple[list[Notification], int]:
@@ -71,9 +116,7 @@ async def count_unread(db: AsyncSession, *, user_id: int) -> int:
     return await notification_repository.count_unread_for_user(db, user_id=user_id)
 
 
-async def _get_or_404(
-    db: AsyncSession, *, notification_id: int, user_id: int
-) -> Notification:
+async def _get_or_404(db: AsyncSession, *, notification_id: int, user_id: int) -> Notification:
     row = await notification_repository.get_for_user(
         db, notification_id=notification_id, user_id=user_id
     )
@@ -83,9 +126,7 @@ async def _get_or_404(
     return row
 
 
-async def mark_read(
-    db: AsyncSession, *, notification_id: int, user_id: int
-) -> Notification:
+async def mark_read(db: AsyncSession, *, notification_id: int, user_id: int) -> Notification:
     row = await _get_or_404(db, notification_id=notification_id, user_id=user_id)
     if not row.is_read:
         await notification_repository.mark_read(db, notification_id=notification_id)
@@ -95,9 +136,7 @@ async def mark_read(
 
 
 async def mark_all_read(db: AsyncSession, *, user_id: int) -> int:
-    updated = await notification_repository.mark_all_read_for_user(
-        db, user_id=user_id
-    )
+    updated = await notification_repository.mark_all_read_for_user(db, user_id=user_id)
     await db.commit()
     return updated
 
