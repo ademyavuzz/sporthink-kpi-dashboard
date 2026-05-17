@@ -54,6 +54,17 @@ class InvalidCredentialsError(AuthenticationError):
     message = "Email or password is incorrect"
 
 
+class RefreshTokenMissingError(AuthenticationError):
+    """`/auth/refresh` çağrısında refresh cookie yoksa.
+
+    `INVALID_CREDENTIALS` yerine ayrı kod — frontend "session bitmiş, yeniden
+    giriş yap" mesajı için kullanır; "yanlış parola" mesajıyla karıştırılmaz.
+    """
+
+    code = "REFRESH_TOKEN_MISSING"
+    message = "Refresh token cookie is missing"
+
+
 class PermissionDeniedError(SporthinkException):
     code = "PERMISSION_DENIED"
     status_code = 403

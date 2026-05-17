@@ -2,6 +2,7 @@
   "AUTH_REQUIRED": "Bu işlem için giriş yapmanız gerekiyor.",
   "TOKEN_EXPIRED": "Oturum süreniz doldu, tekrar giriş yapın.",
   "INVALID_CREDENTIALS": "E-posta veya şifre hatalı.",
+  "REFRESH_TOKEN_MISSING": "Oturum bulunamadı, lütfen tekrar giriş yapın.",
   "ACCOUNT_LOCKED": "Hesabınız çok sayıda hatalı giriş nedeniyle geçici olarak kilitlendi. Lütfen sonra tekrar deneyin.",
   "PERMISSION_DENIED": "Bu işlem için yetkiniz yok.",
   "RESOURCE_NOT_FOUND": "Aradığınız kayıt bulunamadı.",
