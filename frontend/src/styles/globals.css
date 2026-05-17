@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind v4 otomatik content scanner — Playwright HTML report (volume'da
+ * yaşıyor) içindeki token'ları tarayıp Vite css-analysis'in çözmeye çalıştığı
+ * kırık url()'ler üretiyor. Bu artifact dizinleri scan kapsamından çıkarılır. */
+@source not "../../playwright-report";
+@source not "../../test-results";
+
 /*
  * Sporthink KPI Dashboard tema token'ları.
  *
