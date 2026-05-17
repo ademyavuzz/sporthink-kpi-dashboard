@@ -130,6 +130,13 @@ export interface SegmentCreate {
   is_shared?: boolean;
 }
 
+export interface SegmentUpdate {
+  name?: string | null;
+  description?: string | null;
+  rules?: SegmentGroupRule | null;
+  is_shared?: boolean | null;
+}
+
 export interface SegmentPreviewResponse {
   count: number;
   sample: Array<Record<string, unknown>>;
@@ -154,6 +161,13 @@ export interface SavedViewCreate {
   description?: string | null;
   filters: Record<string, unknown>;
   is_default?: boolean;
+}
+
+export interface SavedViewUpdate {
+  name?: string | null;
+  description?: string | null;
+  filters?: Record<string, unknown> | null;
+  is_default?: boolean | null;
 }
 
 // --- RFM ---
