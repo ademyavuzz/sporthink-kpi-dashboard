@@ -1,9 +1,12 @@
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger(__name__)
 
 
 class SporthinkException(Exception):
@@ -112,6 +115,36 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "error": {"code": code, "message": message},
             },
         )
+
+    # Generic Exception için middleware yaklaşımı: Starlette'in ServerErrorMiddleware
+    # `@app.exception_handler(Exception)`'dan önce devreye giriyor; bu yüzden
+    # custom Exception handler hiç çağrılmıyor. Outermost middleware seviyesinde
+    # try/except ile yakalayıp envelope döneriz. SporthinkException ve
+    # StarletteHTTPException üstte özel handler'lara düşmeye devam eder.
+    @app.middleware("http")
+    async def _catch_all_exceptions_middleware(request: Request, call_next):
+        try:
+            return await call_next(request)
+        except Exception:
+            # SporthinkException / Starlette HTTPException üstteki handler'lardan
+            # zaten 4xx response ile dönmüş olmalı — buraya sadece beklenmeyenler düşer.
+            # `exc_info=True` exception bilgisini log'a tam stack ile yazar.
+            logger.error(
+                "unhandled_exception",
+                extra={"path": request.url.path, "method": request.method},
+                exc_info=True,
+            )
+            # `BaseException` (KeyboardInterrupt vb.) yutmuyoruz — sadece Exception.
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "An unexpected error occurred",
+                    },
+                },
+            )
 
     @app.exception_handler(RequestValidationError)
     async def _request_validation_exception_handler(_request: Request, exc: RequestValidationError):
