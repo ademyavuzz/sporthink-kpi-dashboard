@@ -230,8 +230,7 @@ frontend/
 │   │   ├── import/
 │   │   │   └── ImportPage.tsx
 │   │   ├── admin/
-│   │   │   ├── UserManagementPage.tsx
-│   │   │   └── ChannelMappingPage.tsx
+│   │   │   └── UserManagementPage.tsx
 │   │   └── settings/
 │   │       └── ProfileSettingsPage.tsx
 │   │

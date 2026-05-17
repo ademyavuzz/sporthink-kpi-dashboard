@@ -83,7 +83,6 @@ test.describe("Frontend kapsamlı kapsam", () => {
     const adminPages = [
       "/users",
       "/audit-logs",
-      "/channel-mappings",
       "/segments",
       "/notifications",
       "/settings/profile",

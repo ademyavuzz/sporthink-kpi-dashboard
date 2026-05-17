@@ -25,7 +25,6 @@ const ImportHistoryPage = lazy(() => import("@/pages/import/ImportHistoryPage"))
 const ReportsPage = lazy(() => import("@/pages/reports/ReportsPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
-const ChannelMappingPage = lazy(() => import("@/pages/admin/ChannelMappingPage"));
 const SegmentsPage = lazy(() => import("@/pages/admin/SegmentsPage"));
 const NotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
 const SettingsLayout = lazy(() => import("@/pages/settings/SettingsLayout"));
@@ -193,14 +192,6 @@ export default function App() {
           }
         />
         <Route
-          path="/channel-mappings"
-          element={
-            <ProtectedRoute permission="mappings.view">
-              <ChannelMappingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/segments"
           element={
             <ProtectedRoute permission="segments.view">
@@ -253,7 +244,6 @@ export default function App() {
               "segments",
               "user_management",
               "audit_logs",
-              "channel_mapping",
               "notifications",
               "settings",
             ].includes(n.id),

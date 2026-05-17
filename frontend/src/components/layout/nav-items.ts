@@ -4,7 +4,6 @@ import {
   Bell,
   FileText,
   Filter,
-  GitBranch,
   LayoutDashboard,
   LineChart as LineChartIcon,
   Megaphone,
@@ -48,7 +47,7 @@ export interface NavGroup {
  * Üç bölüme ayrılmış sidebar nav grupları.
  *
  * - `dashboard`: KPI / analiz sayfaları
- * - `data`: import, segmentler, kanal eşleme
+ * - `data`: import, raporlar, segmentler
  * - `system`: bildirimler, denetim, kullanıcı/rol yönetimi
  *
  * Sidebar bu listeyi kullanıcı izinleriyle filtreler — boş kalan grup
@@ -77,7 +76,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "import", path: "/import", icon: Upload, permission: PERMISSIONS.IMPORTS_VIEW },
       { id: "reports", path: "/reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW },
       { id: "segments", path: "/segments", icon: Users, permission: PERMISSIONS.SEGMENTS_VIEW },
-      { id: "channel_mapping", path: "/channel-mappings", icon: GitBranch, permission: PERMISSIONS.MAPPINGS_VIEW },
     ],
   },
   {
