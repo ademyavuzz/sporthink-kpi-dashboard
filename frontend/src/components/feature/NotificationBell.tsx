@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   CheckCheck,
@@ -10,13 +11,11 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { notificationsApi } from "@/lib/api/notifications";
 import { dayjs } from "@/lib/dayjs";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useLanguageStore } from "@/stores/useLanguageStore";
-import {
-  selectUnreadCount,
-  useNotificationsStore,
-} from "@/stores/useNotificationsStore";
 import type { Notification, NotificationType } from "@/types/notifications";
 
 const TYPE_ICON: Record<NotificationType, typeof Info> = {
@@ -34,22 +33,51 @@ const TYPE_TONE: Record<NotificationType, string> = {
 };
 
 const PREVIEW_LIMIT = 6;
+const POLL_MS = 30_000;
 
 export function NotificationBell() {
   const { t } = useTranslation(["common", "notifications"]);
   const lang = useLanguageStore((s) => s.lang);
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const isAuthed = useAuthStore((s) => s.user !== null);
 
-  const notifications = useNotificationsStore((s) => s.notifications);
-  const unread = useNotificationsStore(selectUnreadCount);
-  const markRead = useNotificationsStore((s) => s.markRead);
-  const markAllRead = useNotificationsStore((s) => s.markAllRead);
+  // Server polling — sadece auth'lu kullanıcı için (anonim için endpoint 401)
+  const listQ = useQuery({
+    queryKey: ["notifications", "list", 1, PREVIEW_LIMIT],
+    queryFn: () => notificationsApi.list(1, PREVIEW_LIMIT),
+    enabled: isAuthed,
+    refetchInterval: POLL_MS,
+    staleTime: POLL_MS / 2,
+  });
+  const unreadQ = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => notificationsApi.unreadCount(),
+    enabled: isAuthed,
+    refetchInterval: POLL_MS,
+    staleTime: POLL_MS / 2,
+  });
 
-  const preview = notifications.slice(0, PREVIEW_LIMIT);
-  const hasMore = notifications.length > PREVIEW_LIMIT;
+  const markReadMut = useMutation({
+    mutationFn: (id: number) => notificationsApi.markRead(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+  const markAllReadMut = useMutation({
+    mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const items: Notification[] = listQ.data?.items ?? [];
+  const total = listQ.data?.total ?? 0;
+  const unread = unreadQ.data ?? 0;
+  const hasMore = total > PREVIEW_LIMIT;
 
   const handleItemClick = (n: Notification) => {
-    if (!n.read) markRead(n.id);
+    if (!n.is_read) markReadMut.mutate(n.id);
     if (n.link) navigate(n.link);
   };
 
@@ -86,8 +114,9 @@ export function NotificationBell() {
           {unread > 0 && (
             <button
               type="button"
-              onClick={() => markAllRead()}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-text-muted hover:bg-muted hover:text-foreground transition-colors"
+              onClick={() => markAllReadMut.mutate()}
+              disabled={markAllReadMut.isPending}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-text-muted hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
             >
               <CheckCheck className="size-3.5" />
               {t("notifications:mark_all_read")}
@@ -95,7 +124,7 @@ export function NotificationBell() {
           )}
         </div>
 
-        {preview.length === 0 ? (
+        {items.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
             <div className="rounded-full bg-muted p-3 text-text-muted">
               <Bell className="size-5" />
@@ -109,7 +138,7 @@ export function NotificationBell() {
           </div>
         ) : (
           <ul className="max-h-[420px] divide-y divide-border overflow-y-auto">
-            {preview.map((n) => {
+            {items.map((n) => {
               const Icon = TYPE_ICON[n.type];
               return (
                 <li key={n.id}>
@@ -118,7 +147,7 @@ export function NotificationBell() {
                     onClick={() => handleItemClick(n)}
                     className={cn(
                       "flex w-full items-start gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted",
-                      !n.read && "bg-primary/[0.04]",
+                      !n.is_read && "bg-primary/[0.04]",
                     )}
                   >
                     <span
@@ -134,7 +163,7 @@ export function NotificationBell() {
                         <p className="text-[13px] font-semibold text-foreground line-clamp-1">
                           {n.title}
                         </p>
-                        {!n.read && (
+                        {!n.is_read && (
                           <span className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full bg-primary" />
                         )}
                       </div>
@@ -144,7 +173,7 @@ export function NotificationBell() {
                         </p>
                       )}
                       <p className="text-[10px] uppercase tracking-wide text-text-dim">
-                        {dayjs(n.createdAt).locale(lang).fromNow()}
+                        {dayjs.utc(n.created_at).tz("Europe/Istanbul").locale(lang).fromNow()}
                       </p>
                     </div>
                   </button>
@@ -160,9 +189,7 @@ export function NotificationBell() {
             className="block rounded-md px-2.5 py-2 text-center text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
           >
             {hasMore
-              ? t("notifications:view_all_more", {
-                  count: notifications.length,
-                })
+              ? t("notifications:view_all_more", { count: total })
               : t("notifications:view_all")}
           </Link>
         </div>

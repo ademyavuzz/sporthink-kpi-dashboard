@@ -184,7 +184,6 @@ export default function ReportsPage() {
       notify({
         type: "info",
         title: t("reports:create.success_toast"),
-        toast: true,
       });
       void queryClient.invalidateQueries({ queryKey: ["reports", "list"] });
     },

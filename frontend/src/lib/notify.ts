@@ -1,39 +1,34 @@
 import { toast } from "sonner";
 
-import { useNotificationsStore } from "@/stores/useNotificationsStore";
 import type { NotificationType } from "@/types/notifications";
 
 interface NotifyOptions {
   type?: NotificationType;
   title: string;
   message?: string;
-  link?: string;
-  /** True ise toast da gösterilir (anlık feedback). Default false. */
-  toast?: boolean;
 }
 
 /**
- * Bildirim store'una kayıt eder ve isteğe bağlı sonner toast gösterir.
+ * Anlık geri bildirim için sonner toast wrapper'ı.
  *
- * Bell ikonunda + /notifications sayfasında görünür. Kullanım:
+ * NOT: Eskiden client-side bildirim store'una da yazıyordu. Şimdi bildirim
+ * merkezi backend-driven (`notification_service.create_for_user`) —
+ * "Şifre güncellendi" gibi transient onaylar **sadece** toast olarak
+ * gösterilir, kalıcı bildirim merkezine girmez.
  *
- *   notify({ type: 'success', title: 'Şifre güncellendi', toast: true });
- *   notify({ type: 'info', title: 'Hoş geldiniz', message: 'Ayşe' });
+ * Kullanım:
+ *   notify({ type: 'success', title: 'Profil güncellendi' });
+ *   notify({ type: 'error', title: 'İşlem başarısız', message: '...' });
  */
-export function notify(options: NotifyOptions): string {
-  const { type = "info", title, message, link, toast: showToast = false } = options;
-  const id = useNotificationsStore.getState().add({ type, title, message, link });
-
-  if (showToast) {
-    const fn =
-      type === "success"
-        ? toast.success
-        : type === "warning"
-          ? toast.warning
-          : type === "error"
-            ? toast.error
-            : toast.info;
-    fn(title, { description: message });
-  }
-  return id;
+export function notify(options: NotifyOptions): void {
+  const { type = "info", title, message } = options;
+  const fn =
+    type === "success"
+      ? toast.success
+      : type === "warning"
+        ? toast.warning
+        : type === "error"
+          ? toast.error
+          : toast.info;
+  fn(title, { description: message });
 }
