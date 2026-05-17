@@ -111,6 +111,104 @@ async def update_cached_count(db: AsyncSession, segment_id: int) -> int:
     return count
 
 
+# --------------------- CRUD ---------------------
+
+
+async def list_for_user(db: AsyncSession, *, user_id: int) -> list[Segment]:
+    """Kullanıcının kendi + paylaşılmış segmentlerini listele."""
+    stmt = (
+        select(Segment)
+        .where(
+            Segment.deleted_at.is_(None),
+            (Segment.user_id == user_id) | (Segment.is_shared.is_(True)),
+        )
+        .order_by(Segment.id.desc())
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def _get_active(db: AsyncSession, segment_id: int) -> Segment:
+    from app.core.exceptions import ResourceNotFoundError
+
+    seg = await db.get(Segment, segment_id)
+    if seg is None or seg.deleted_at is not None:
+        raise ResourceNotFoundError(params={"segment_id": segment_id})
+    return seg
+
+
+async def create_segment(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    name: str,
+    description: str | None,
+    rules: dict[str, Any],
+    is_shared: bool,
+) -> Segment:
+    """Segment yaratır; count cache evaluation fail olursa segment yine de
+    yaratılır (count sonradan job ile güncellenir), ama `ValidationError`
+    raise edilirse kullanıcının kural düzeltmesi gerekir."""
+    seg = Segment(
+        user_id=user_id,
+        name=name,
+        description=description,
+        rules=rules,
+        is_shared=is_shared,
+        created_by=user_id,
+        updated_by=user_id,
+    )
+    db.add(seg)
+    await db.flush()
+    try:
+        seg.cached_count = await evaluate_count(db, rules)
+        seg.cached_at = datetime.now(UTC)
+    except ValidationError:
+        raise
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "segment_count_evaluation_failed",
+            extra={"rules_keys": list(rules.keys()) if rules else []},
+            exc_info=True,
+        )
+        seg.cached_count = None
+    await db.commit()
+    await db.refresh(seg)
+    return seg
+
+
+async def update_segment(
+    db: AsyncSession,
+    segment_id: int,
+    *,
+    actor_id: int,
+    name: str | None,
+    description: str | None,
+    rules: dict[str, Any] | None,
+    is_shared: bool | None,
+) -> Segment:
+    seg = await _get_active(db, segment_id)
+    if name is not None:
+        seg.name = name
+    if description is not None:
+        seg.description = description
+    if rules is not None:
+        seg.rules = rules
+        seg.cached_count = await evaluate_count(db, rules)
+        seg.cached_at = datetime.now(UTC)
+    if is_shared is not None:
+        seg.is_shared = is_shared
+    seg.updated_by = actor_id
+    await db.commit()
+    await db.refresh(seg)
+    return seg
+
+
+async def soft_delete_segment(db: AsyncSession, segment_id: int) -> None:
+    seg = await _get_active(db, segment_id)
+    seg.deleted_at = datetime.now(UTC)
+    await db.commit()
+
+
 # --------------------- RFM ---------------------
 
 

@@ -1,4 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import {
+  Megaphone,
+  Package,
+  ShoppingCart,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,13 +38,22 @@ import {
 import { cn } from "@/lib/utils";
 
 import { PageShell } from "./_shared";
+import { SectionHeader } from "./SectionHeader";
 
 /**
- * Overview Page — 9 KPI + revenue trend + kanal donut + funnel + top products.
+ * Overview Page — bölümlü analitik dashboard.
  *
- * Default tarih: dummy data'nın son ayı (Mart 2025). Önceki dönemle karşılaştırma
- * doluyor olduğu için her KPI kartında trend pill'i ekrana gelir; production'da
- * `computePresetRange("last_30")` ile bugünden 30 gün geriye çekilir.
+ * Yapı (`docs/07` §7'deki "biraz biraz her şey" prensibine göre):
+ *  1. Önemli Göstergeler  (3 hero KPI: Ciro / Sipariş / ROAS)
+ *  2. Pazarlama           (4 KPI + trend chart + kanal donut)
+ *  3. E-Ticaret           (3 KPI + funnel)
+ *  4. Müşteri             (1 KPI + new vs returning donut)
+ *  5. Ürün & İçgörüler    (insight strip + top 10 tablo)
+ *
+ * Tek `/dashboard/overview` çağrısı tüm verileri besliyor — paralel istek
+ * yok, performans için 5dk staleTime cache.
+ *
+ * Default tarih: dummy data'nın son ayı (Mart 2025).
  */
 export default function OverviewPage() {
   const { t } = useTranslation("dashboard");
@@ -68,82 +84,148 @@ export default function OverviewPage() {
         actions={<DateRangePicker value={range} onChange={setRange} />}
       />
 
-      {/* KPI grid: simetrik 3 sütun (2 / 3 sütun küçük ekranlarda); 9 KPI = 3+3+3.
-       * Sıralama: Para (3) → Verimlilik (3) → Trafik+Reklam (3). */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {isLoading ? (
-          Array.from({ length: 9 }).map((_, i) => <KPICardSkeleton key={i} />)
-        ) : data ? (
-          <>
-            <KPICard kpi={data.summary.revenue} />
-            <KPICard kpi={data.summary.orders} />
-            <KPICard kpi={data.summary.aov} />
-            <KPICard kpi={data.summary.conversion_rate} />
-            <KPICard kpi={data.summary.bounce_rate} />
-            <KPICard kpi={data.summary.roas} />
-            <KPICard kpi={data.summary.sessions} />
-            <KPICard kpi={data.summary.users} />
-            <KPICard kpi={data.summary.ad_spend} />
-          </>
-        ) : null}
-      </div>
+      {/* ──────────────────────────────────────────────────────── */}
+      {/* SECTION 1: HERO — 3 büyük KPI                            */}
+      {/* ──────────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={Sparkles}
+          title={t("overview.section_hero_title")}
+          subtitle={t("overview.section_hero_subtitle")}
+          tone="primary"
+        />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {isLoading ? (
+            <>
+              <KPICardSkeleton hero />
+              <KPICardSkeleton hero />
+              <KPICardSkeleton hero />
+            </>
+          ) : data ? (
+            <>
+              <KPICard kpi={data.summary.revenue} hero />
+              <KPICard kpi={data.summary.orders} hero />
+              <KPICard kpi={data.summary.roas} hero />
+            </>
+          ) : null}
+        </div>
+      </section>
 
-      {/* Trend + Kanal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t("overview.trend_card_title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LineChart
-              loading={isLoading}
-              multiAxis
-              series={
-                data
-                  ? [
-                      {
-                        name: t("overview.series_revenue"),
-                        data: data.daily_series.map((p) => ({
-                          x: dayjs(p.date).valueOf(),
-                          y: toNumber(p.revenue) ?? 0,
-                        })),
-                        formatter: formatCurrency,
-                      },
-                      {
-                        name: t("overview.series_orders"),
-                        data: data.daily_series.map((p) => ({
-                          x: dayjs(p.date).valueOf(),
-                          y: p.orders,
-                        })),
-                        formatter: formatCount,
-                      },
-                    ]
-                  : []
-              }
-              yFormatter={formatAxisCurrency}
-            />
-          </CardContent>
-        </Card>
+      {/* ──────────────────────────────────────────────────────── */}
+      {/* SECTION 2: PAZARLAMA                                     */}
+      {/* ──────────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={Megaphone}
+          title={t("overview.section_marketing_title")}
+          subtitle={t("overview.section_marketing_subtitle")}
+          tone="violet"
+        />
+        {/* 4 KPI */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <KPICardSkeleton key={i} compact />
+            ))
+          ) : data ? (
+            <>
+              <KPICard kpi={data.summary.sessions} compact />
+              <KPICard kpi={data.summary.users} compact />
+              <KPICard kpi={data.summary.bounce_rate} compact />
+              <KPICard kpi={data.summary.ad_spend} compact />
+            </>
+          ) : null}
+        </div>
+        {/* Trend (2/3) + Kanal donut (1/3) */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t("overview.trend_card_title")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LineChart
+                loading={isLoading}
+                multiAxis
+                series={
+                  data
+                    ? [
+                        {
+                          name: t("overview.series_revenue"),
+                          color: "#e94560",
+                          data: data.daily_series.map((p) => ({
+                            x: dayjs(p.date).valueOf(),
+                            y: toNumber(p.revenue) ?? 0,
+                          })),
+                          formatter: formatCurrency,
+                        },
+                        {
+                          name: t("overview.series_orders"),
+                          color: "#0ea5e9",
+                          data: data.daily_series.map((p) => ({
+                            x: dayjs(p.date).valueOf(),
+                            y: p.orders,
+                          })),
+                          formatter: formatCount,
+                        },
+                      ]
+                    : []
+                }
+                yFormatter={formatAxisCurrency}
+              />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("overview.channel_card_title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DonutChart
-              loading={isLoading}
-              labels={data ? data.channels.map((c) => c.channel ?? t("overview.channel_other")) : []}
-              values={
-                data ? data.channels.map((c) => toNumber(c.revenue) ?? 0) : []
-              }
-              valueFormatter={formatCurrency}
-            />
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("overview.channel_card_title")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DonutChart
+                loading={isLoading}
+                labels={
+                  data
+                    ? data.channels.map(
+                        (c) => c.channel ?? t("overview.channel_other"),
+                      )
+                    : []
+                }
+                values={
+                  data
+                    ? data.channels.map((c) => toNumber(c.revenue) ?? 0)
+                    : []
+                }
+                valueFormatter={formatCurrency}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* Funnel + New vs Returning */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ──────────────────────────────────────────────────────── */}
+      {/* SECTION 3: E-TİCARET                                     */}
+      {/* ──────────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={ShoppingCart}
+          title={t("overview.section_ecom_title")}
+          subtitle={t("overview.section_ecom_subtitle")}
+          tone="emerald"
+        />
+        {/* 2 KPI */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {isLoading ? (
+            <>
+              <KPICardSkeleton compact />
+              <KPICardSkeleton compact />
+            </>
+          ) : data ? (
+            <>
+              <KPICard kpi={data.summary.aov} compact />
+              <KPICard kpi={data.summary.conversion_rate} compact />
+            </>
+          ) : null}
+        </div>
+        {/* Funnel — full-width (geniş ekranda yine kart içinde) */}
         <Card>
           <CardHeader>
             <CardTitle>{t("overview.funnel_card_title")}</CardTitle>
@@ -152,7 +234,18 @@ export default function OverviewPage() {
             <FunnelTable steps={data?.funnel ?? []} loading={isLoading} />
           </CardContent>
         </Card>
+      </section>
 
+      {/* ──────────────────────────────────────────────────────── */}
+      {/* SECTION 4: MÜŞTERİ                                       */}
+      {/* ──────────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={Users}
+          title={t("overview.section_customer_title")}
+          subtitle={t("overview.section_customer_subtitle")}
+          tone="blue"
+        />
         <Card>
           <CardHeader>
             <CardTitle>{t("overview.new_returning_card_title")}</CardTitle>
@@ -179,55 +272,79 @@ export default function OverviewPage() {
             />
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      {/* Top products */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle>{t("overview.top_products_card_title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {!isLoading && data && data.top_products.length > 0 && (
-            <TopProductsInsightStrip products={data.top_products} />
-          )}
-          <div className="overflow-x-auto">
-            <Table className="table-fixed">
-              <colgroup>
-                <col className="w-[140px]" />
-                <col />
-                <col className="w-[160px]" />
-                <col className="w-[110px]" />
-                <col className="w-[140px]" />
-              </colgroup>
-              <TableHeader>
-                <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                  <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    {t("overview.table_sku")}
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    {t("overview.table_product")}
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                    {t("overview.table_brand")}
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    {t("overview.table_units")}
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                    {t("overview.table_revenue")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading
-                  ? Array.from({ length: 5 }).map((_, i) => (
+      {/* ──────────────────────────────────────────────────────── */}
+      {/* SECTION 5: ÜRÜN & İÇGÖRÜLER                              */}
+      {/* ──────────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          icon={Package}
+          title={t("overview.section_product_title")}
+          subtitle={t("overview.section_product_subtitle")}
+          tone="amber"
+        />
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle>{t("overview.top_products_card_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {!isLoading && data && data.top_products.length > 0 && (
+              <TopProductsInsightStrip products={data.top_products} />
+            )}
+            <div className="overflow-x-auto">
+              <Table className="table-fixed">
+                <colgroup>
+                  <col className="w-[140px]" />
+                  <col />
+                  <col className="w-[160px]" />
+                  <col className="w-[110px]" />
+                  <col className="w-[140px]" />
+                </colgroup>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+                    <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("overview.table_sku")}
+                    </TableHead>
+                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("overview.table_product")}
+                    </TableHead>
+                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("overview.table_brand")}
+                    </TableHead>
+                    <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("overview.table_units")}
+                    </TableHead>
+                    <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                      {t("overview.table_revenue")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
                         <TableCell colSpan={5} className="px-4 py-3.5">
                           <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                         </TableCell>
                       </TableRow>
                     ))
-                  : (data?.top_products ?? []).map((p, idx) => (
+                  ) : (data?.top_products ?? []).length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={5} className="px-4 py-12 text-center">
+                        <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-text-muted">
+                          <Package className="size-6 text-text-dim" />
+                          <p className="text-sm font-semibold text-foreground">
+                            {t("overview.top_products_empty_title")}
+                          </p>
+                          <p className="text-xs">
+                            {t("overview.top_products_empty_body")}
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (data?.top_products ?? []).map((p, idx) => (
                       <TableRow
                         key={p.sku}
                         className={cn(
@@ -248,9 +365,7 @@ export default function OverviewPage() {
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-sm text-text-muted">
-                          {p.brand ?? (
-                            <span className="text-text-dim">—</span>
-                          )}
+                          {p.brand ?? <span className="text-text-dim">—</span>}
                         </TableCell>
                         <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
                           {formatCount(p.units_sold)}
@@ -259,12 +374,14 @@ export default function OverviewPage() {
                           {formatCurrency(p.revenue)}
                         </TableCell>
                       </TableRow>
-                    ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </PageShell>
   );
 }

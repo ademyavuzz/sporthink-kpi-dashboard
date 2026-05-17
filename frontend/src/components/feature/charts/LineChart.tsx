@@ -53,9 +53,10 @@ export function LineChart({
     const colors = series.map((s, i) => s.color ?? (base.colors as string[])[i]);
 
     // Multi-axis: her seri için ayrı yaxis tanımı, sağ/sol konum.
-    // Axis title yazılmaz — legend zaten seri adlarını gösteriyor; duplicate
-    // olmasın diye axis border/tick renksiz tutulur, sadece label rengi
-    // serinin kendi rengiyle hizalanır.
+    // Axis label rengi nötr (fgMuted) — legend zaten seri renklerini
+    // gösteriyor, eksen yazılarını da renklendirmek görsel gürültü yarattığı
+    // için kart genel estetiğiyle çeliştik. Para birimi (₺) vs adet farkı
+    // formatter'dan zaten okunabiliyor.
     const yaxis: ApexOptions["yaxis"] = multiAxis
       ? series.map((s, i) => ({
           ...base.yaxis,
@@ -65,11 +66,6 @@ export function LineChart({
           labels: {
             ...((base.yaxis as { labels?: object })?.labels ?? {}),
             formatter: s.formatter ?? yFormatter,
-            style: {
-              colors: colors[i],
-              fontSize: "11px",
-              fontWeight: 500,
-            },
           },
           axisBorder: { show: false },
           axisTicks: { show: false },

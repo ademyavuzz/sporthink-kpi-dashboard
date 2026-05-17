@@ -43,6 +43,15 @@ async def list_users(db: AsyncSession, *, include_deleted: bool = False) -> list
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def load_roles_for_users(db: AsyncSession, users: list[User]) -> dict[int, Role]:
+    """`users` listesinde geçen tüm role_id'leri tek sorguda çek — N+1 önler."""
+    role_ids = {u.role_id for u in users if u.role_id}
+    if not role_ids:
+        return {}
+    rows = (await db.execute(select(Role).where(Role.id.in_(role_ids)))).scalars().all()
+    return {r.id: r for r in rows}
+
+
 async def get_user(db: AsyncSession, user_id: int) -> User | None:
     return await db.get(User, user_id)
 

@@ -188,24 +188,29 @@ export function DonutChart({
   const isClickable = !!onSliceClick;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,180px)_1fr] sm:items-center">
-      {/* Donut — sabit dar genişlik, SVG kendi merkez label'ı içinde */}
-      <div className="mx-auto w-full max-w-[200px]">
-        <ChartErrorBoundary height={height}>
-          <ApexChart
-            options={options}
-            series={displayValues}
-            type="donut"
-            height={height}
-          />
-        </ChartErrorBoundary>
-      </div>
+    // `@container` + container queries ile dar kartlarda (örn. 1/3 genişlikte
+    // Overview kanal kartı) dikey stack, geniş kartlarda (Ecommerce/Customer)
+    // yan yana. Eskisi `minmax(0,180px)` ile dar kartta donut sıfıra çöküyordu.
+    <div className="@container">
+      <div className="grid grid-cols-1 gap-4 @md:grid-cols-[200px_1fr] @md:items-center">
+        {/* Donut — sabit genişlik (kart dar olsa bile çökmez) */}
+        <div className="mx-auto w-full max-w-[220px]">
+          <ChartErrorBoundary height={height}>
+            <ApexChart
+              options={options}
+              series={displayValues}
+              type="donut"
+              height={height}
+            />
+          </ChartErrorBoundary>
+        </div>
 
-      {/* HTML legend — scrollable, full-label */}
-      <ul
-        className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1 text-sm"
-        role="list"
-      >
+        {/* HTML legend — scrollable, full-label. Stack modunda (dar kart)
+         * height limit kalkar — tüm satırlar göründüğü kadar açık. */}
+        <ul
+          className="space-y-1.5 text-sm @md:max-h-[260px] @md:overflow-y-auto @md:pr-1"
+          role="list"
+        >
         {items.map((it) => {
           const dimmed =
             selectedLabel !== null &&
@@ -246,10 +251,11 @@ export function DonutChart({
                   {it.pct.toFixed(1).replace(".", ",")}%
                 </span>
               </span>
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

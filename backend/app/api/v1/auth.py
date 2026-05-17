@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.exceptions import InvalidCredentialsError
 from app.dependencies import get_current_user, get_db
 from app.models import User
 from app.schemas import (
@@ -113,8 +114,6 @@ async def refresh(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[TokenResponse]:
-    from app.core.exceptions import InvalidCredentialsError
-
     refresh_jwt = request.cookies.get(REFRESH_COOKIE_NAME)
     if not refresh_jwt:
         raise InvalidCredentialsError("Refresh token missing")
