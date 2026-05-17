@@ -28,12 +28,34 @@ from app.repositories import audit_log_repository
 logger = logging.getLogger(__name__)
 
 
-async def list_roles(db: AsyncSession, *, include_deleted: bool = False) -> list[dict[str, Any]]:
-    """Rol listesi + her rolün kullanıcı sayısı + izin sayısı."""
-    stmt = select(Role)
+async def list_roles(
+    db: AsyncSession,
+    *,
+    include_deleted: bool = False,
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[list[dict[str, Any]], int]:
+    """Rol listesi + her rolün kullanıcı sayısı + izin sayısı.
+
+    Returns: (page_rows, total_count). Pagination zorunlu.
+    """
+    base_where = []
     if not include_deleted:
-        stmt = stmt.where(Role.deleted_at.is_(None))
-    stmt = stmt.order_by(Role.is_system.desc(), Role.id)
+        base_where.append(Role.deleted_at.is_(None))
+
+    count_stmt = select(func.count()).select_from(Role)
+    if base_where:
+        count_stmt = count_stmt.where(*base_where)
+    total = int((await db.execute(count_stmt)).scalar_one())
+
+    stmt = select(Role)
+    if base_where:
+        stmt = stmt.where(*base_where)
+    stmt = (
+        stmt.order_by(Role.is_system.desc(), Role.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     roles = list((await db.execute(stmt)).scalars().all())
 
     # Toplu user_count + permission_count tek sorguda
@@ -69,7 +91,7 @@ async def list_roles(db: AsyncSession, *, include_deleted: bool = False) -> list
                 "updated_at": r.updated_at,
             }
         )
-    return out
+    return out, total
 
 
 async def get_role_with_permissions(db: AsyncSession, role_id: int) -> dict[str, Any]:

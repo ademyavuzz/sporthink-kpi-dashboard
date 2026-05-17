@@ -65,5 +65,11 @@
   "preset_last_year": "Geçen Yıl",
   "preset_custom": "Özel",
   "other_bucket": "Diğer",
-  "total": "Toplam"
+  "total": "Toplam",
+  "pagination": {
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "page_of": "Sayfa {{page}} / {{totalPages}}",
+    "total_items": "{{total}} kayıt"
+  }
 }

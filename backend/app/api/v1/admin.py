@@ -231,15 +231,22 @@ async def list_audit_logs(
 
 @router.get(
     "/admin/channel-mappings",
-    response_model=SuccessEnvelope[list[ChannelMappingItem]],
-    summary="Tüm channel mapping kayıtları",
+    response_model=PaginatedEnvelope[ChannelMappingItem],
+    summary="Channel mapping kayıtları — sayfalı",
 )
 async def list_channel_mappings(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _user: User = Depends(require_permission(Permission.MAPPINGS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[ChannelMappingItem]]:
-    rows = await channel_mapping_service.list_mappings(db)
-    return SuccessEnvelope(data=[ChannelMappingItem.model_validate(r) for r in rows])
+) -> PaginatedEnvelope[ChannelMappingItem]:
+    rows, total = await channel_mapping_service.list_mappings_paginated(
+        db, page=page, page_size=page_size
+    )
+    return PaginatedEnvelope(
+        data=[ChannelMappingItem.model_validate(r) for r in rows],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get(
@@ -317,15 +324,20 @@ async def delete_channel_mapping(
 
 @router.get(
     "/roles",
-    response_model=SuccessEnvelope[list[RoleListItem]],
-    summary="Tüm rolleri listele (kullanıcı + izin sayısı ile)",
+    response_model=PaginatedEnvelope[RoleListItem],
+    summary="Rolleri listele — sayfalı (kullanıcı + izin sayısı ile)",
 )
 async def list_roles_endpoint(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _user: User = Depends(require_permission(Permission.ROLES_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[RoleListItem]]:
-    items = await role_service.list_roles(db)
-    return SuccessEnvelope(data=[RoleListItem(**i) for i in items])
+) -> PaginatedEnvelope[RoleListItem]:
+    items, total = await role_service.list_roles(db, page=page, page_size=page_size)
+    return PaginatedEnvelope(
+        data=[RoleListItem(**i) for i in items],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get(
@@ -607,14 +619,21 @@ async def admin_reset_password(
 
 @router.get(
     "/segments",
-    response_model=SuccessEnvelope[list[SegmentItem]],
+    response_model=PaginatedEnvelope[SegmentItem],
 )
 async def list_segments(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[SegmentItem]]:
-    rows = await segment_service.list_for_user(db, user_id=current.id)
-    return SuccessEnvelope(data=[SegmentItem.model_validate(r) for r in rows])
+) -> PaginatedEnvelope[SegmentItem]:
+    rows, total = await segment_service.list_for_user(
+        db, user_id=current.id, page=page, page_size=page_size
+    )
+    return PaginatedEnvelope(
+        data=[SegmentItem.model_validate(r) for r in rows],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.post(
@@ -747,15 +766,31 @@ async def get_segment_endpoint(
 
 @router.get(
     "/saved-views",
-    response_model=SuccessEnvelope[list[SavedViewItem]],
+    response_model=PaginatedEnvelope[SavedViewItem],
 )
 async def list_saved_views(
-    page: str | None = Query(None),
+    page_filter: str | None = Query(
+        None,
+        alias="page_name",
+        description="Sayfa adı filtresi (örn: overview, traffic). "
+        "Eskiden `page` adında idi — pagination `page` ile karışmasın diye yeniden adlandı.",
+    ),
+    page: int = Query(1, ge=1, description="Sayfa numarası"),
+    page_size: int = Query(50, ge=1, le=200),
     current: User = Depends(require_permission(Permission.VIEWS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[SavedViewItem]]:
-    rows = await saved_view_service.list_views(db, user_id=current.id, page=page)
-    return SuccessEnvelope(data=[SavedViewItem.model_validate(r) for r in rows])
+) -> PaginatedEnvelope[SavedViewItem]:
+    rows, total = await saved_view_service.list_views(
+        db,
+        user_id=current.id,
+        page_filter=page_filter,
+        page=page,
+        page_size=page_size,
+    )
+    return PaginatedEnvelope(
+        data=[SavedViewItem.model_validate(r) for r in rows],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get(

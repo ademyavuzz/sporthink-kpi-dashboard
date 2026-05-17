@@ -114,17 +114,40 @@ async def update_cached_count(db: AsyncSession, segment_id: int) -> int:
 # --------------------- CRUD ---------------------
 
 
-async def list_for_user(db: AsyncSession, *, user_id: int) -> list[Segment]:
-    """Kullanıcının kendi + paylaşılmış segmentlerini listele."""
+async def list_for_user(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[list[Segment], int]:
+    """Kullanıcının kendi + paylaşılmış segmentlerini listele.
+
+    Returns: (page_rows, total).
+    """
+    from sqlalchemy import func
+
+    base_where = (
+        Segment.deleted_at.is_(None),
+        (Segment.user_id == user_id) | (Segment.is_shared.is_(True)),
+    )
+
+    total = int(
+        (
+            await db.execute(
+                select(func.count()).select_from(Segment).where(*base_where)
+            )
+        ).scalar_one()
+    )
+
     stmt = (
         select(Segment)
-        .where(
-            Segment.deleted_at.is_(None),
-            (Segment.user_id == user_id) | (Segment.is_shared.is_(True)),
-        )
+        .where(*base_where)
         .order_by(Segment.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
-    return list((await db.execute(stmt)).scalars().all())
+    return list((await db.execute(stmt)).scalars().all()), total
 
 
 async def get_segment(db: AsyncSession, segment_id: int) -> Segment:

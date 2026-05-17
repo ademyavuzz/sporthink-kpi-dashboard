@@ -150,6 +150,12 @@ async def list_reports(db: AsyncSession, *, limit: int = 50) -> list[Report]:
     return await repo.list_recent(db, limit=limit)
 
 
+async def list_reports_paginated(
+    db: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[Report], int]:
+    return await repo.list_paginated(db, page=page, page_size=page_size)
+
+
 async def get_report(db: AsyncSession, report_id: int) -> Report:
     report = await repo.get_by_id(db, report_id)
     if report is None:

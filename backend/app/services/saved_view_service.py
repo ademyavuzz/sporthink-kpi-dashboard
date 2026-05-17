@@ -16,13 +16,45 @@ from app.core.exceptions import ResourceNotFoundError
 from app.models import SavedView
 
 
-async def list_views(db: AsyncSession, *, user_id: int, page: str | None = None) -> list[SavedView]:
-    stmt = select(SavedView).where(SavedView.deleted_at.is_(None), SavedView.user_id == user_id)
-    if page:
-        stmt = stmt.where(SavedView.page == page)
-    stmt = stmt.order_by(SavedView.id.desc())
+async def list_views(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    page_filter: str | None = None,
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[list[SavedView], int]:
+    """Kullanıcının kayıtlı görünümleri. Returns: (page_rows, total).
+
+    `page_filter` = sayfa adı (örn: "overview", "traffic") — eski
+    `page` parametresinin yeni adı; pagination `page` ile karışmasın diye.
+    """
+    from sqlalchemy import func
+
+    base_where = [
+        SavedView.deleted_at.is_(None),
+        SavedView.user_id == user_id,
+    ]
+    if page_filter:
+        base_where.append(SavedView.page == page_filter)
+
+    total = int(
+        (
+            await db.execute(
+                select(func.count()).select_from(SavedView).where(*base_where)
+            )
+        ).scalar_one()
+    )
+
+    stmt = (
+        select(SavedView)
+        .where(*base_where)
+        .order_by(SavedView.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return list(result.scalars().all()), total
 
 
 async def get_view(db: AsyncSession, view_id: int, *, user_id: int) -> SavedView:

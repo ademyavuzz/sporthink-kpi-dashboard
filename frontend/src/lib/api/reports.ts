@@ -26,7 +26,9 @@ export const reportsApi = {
   },
 
   async list(): Promise<ReportListItem[]> {
-    const r = await apiClient.get<ApiEnvelope<ReportListItem[]>>("/reports");
+    const r = await apiClient.get<ApiEnvelope<ReportListItem[]>>(
+      "/reports?page=1&page_size=200",
+    );
     return unwrap(r);
   },
 

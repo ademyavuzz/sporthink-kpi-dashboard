@@ -1,5 +1,5 @@
 import { apiClient, unwrap } from "@/lib/api/client";
-import type { ApiEnvelope } from "@/types/api";
+import type { ApiEnvelope, PaginatedApiEnvelope } from "@/types/api";
 import type {
   AdminPasswordResetResponse,
   AuditLogItem,
@@ -89,7 +89,10 @@ export const adminApi = {
 
   // Roles
   async listRoles(): Promise<RoleListItem[]> {
-    const r = await apiClient.get<ApiEnvelope<RoleListItem[]>>("/roles");
+    // Backend artık sayfalı (max page_size=200). UI'da pagination yok.
+    const r = await apiClient.get<ApiEnvelope<RoleListItem[]>>(
+      "/roles?page=1&page_size=200",
+    );
     return unwrap(r);
   },
   async getRole(id: number): Promise<RoleDetail> {
@@ -119,8 +122,8 @@ export const adminApi = {
 
   // Audit logs
   async listAuditLogs(limit = 100, action?: string): Promise<AuditLogItem[]> {
-    // Backend artık sayfalı (max page_size=200). UI'da pagination UI yok;
-    // çağrıdaki `limit` parametresi page_size'a maple, sayfa 1.
+    // Backend artık sayfalı (max page_size=200). Bu helper backward-compat
+    // amaçlıdır — yeni kullanım için listAuditLogsPaginated tercih edin.
     const pageSize = Math.min(Math.max(limit, 1), 200);
     const params = new URLSearchParams({
       page: "1",
@@ -132,11 +135,38 @@ export const adminApi = {
     );
     return unwrap(r);
   },
+  /**
+   * Pagination meta'sı ile birlikte audit log listesi.
+   * UI'da Pagination component'iyle birlikte kullanılır.
+   */
+  async listAuditLogsPaginated(
+    page: number,
+    pageSize: number,
+    action?: string,
+  ): Promise<{ items: AuditLogItem[]; total: number; page: number; pageSize: number }> {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (action) params.set("action", action);
+    const r = await apiClient.get<PaginatedApiEnvelope<AuditLogItem>>(
+      `/admin/audit-logs?${params}`,
+    );
+    if (!r.data.success) {
+      throw new Error(r.data.error.message);
+    }
+    return {
+      items: r.data.data,
+      total: r.data.pagination.total,
+      page: r.data.pagination.page,
+      pageSize: r.data.pagination.page_size,
+    };
+  },
 
   // Channel mappings
   async listChannelMappings(): Promise<ChannelMappingItem[]> {
     const r = await apiClient.get<ApiEnvelope<ChannelMappingItem[]>>(
-      "/admin/channel-mappings",
+      "/admin/channel-mappings?page=1&page_size=200",
     );
     return unwrap(r);
   },
@@ -171,7 +201,9 @@ export const adminApi = {
 
   // Segments
   async listSegments(): Promise<SegmentItem[]> {
-    const r = await apiClient.get<ApiEnvelope<SegmentItem[]>>("/segments");
+    const r = await apiClient.get<ApiEnvelope<SegmentItem[]>>(
+      "/segments?page=1&page_size=200",
+    );
     return unwrap(r);
   },
   async previewSegment(p: SegmentCreate): Promise<SegmentPreviewResponse> {
@@ -201,9 +233,14 @@ export const adminApi = {
   },
 
   // Saved views
-  async listSavedViews(page?: string): Promise<SavedViewItem[]> {
-    const url = page ? `/saved-views?page=${encodeURIComponent(page)}` : "/saved-views";
-    const r = await apiClient.get<ApiEnvelope<SavedViewItem[]>>(url);
+  async listSavedViews(pageName?: string): Promise<SavedViewItem[]> {
+    // Backend `page` query parametresi pagination için ayrıldı; sayfa adı
+    // filtresi artık `page_name` (alias).
+    const params = new URLSearchParams({ page: "1", page_size: "200" });
+    if (pageName) params.set("page_name", pageName);
+    const r = await apiClient.get<ApiEnvelope<SavedViewItem[]>>(
+      `/saved-views?${params}`,
+    );
     return unwrap(r);
   },
   async createSavedView(p: SavedViewCreate): Promise<SavedViewItem> {

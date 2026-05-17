@@ -19,7 +19,7 @@ from __future__ import annotations
 from pathlib import Path as FsPath
 from typing import cast
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +28,8 @@ from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import Report, User
 from app.schemas import (
+    PaginatedEnvelope,
+    PaginationMeta,
     ReportCreateRequest,
     ReportDetailResponse,
     ReportListItem,
@@ -96,15 +98,22 @@ async def create_report(
 
 @router.get(
     "",
-    response_model=SuccessEnvelope[list[ReportListItem]],
-    summary="Son raporlar — geçmiş tablosu için",
+    response_model=PaginatedEnvelope[ReportListItem],
+    summary="Raporlar — sayfalı (en yeni → eski)",
 )
 async def list_reports(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _current_user: User = Depends(require_permission(Permission.REPORTS_VIEW)),
     db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[list[ReportListItem]]:
-    rows = await report_service.list_reports(db, limit=50)
-    return SuccessEnvelope(data=[_to_list_item(r) for r in rows])
+) -> PaginatedEnvelope[ReportListItem]:
+    rows, total = await report_service.list_reports_paginated(
+        db, page=page, page_size=page_size
+    )
+    return PaginatedEnvelope(
+        data=[_to_list_item(r) for r in rows],
+        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get(

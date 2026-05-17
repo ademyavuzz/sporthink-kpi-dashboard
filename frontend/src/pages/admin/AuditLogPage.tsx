@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Sheet,
   SheetContent,
@@ -177,21 +178,27 @@ function extractChanges(
   return { entries, anyHasOld };
 }
 
+const PAGE_SIZE = 50;
+
 export default function AuditLogPage() {
   const { t, i18n } = useTranslation(["admin", "common"]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<AuditLogItem | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
+  // Server-side pagination. `search` ve `category` mevcut sayfa içinde
+  // client-side filtre uygular (kullanıcının küçük arama deneyimi için);
+  // ileride backend full-text search eklenirse onlar da server'a gider.
   const q = useQuery({
-    queryKey: ["audit-logs"],
-    queryFn: () => adminApi.listAuditLogs(200),
+    queryKey: ["audit-logs", page, PAGE_SIZE],
+    queryFn: () => adminApi.listAuditLogsPaginated(page, PAGE_SIZE),
     staleTime: 30_000,
   });
 
   const filtered = useMemo(() => {
-    const data = q.data ?? [];
+    const data = q.data?.items ?? [];
     const term = search.trim().toLowerCase();
     return data.filter((row) => {
       if (!matchesCategory(row.action, category)) return false;
@@ -209,7 +216,8 @@ export default function AuditLogPage() {
     });
   }, [q.data, search, category]);
 
-  const totalCount = (q.data ?? []).length;
+  const totalCount = q.data?.total ?? 0;
+  const pageCount = q.data?.items.length ?? 0;
   const lang = i18n.language;
 
   return (
@@ -262,13 +270,14 @@ export default function AuditLogPage() {
           )}
         </div>
 
-        {/* Result count */}
+        {/* Result count — toplam (DB) ve filtrelenen (mevcut sayfa içi) */}
         <span className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 text-xs font-semibold tabular-nums text-text-muted">
           <Activity className="size-3.5 text-text-dim" />
           {filtered.length}
-          {filtered.length !== totalCount && (
-            <span className="text-text-dim">/ {totalCount}</span>
+          {filtered.length !== pageCount && (
+            <span className="text-text-dim">/ {pageCount}</span>
           )}
+          <span className="text-text-dim">({totalCount} toplam)</span>
         </span>
       </div>
 
@@ -414,6 +423,14 @@ export default function AuditLogPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination — server-side, mevcut filtreden bağımsız tüm DB'yi sayfalar */}
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={totalCount}
+        onPageChange={setPage}
+      />
 
       {/* Detail drawer */}
       <Sheet
