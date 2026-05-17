@@ -21,8 +21,8 @@ from typing import Any
 from sqlalchemy import and_, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ResourceNotFoundError, ValidationError
-from app.models import Customer, Segment
+from app.core.exceptions import PermissionDeniedError, ResourceNotFoundError, ValidationError
+from app.models import Customer, Segment, User
 
 logger = logging.getLogger(__name__)
 
@@ -175,17 +175,36 @@ async def create_segment(
     return seg
 
 
+def _assert_can_mutate(seg: Segment, actor: User) -> None:
+    """Yalnız segment sahibi veya süper admin mutasyon yapabilir.
+
+    `is_shared=True` segmentler bile sadece sahibi tarafından düzenlenir/silinir
+    (görüntülemek paylaşımdır, sahipliği devretmek değil). İzin kontrolü
+    `require_permission(SEGMENTS_UPDATE/DELETE)`'i geçen kullanıcı için ek
+    katman: aynı role'e sahip iki kişi birbirinin segmentini değiştiremez.
+    """
+    if actor.is_super_admin:
+        return
+    if seg.created_by == actor.id:
+        return
+    raise PermissionDeniedError(
+        "Only the segment owner (or super admin) can modify or delete it",
+        params={"segment_id": seg.id, "owner_id": seg.created_by},
+    )
+
+
 async def update_segment(
     db: AsyncSession,
     segment_id: int,
     *,
-    actor_id: int,
+    actor: User,
     name: str | None,
     description: str | None,
     rules: dict[str, Any] | None,
     is_shared: bool | None,
 ) -> Segment:
     seg = await get_segment(db, segment_id)
+    _assert_can_mutate(seg, actor)
     if name is not None:
         seg.name = name
     if description is not None:
@@ -196,14 +215,17 @@ async def update_segment(
         seg.cached_at = datetime.now(UTC)
     if is_shared is not None:
         seg.is_shared = is_shared
-    seg.updated_by = actor_id
+    seg.updated_by = actor.id
     await db.commit()
     await db.refresh(seg)
     return seg
 
 
-async def soft_delete_segment(db: AsyncSession, segment_id: int) -> None:
+async def soft_delete_segment(
+    db: AsyncSession, segment_id: int, *, actor: User
+) -> None:
     seg = await get_segment(db, segment_id)
+    _assert_can_mutate(seg, actor)
     seg.deleted_at = datetime.now(UTC)
     await db.commit()
 

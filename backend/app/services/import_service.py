@@ -28,11 +28,12 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core import cache_keys
 from app.core.exceptions import ConflictError, ResourceNotFoundError, SporthinkException
 from app.models import (
     Campaign,
@@ -43,6 +44,7 @@ from app.models import (
     Import,
     ImportDataType,
     ImportFileFormat,
+    ImportRowError,
     ImportStatus,
     MetaAds,
     MetaAdsBreakdowns,
@@ -54,6 +56,7 @@ from app.parsers.csv_parser import parse_csv
 from app.parsers.sources import REGISTRY, get_config
 from app.parsers.types import ParsedRow, ParseError, SourceConfig
 from app.repositories import audit_log_repository, data_writer, import_repository
+from app.services.cache_service import cache
 
 logger = logging.getLogger(__name__)
 
@@ -575,6 +578,14 @@ async def run_import(
         )
         await db.commit()
 
+        # KPI cache invalidation — yeni veri geldi, dashboard'larda cached
+        # eski rakamların görünmemesi için tüm `kpi:*` key'leri düşürülür.
+        # Çağrı sessizdir (Redis down olsa bile commit'i etkilemez).
+        flushed = await cache.delete_pattern(cache_keys.kpi_invalidation_pattern())
+        logger.info(
+            "kpi_cache_flushed_after_import import_id=%s keys=%d", import_id, flushed
+        )
+
         # Aggregate rebuild — KPI tabloları artık güncel olmalı.
         # `kpi_*_aggregates` raw'dan yeniden hesaplanmazsa dashboard
         # eski sayıları gösterir; bu satıra kadar tetiklenmesi unutulmuştu.
@@ -811,10 +822,6 @@ async def get_sample_errors(
     db: AsyncSession, import_id: int, *, limit: int = _SAMPLE_ERRORS_LIMIT
 ) -> list[dict[str, Any]]:
     """Sonuç panelinde gösterilecek ilk N hata satırı."""
-    from sqlalchemy import select
-
-    from app.models import ImportRowError
-
     result = await db.execute(
         select(ImportRowError)
         .where(ImportRowError.import_id == import_id)
@@ -830,6 +837,23 @@ async def get_sample_errors(
         }
         for e in result.scalars().all()
     ]
+
+
+async def list_all_errors(
+    db: AsyncSession, import_id: int
+) -> list[ImportRowError]:
+    """Bir import'un TÜM hata satırları, source_row_number+id sıralı.
+
+    CSV indirme için kullanılır (`/imports/{id}/errors.csv`). Hata sayısı bir
+    import için max birkaç bin satır; tek seferde belleğe almak güvenli.
+    Daha büyük import senaryosunda streaming/chunked'a evrilebilir.
+    """
+    result = await db.execute(
+        select(ImportRowError)
+        .where(ImportRowError.import_id == import_id)
+        .order_by(ImportRowError.source_row_number, ImportRowError.id)
+    )
+    return list(result.scalars().all())
 
 
 async def delete_import(
