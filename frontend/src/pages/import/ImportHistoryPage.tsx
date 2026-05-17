@@ -143,7 +143,7 @@ export default function ImportHistoryPage() {
       );
     }
     return map;
-  }, [dataTypesQuery.data, t, i18n.language]);
+  }, [dataTypesQuery.data, t]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => importsApi.deleteById(id),

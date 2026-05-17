@@ -23,6 +23,7 @@ from app.core.exceptions import ValidationError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import KPIPlatform, User
+from app.repositories import kpi_aggregate_repository as agg_repo
 from app.schemas import (
     CampaignAnalysisResponse,
     CampaignDetailResponse,
@@ -592,8 +593,6 @@ async def get_campaign(
     roas_kpi = await kpi_service.kpi_roas(
         db, date_from=date_from, date_to=date_to, platforms=spend_platforms, **kw
     )
-    from app.repositories import kpi_aggregate_repository as agg_repo
-
     revenue_platforms = [platform] if platform else [KPIPlatform.META, KPIPlatform.GOOGLE]
     cur_revenue = await agg_repo.sum_metric_daily(
         db,
@@ -661,8 +660,6 @@ async def get_campaign_detail(
 ) -> SuccessEnvelope[CampaignDetailResponse]:
     """`campaign_pk_id` veya `campaign_name` ile çağrılır."""
     if campaign_pk_id is None and campaign_name is None:
-        from app.core.exceptions import ValidationError
-
         raise ValidationError(
             "campaign_pk_id veya campaign_name gerekli",
             field="campaign_pk_id",
@@ -893,8 +890,6 @@ async def get_channel_analysis(
     Range filtreler (revenue/orders/roas/conversion) sonuç satırlarını
     post-aggregation filtreler.
     """
-    from decimal import Decimal as Dec
-
     filter_payload = {
         "ch": channels or None,
         "dev": devices or None,
@@ -924,14 +919,14 @@ async def get_channel_analysis(
         date_to=date_to,
         channels=channels or None,
         devices=devices or None,
-        revenue_min=Dec(str(revenue_min)) if revenue_min is not None else None,
-        revenue_max=Dec(str(revenue_max)) if revenue_max is not None else None,
+        revenue_min=Decimal(str(revenue_min)) if revenue_min is not None else None,
+        revenue_max=Decimal(str(revenue_max)) if revenue_max is not None else None,
         orders_min=orders_min,
         orders_max=orders_max,
-        roas_min=Dec(str(roas_min)) if roas_min is not None else None,
-        roas_max=Dec(str(roas_max)) if roas_max is not None else None,
-        conversion_min=Dec(str(conversion_min)) if conversion_min is not None else None,
-        conversion_max=Dec(str(conversion_max)) if conversion_max is not None else None,
+        roas_min=Decimal(str(roas_min)) if roas_min is not None else None,
+        roas_max=Decimal(str(roas_max)) if roas_max is not None else None,
+        conversion_min=Decimal(str(conversion_min)) if conversion_min is not None else None,
+        conversion_max=Decimal(str(conversion_max)) if conversion_max is not None else None,
     )
     response = ChannelAnalysisResponse(
         date_range=_date_range_with_comparison(date_from, date_to, "sequential"),

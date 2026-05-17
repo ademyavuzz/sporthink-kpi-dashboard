@@ -93,7 +93,12 @@ export function formatPercent(
 export function formatMultiplier(v: string | number | null | undefined): string {
   const n = toNumber(v);
   if (n === null) return "—";
-  return `${n.toFixed(2)}x`;
+  // TR locale: ondalık ayraç virgül (14,10x). `toFixed` US "."'sı dashboard'un
+  // başka kalan TR locale'iyle çelişir.
+  return `${n.toLocaleString("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}x`;
 }
 
 /** Saniye → "2dk 35sn" (~ 1500sn → "25dk 0sn", 30sn → "30sn"). */

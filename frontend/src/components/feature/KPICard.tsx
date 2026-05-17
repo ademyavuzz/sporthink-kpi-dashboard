@@ -4,6 +4,7 @@ import {
   BarChart3,
   Eye,
   Info,
+  Minus,
   MousePointerClick,
   Package,
   Percent,
@@ -119,31 +120,41 @@ const TONE_REGISTRY: Record<string, AccentTone> = {
   refund_rate: "amber",
 };
 
-/** Tone → ikon chip arka plan + ikon rengi sınıfları. Light/dark her ikisi. */
-const TONE_CLASSES: Record<AccentTone, { bg: string; fg: string }> = {
+/** Tone → ikon chip arka plan + ikon rengi + sol accent şerit sınıfları.
+ * Light/dark her ikisi. `stripe` Card'ın sol kenarındaki 3px şeridi boyar. */
+const TONE_CLASSES: Record<
+  AccentTone,
+  { bg: string; fg: string; stripe: string }
+> = {
   primary: {
     bg: "bg-primary/10 dark:bg-primary/15",
     fg: "text-primary dark:text-primary",
+    stripe: "bg-primary",
   },
   violet: {
     bg: "bg-violet-50 dark:bg-violet-500/15",
     fg: "text-violet-600 dark:text-violet-400",
+    stripe: "bg-violet-500",
   },
   blue: {
     bg: "bg-sky-50 dark:bg-sky-500/15",
     fg: "text-sky-600 dark:text-sky-400",
+    stripe: "bg-sky-500",
   },
   emerald: {
     bg: "bg-emerald-50 dark:bg-emerald-500/15",
     fg: "text-emerald-600 dark:text-emerald-400",
+    stripe: "bg-emerald-500",
   },
   amber: {
     bg: "bg-amber-50 dark:bg-amber-500/15",
     fg: "text-amber-600 dark:text-amber-400",
+    stripe: "bg-amber-500",
   },
   neutral: {
     bg: "bg-gray-100 dark:bg-gray-800",
     fg: "text-gray-700 dark:text-gray-300",
+    stripe: "bg-gray-300 dark:bg-gray-700",
   },
 };
 
@@ -160,6 +171,12 @@ interface KPICardProps {
   loading?: boolean;
   /** Sıkışık layout için (sm: 4-6 sütun) - daha kısa padding ve değer. */
   compact?: boolean;
+  /**
+   * Hero variant — Overview üst sıra için: daha geniş padding, büyük value
+   * tipografisi (32-34px) ve daha kalın accent. `compact` ile aynı anda
+   * verilemez; verilirse `hero` öncelik alır.
+   */
+  hero?: boolean;
   /** İkon override — verilmezse `kpi.kpi_id`'ye göre otomatik seçilir. */
   icon?: IconCmp;
   /**
@@ -170,16 +187,24 @@ interface KPICardProps {
   info?: string;
 }
 
-export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
+export function KPICard({
+  kpi,
+  loading,
+  compact,
+  hero,
+  icon,
+  info,
+}: KPICardProps) {
   const { t } = useTranslation(["dashboard", "common"]);
 
-  if (loading) return <KPICardSkeleton compact={compact} />;
+  if (loading) return <KPICardSkeleton compact={compact} hero={hero} />;
 
   const Icon = icon ?? pickIcon(kpi.kpi_id);
   const tone = TONE_CLASSES[pickTone(kpi.kpi_id)];
   const value = formatKPIValue(kpi.value, kpi.unit);
   const change = formatChange(kpi.change_percentage);
-  const TrendIcon = kpi.direction === "down" ? ArrowDown : ArrowUp;
+  const isFlat = kpi.direction === "flat";
+  const TrendIcon = isFlat ? Minus : kpi.direction === "down" ? ArrowDown : ArrowUp;
   const label = t(`kpi.${kpi.kpi_id}`, { defaultValue: kpi.label_tr });
   const helpText =
     info ?? t(`kpi_help.${kpi.kpi_id}`, { defaultValue: "" });
@@ -187,27 +212,50 @@ export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
   return (
     <Card
       className={cn(
-        "gap-0 py-0 transition-all duration-150",
-        "hover:border-gray-300 hover:shadow-sm",
+        "relative gap-0 overflow-hidden py-0 transition-all duration-150",
+        "hover:-translate-y-px hover:border-gray-300 hover:shadow-sm",
         "dark:hover:border-gray-700",
       )}
     >
-      <CardContent className={cn(compact ? "p-3.5" : "p-4")}>
+      {/* Sol accent şeridi — KPI tonuna göre. Hero'da biraz kalın. */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-0 left-0",
+          hero ? "w-1" : "w-[3px]",
+          tone.stripe,
+        )}
+      />
+      <CardContent
+        className={cn(
+          hero
+            ? "p-5 pl-6"
+            : compact
+              ? "p-3.5 pl-4"
+              : "p-4 pl-[18px]",
+        )}
+      >
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
               "inline-flex shrink-0 items-center justify-center rounded-lg",
               tone.bg,
-              compact ? "size-7" : "size-8",
+              hero ? "size-10" : compact ? "size-7" : "size-8",
             )}
           >
             <Icon
-              className={cn(tone.fg, compact ? "size-3.5" : "size-4")}
+              className={cn(
+                tone.fg,
+                hero ? "size-5" : compact ? "size-3.5" : "size-4",
+              )}
               strokeWidth={2.2}
             />
           </div>
           <p
-            className="min-w-0 flex-1 truncate text-[12px] font-medium text-text-muted"
+            className={cn(
+              "min-w-0 flex-1 truncate font-medium text-text-muted",
+              hero ? "text-[13px]" : "text-[12px]",
+            )}
             title={label}
           >
             {label}
@@ -232,11 +280,20 @@ export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
           )}
         </div>
 
-        <div className="mt-2.5 flex items-baseline justify-between gap-2">
+        <div
+          className={cn(
+            "flex items-baseline justify-between gap-2",
+            hero ? "mt-3.5" : "mt-2.5",
+          )}
+        >
           <p
             className={cn(
               "font-semibold tabular-nums leading-none tracking-tight text-foreground",
-              compact ? "text-[20px]" : "text-[22px] md:text-[24px]",
+              hero
+                ? "text-[28px] md:text-[32px]"
+                : compact
+                  ? "text-[20px]"
+                  : "text-[22px] md:text-[24px]",
             )}
           >
             {value}
@@ -245,9 +302,11 @@ export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
             <span
               className={cn(
                 "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold shrink-0",
-                kpi.is_positive
-                  ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500"
-                  : "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-500",
+                isFlat
+                  ? "bg-muted text-text-muted dark:bg-gray-800 dark:text-gray-400"
+                  : kpi.is_positive
+                    ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500"
+                    : "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-500",
               )}
               title={t("kpi_change_tooltip", {
                 defaultValue: "Önceki döneme göre",
@@ -263,24 +322,43 @@ export function KPICard({ kpi, loading, compact, icon, info }: KPICardProps) {
   );
 }
 
-export function KPICardSkeleton({ compact }: { compact?: boolean } = {}) {
+export function KPICardSkeleton({
+  compact,
+  hero,
+}: { compact?: boolean; hero?: boolean } = {}) {
   return (
-    <Card className="gap-0 py-0">
-      <CardContent className={cn(compact ? "p-3.5" : "p-4")}>
+    <Card className="relative gap-0 overflow-hidden py-0">
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-0 left-0 bg-gray-200 dark:bg-gray-800",
+          hero ? "w-1" : "w-[3px]",
+        )}
+      />
+      <CardContent
+        className={cn(
+          hero ? "p-5 pl-6" : compact ? "p-3.5 pl-4" : "p-4 pl-[18px]",
+        )}
+      >
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
               "rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse",
-              compact ? "size-7" : "size-8",
+              hero ? "size-10" : compact ? "size-7" : "size-8",
             )}
           />
           <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
-        <div className="mt-2.5 flex items-center justify-between">
+        <div
+          className={cn(
+            "flex items-center justify-between",
+            hero ? "mt-3.5" : "mt-2.5",
+          )}
+        >
           <div
             className={cn(
               "rounded bg-gray-100 dark:bg-gray-800 animate-pulse",
-              compact ? "h-5 w-24" : "h-6 w-28",
+              hero ? "h-8 w-36" : compact ? "h-5 w-24" : "h-6 w-28",
             )}
           />
           <div className="h-[18px] w-12 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
