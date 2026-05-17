@@ -53,6 +53,7 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/stores/useAuthStore";
 import {
   Table,
   TableBody,
@@ -105,13 +106,28 @@ export default function UserManagementPage() {
 /* ====================================================================== */
 
 function UsersTab() {
-  const { t, i18n } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common", "errors"]);
   const qc = useQueryClient();
   const { has } = usePermissions();
   const canCreate = has("users.create");
   const canUpdate = has("users.update");
   const canDelete = has("users.delete");
   const canResetPw = has("users.reset_password");
+
+  const currentUserId = useAuthStore((s) => s.user?.id);
+
+  // Pattern C: backend her zaman ≥1 aktif Süper Admin invariant'ını korur.
+  // Bu sayım UI guard'ı için — son admin durumunda buton/aksiyon disable.
+  const translateError = (err: unknown, fallbackKey: string): string => {
+    if (err instanceof ApiError) {
+      if (err.code === "LAST_SUPER_ADMIN") return t("errors:LAST_SUPER_ADMIN");
+      if (err.code === "SELF_DESTRUCTIVE_ACTION_FORBIDDEN") {
+        return t("errors:SELF_DESTRUCTIVE_ACTION_FORBIDDEN");
+      }
+      return err.message;
+    }
+    return t(fallbackKey);
+  };
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<UserListItem | null>(null);
@@ -138,6 +154,19 @@ function UsersTab() {
     staleTime: 60 * 60_000,
   });
 
+  const superAdminCountQuery = useQuery({
+    queryKey: ["users", "super-admin-count"],
+    queryFn: () => adminApi.getSuperAdminCount(),
+    staleTime: 30_000,
+  });
+  const superAdminCount = superAdminCountQuery.data ?? Infinity;
+  const isLastSuperAdmin = (u: UserListItem): boolean =>
+    u.role?.is_system === true && u.is_active && superAdminCount <= 1;
+  const invalidateUserData = () => {
+    void qc.invalidateQueries({ queryKey: ["users", "list"] });
+    void qc.invalidateQueries({ queryKey: ["users", "super-admin-count"] });
+  };
+
   const filtered = useMemo(() => {
     const all = usersQuery.data ?? [];
     const lower = search.trim().toLowerCase();
@@ -163,10 +192,9 @@ function UsersTab() {
     onSuccess: (data) => {
       setCreateOpen(false);
       setCreatedUser(data);
-      void qc.invalidateQueries({ queryKey: ["users", "list"] });
+      invalidateUserData();
     },
-    onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_create_failed")),
+    onError: (err) => setErrorMsg(translateError(err, "admin:users.error_create_failed")),
   });
 
   const updateMut = useMutation({
@@ -184,20 +212,18 @@ function UsersTab() {
     }) => adminApi.updateUser(id, payload),
     onSuccess: () => {
       setEditUser(null);
-      void qc.invalidateQueries({ queryKey: ["users", "list"] });
+      invalidateUserData();
     },
-    onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_update_failed")),
+    onError: (err) => setErrorMsg(translateError(err, "admin:users.error_update_failed")),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => adminApi.deleteUser(id),
     onSuccess: () => {
       setPendingDelete(null);
-      void qc.invalidateQueries({ queryKey: ["users", "list"] });
+      invalidateUserData();
     },
-    onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_delete_failed")),
+    onError: (err) => setErrorMsg(translateError(err, "admin:users.error_delete_failed")),
   });
 
   const resetPwMut = useMutation({
@@ -206,8 +232,7 @@ function UsersTab() {
       setEditUser(null);
       setResetResult(data);
     },
-    onError: (err) =>
-      setErrorMsg(err instanceof ApiError ? err.message : t("admin:users.error_reset_pw_failed")),
+    onError: (err) => setErrorMsg(translateError(err, "admin:users.error_reset_pw_failed")),
   });
 
   const roles = rolesQuery.data ?? [];
@@ -385,6 +410,8 @@ function UsersTab() {
                           <RowActionsMenu
                             user={u}
                             neverLoggedIn={neverLoggedIn}
+                            isLastSuperAdmin={isLastSuperAdmin(u)}
+                            isSelf={u.id === currentUserId}
                             canEdit={canUpdate}
                             canResetPassword={canResetPw}
                             canToggleActive={canUpdate}
@@ -464,6 +491,8 @@ function UsersTab() {
               <UserEditForm
                 user={editUser}
                 roles={roles}
+                isLastSuperAdmin={isLastSuperAdmin(editUser)}
+                isSelf={editUser.id === currentUserId}
                 onSubmit={(payload) =>
                   updateMut.mutate({ id: editUser.id, payload })
                 }
@@ -537,6 +566,15 @@ function UsersTab() {
               {t("admin:users.delete_description_prefix")}
             </DialogDescription>
           </DialogHeader>
+          {pendingDelete?.role?.is_system && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {t("admin:users.super_admin_delete_danger", {
+                  name: `${pendingDelete.first_name} ${pendingDelete.last_name}`,
+                })}
+              </AlertDescription>
+            </Alert>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingDelete(null)}>
               {t("common:cancel")}
@@ -590,6 +628,8 @@ function RoleBadge({
 function RowActionsMenu({
   user,
   neverLoggedIn,
+  isLastSuperAdmin,
+  isSelf,
   canEdit,
   canResetPassword,
   canToggleActive,
@@ -602,6 +642,8 @@ function RowActionsMenu({
 }: {
   user: UserListItem;
   neverLoggedIn: boolean;
+  isLastSuperAdmin: boolean;
+  isSelf: boolean;
   canEdit: boolean;
   canResetPassword: boolean;
   canToggleActive: boolean;
@@ -613,8 +655,18 @@ function RowActionsMenu({
   disabled?: boolean;
 }) {
   const { t } = useTranslation("admin");
-  const isSystem = user.role?.is_system === true;
-  // Hiçbir action izni yoksa kebab menü hiç render edilmez (boş popover olmasın)
+  // Peer model (Pattern A): kullanıcı kendi hesabı üzerinde destructive
+  // admin aksiyonu yapamaz; başka bir admin yapmalı. Yanlışlıkla kendini
+  // kilitleme senaryosunu önler.
+  // Pattern C: son aktif Super Admin de korunur.
+  const selfLockTooltip = isSelf ? t("users.self_action_lock_tooltip") : undefined;
+  const lastSaTooltip = isLastSuperAdmin
+    ? t("users.super_admin_last_tooltip")
+    : undefined;
+  const deleteLocked = isSelf || isLastSuperAdmin;
+  const deactivateLocked = (isSelf || isLastSuperAdmin) && user.is_active;
+  const deleteTooltip = isSelf ? selfLockTooltip : lastSaTooltip;
+  const deactivateTooltip = isSelf ? selfLockTooltip : lastSaTooltip;
   if (!canEdit && !canResetPassword && !canToggleActive && !canDelete) {
     return null;
   }
@@ -631,7 +683,7 @@ function RowActionsMenu({
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-56">
         {canEdit && (
           <DropdownMenuItem onSelect={onEdit}>
             <Pencil />
@@ -646,18 +698,27 @@ function RowActionsMenu({
               : t("users.action_reset_password")}
           </DropdownMenuItem>
         )}
-        {!isSystem && canToggleActive && (
-          <DropdownMenuItem onSelect={onToggleActive}>
+        {canToggleActive && (
+          <DropdownMenuItem
+            onSelect={onToggleActive}
+            disabled={deactivateLocked}
+            title={deactivateLocked ? deactivateTooltip : undefined}
+          >
             {user.is_active ? <UserX /> : <UserCheck />}
             {user.is_active
               ? t("users.action_deactivate")
               : t("users.action_activate")}
           </DropdownMenuItem>
         )}
-        {!isSystem && canDelete && (
+        {canDelete && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={onDelete}
+              disabled={deleteLocked}
+              title={deleteLocked ? deleteTooltip : undefined}
+            >
               <Trash2 />
               {t("users.action_delete")}
             </DropdownMenuItem>
@@ -1023,6 +1084,8 @@ function FormField({
 function UserEditForm({
   user,
   roles,
+  isLastSuperAdmin,
+  isSelf,
   onSubmit,
   onResetPassword,
   loading,
@@ -1030,6 +1093,8 @@ function UserEditForm({
 }: {
   user: UserListItem;
   roles: RoleListItem[];
+  isLastSuperAdmin: boolean;
+  isSelf: boolean;
   onSubmit: (p: {
     first_name?: string;
     last_name?: string;
@@ -1048,6 +1113,13 @@ function UserEditForm({
     first !== user.first_name ||
     last !== user.last_name ||
     Number(roleId) !== user.role_id;
+
+  // Pattern A: kullanıcı kendi rolünü admin panelinden değiştiremez.
+  // Pattern C: son Super Admin'in rolü değiştirilemez.
+  const isCurrentlySuperAdmin = user.role?.is_system === true;
+  const roleSelectDisabled = isSelf || isLastSuperAdmin;
+  const newRole = roles.find((r) => String(r.id) === roleId);
+  const willDemote = isCurrentlySuperAdmin && newRole?.is_system === false;
 
   return (
     <div className="space-y-4">
@@ -1073,11 +1145,7 @@ function UserEditForm({
       </div>
       <div className="space-y-1.5">
         <Label>{t("admin:users.field_role")}</Label>
-        <Select
-          value={roleId}
-          onValueChange={setRoleId}
-          disabled={user.role?.is_system}
-        >
+        <Select value={roleId} onValueChange={setRoleId} disabled={roleSelectDisabled}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -1095,10 +1163,27 @@ function UserEditForm({
             ))}
           </SelectContent>
         </Select>
-        {user.role?.is_system && (
+        {isSelf ? (
           <p className="text-xs text-amber-600 dark:text-amber-500">
+            {t("admin:users.self_role_lock")}
+          </p>
+        ) : isLastSuperAdmin ? (
+          <p className="text-xs text-amber-600 dark:text-amber-500">
+            {t("admin:users.super_admin_last_lock")}
+          </p>
+        ) : isCurrentlySuperAdmin ? (
+          <p className="text-xs text-muted-foreground">
             {t("admin:users.system_role_warning")}
           </p>
+        ) : null}
+        {willDemote && !isLastSuperAdmin && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertDescription>
+              {t("admin:users.super_admin_demote_danger", {
+                name: `${user.first_name} ${user.last_name}`,
+              })}
+            </AlertDescription>
+          </Alert>
         )}
       </div>
 

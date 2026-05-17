@@ -88,6 +88,25 @@ class InvalidOrExpiredTokenError(ValidationError):
     message = "Reset token is invalid or expired"
 
 
+class LastSuperAdminError(ValidationError):
+    # Pattern C invariant: sistemde her zaman ≥1 aktif Super Admin bulunmalı.
+    # Son Super Admin'i silme, pasifleştirme veya rolünü düşürme girişiminde raise.
+    code = "LAST_SUPER_ADMIN"
+    message = "Cannot remove the last active super admin"
+
+
+class SelfDestructiveActionError(ValidationError):
+    # Peer model (GitHub-style): kullanıcı yönetim panelinden kendi hesabı
+    # üzerinde silme, rol değiştirme veya pasifleştirme yapamaz — bu işlemler
+    # başka bir admin tarafından yapılmalıdır. Yanlışlıkla kendini kilitleme
+    # senaryosunu önler.
+    code = "SELF_DESTRUCTIVE_ACTION_FORBIDDEN"
+    message = (
+        "You cannot delete, deactivate, or change the role of your own "
+        "account from the user management panel"
+    )
+
+
 class ConflictError(SporthinkException):
     code = "CONFLICT"
     status_code = 409

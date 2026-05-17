@@ -12,7 +12,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Permission, RolePermission, User
+from app.models import Permission, Role, RolePermission, User
 
 
 async def get_by_email(db: AsyncSession, email: str) -> User | None:
@@ -45,6 +45,29 @@ async def list_permission_codes(db: AsyncSession, role_id: int | None) -> list[s
         .where(RolePermission.role_id == role_id)
     )
     return [row[0] for row in result.all()]
+
+
+async def count_active_super_admins(db: AsyncSession, *, exclude_user_id: int | None = None) -> int:
+    """Aktif (is_active=True, soft-delete edilmemiş) Super Admin sayısı.
+
+    Pattern C invariant kontrolü için kullanılır: sistemde her zaman ≥1
+    aktif Super Admin bulunmalıdır. `exclude_user_id` verilirse o kullanıcı
+    sayıma dahil edilmez — "bu kullanıcıyı çıkarırsam kaç Super Admin kalır?"
+    sorusuna cevap verir.
+    """
+    stmt = (
+        select(func.count(User.id))
+        .join(Role, Role.id == User.role_id)
+        .where(
+            User.is_active.is_(True),
+            User.deleted_at.is_(None),
+            Role.is_system.is_(True),
+        )
+    )
+    if exclude_user_id is not None:
+        stmt = stmt.where(User.id != exclude_user_id)
+    result = await db.execute(stmt)
+    return int(result.scalar_one() or 0)
 
 
 async def increment_failed_logins(

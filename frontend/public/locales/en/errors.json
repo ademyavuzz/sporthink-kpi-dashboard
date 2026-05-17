@@ -8,6 +8,8 @@
   "RESOURCE_NOT_FOUND": "The requested record was not found.",
   "VALIDATION_ERROR": "Form error. Please check the fields.",
   "INVALID_OR_EXPIRED_TOKEN": "Link is invalid or has expired.",
+  "LAST_SUPER_ADMIN": "This action is not allowed: at least one active Super Admin must remain.",
+  "SELF_DESTRUCTIVE_ACTION_FORBIDDEN": "You cannot perform this action on your own account — another admin must do it.",
   "EMAIL_ALREADY_EXISTS": "This email is already registered.",
   "CONFLICT": "This record already exists.",
   "RATE_LIMIT_EXCEEDED": "Too many requests. Please wait a moment.",

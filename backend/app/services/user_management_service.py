@@ -18,10 +18,17 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, ResourceNotFoundError, ValidationError
+from app.core.exceptions import (
+    ConflictError,
+    LastSuperAdminError,
+    ResourceNotFoundError,
+    SelfDestructiveActionError,
+    ValidationError,
+)
 from app.core.security import hash_password
 from app.models import NotificationType, Role, User
 from app.repositories import audit_log_repository
+from app.repositories import user_repository as user_repo
 from app.services import notification_service, password_reset_service
 
 logger = logging.getLogger(__name__)
@@ -88,6 +95,52 @@ async def get_user_or_404(db: AsyncSession, user_id: int) -> User:
     if user is None or user.deleted_at is not None:
         raise ResourceNotFoundError(params={"user_id": user_id})
     return user
+
+
+async def _assert_super_admin_invariant_holds(
+    db: AsyncSession,
+    user: User,
+    *,
+    new_role_id: int | None = None,
+    new_is_active: bool | None = None,
+    being_deleted: bool = False,
+) -> None:
+    """Pattern C invariant guard: sistemde her zaman ≥1 aktif Super Admin kalmalı.
+
+    Kullanıcı şu an aktif Super Admin ise ve önerilen değişiklik onu bu
+    statüden çıkaracaksa (silme, pasifleştirme, rolünü düşürme), başka
+    aktif Super Admin yoksa `LastSuperAdminError` raise edilir.
+    """
+    current_role = user.role
+    if current_role is None and user.role_id:
+        current_role = await db.get(Role, user.role_id)
+
+    currently_super = (
+        current_role is not None
+        and current_role.is_system
+        and user.is_active
+        and user.deleted_at is None
+    )
+    if not currently_super:
+        return
+
+    if being_deleted:
+        will_remain_super = False
+    else:
+        if new_role_id is not None and new_role_id != user.role_id:
+            new_role = await db.get(Role, new_role_id)
+            future_is_system = bool(new_role and new_role.is_system)
+        else:
+            future_is_system = True  # role unchanged, was system
+        future_is_active = new_is_active if new_is_active is not None else user.is_active
+        will_remain_super = future_is_system and future_is_active
+
+    if will_remain_super:
+        return
+
+    remaining = await user_repo.count_active_super_admins(db, exclude_user_id=user.id)
+    if remaining == 0:
+        raise LastSuperAdminError(field="user_id", params={"user_id": user.id})
 
 
 async def create_user(
@@ -173,6 +226,27 @@ async def update_user(
     if user is None or user.deleted_at is not None:
         raise ResourceNotFoundError(params={"user_id": user_id})
 
+    # Peer model: kullanıcı kendi role'unü veya is_active'ini admin panelinden
+    # değiştiremez — bu işlemler başka bir admin tarafından yapılmalı.
+    if actor.id == user.id:
+        will_change_role = role_id is not None and role_id != user.role_id
+        will_change_active = is_active is not None and is_active != user.is_active
+        if will_change_role or will_change_active:
+            raise SelfDestructiveActionError(field="user_id", params={"user_id": user.id})
+
+    # Pattern C: rol düşürme veya pasifleştirme ile son Super Admin'in
+    # statüsünü kaldırma girişimini engelle (mutasyon uygulanmadan ÖNCE check).
+    if role_id is not None or is_active is not None:
+        await _assert_super_admin_invariant_holds(
+            db,
+            user,
+            new_role_id=role_id,
+            new_is_active=is_active,
+        )
+
+    # Bildirim için "öncesi" snapshot — değişiklikler uygulanmadan önce.
+    was_super_admin = bool(user.role and user.role.is_system) and user.is_active
+
     changed: dict[str, Any] = {}
     if first_name is not None and user.first_name != first_name:
         user.first_name = first_name
@@ -202,6 +276,32 @@ async def update_user(
             user_agent=user_agent,
             details=changed,
         )
+
+    # Pattern C: Super Admin statüsünü etkileyen değişiklik varsa diğer
+    # Super Admin'lere bildirim (sessiz ele geçirilmesin diye görünürlük).
+    if changed and ("role_id" in changed or "is_active" in changed):
+        # Yeni rolünü öğren (değiştiyse)
+        new_role_obj = await db.get(Role, user.role_id) if user.role_id else None
+        is_super_admin_now = bool(new_role_obj and new_role_obj.is_system) and user.is_active
+        if was_super_admin or is_super_admin_now:
+            if was_super_admin and not is_super_admin_now:
+                event = "Süper Admin yetkisi kaldırıldı"
+            elif is_super_admin_now and not was_super_admin:
+                event = "Yeni Süper Admin atandı"
+            else:
+                event = "Süper Admin hesabı güncellendi"
+            await notification_service.notify_other_super_admins(
+                db,
+                actor_id=actor.id,
+                target_id=user.id,
+                title=event,
+                message=(
+                    f"{actor.full_name} tarafından {user.full_name} ({user.email}) "
+                    "hesabında Süper Admin etkili değişiklik yapıldı."
+                ),
+                link="/users",
+            )
+
     # Lazy-load tetiklenmesini önle: server defaults okuyup commit
     await db.refresh(user, attribute_names=["created_at", "updated_at"])
     await db.commit()
@@ -220,9 +320,16 @@ async def soft_delete_user(
     if user is None or user.deleted_at is not None:
         raise ResourceNotFoundError(params={"user_id": user_id})
 
-    role = await db.get(Role, user.role_id) if user.role_id else None
-    if role is not None and role.is_system:
-        raise ValidationError("Cannot delete super admin", field="user_id")
+    # Peer model: kullanıcı kendi hesabını admin panelinden silemez. Bu
+    # yanlışlıkla kendini kilitleme senaryosunu önler — başka bir admin'in
+    # yapması gerekir.
+    if actor.id == user.id:
+        raise SelfDestructiveActionError(field="user_id", params={"user_id": user.id})
+
+    # Pattern C: Super Admin silinebilir, ama sistemde ≥1 aktif Super Admin kalmalı.
+    await _assert_super_admin_invariant_holds(db, user, being_deleted=True)
+
+    was_super_admin = bool(user.role and user.role.is_system) and user.is_active
 
     user.deleted_at = datetime.now(UTC)
     user.is_active = False
@@ -236,8 +343,22 @@ async def soft_delete_user(
         resource_id=str(user.id),
         ip_address=ip,
         user_agent=user_agent,
-        details={"email": user.email},
+        details={"email": user.email, "was_super_admin": was_super_admin},
     )
+
+    if was_super_admin:
+        await notification_service.notify_other_super_admins(
+            db,
+            actor_id=actor.id,
+            target_id=user.id,
+            title="Süper Admin silindi",
+            message=(
+                f"{actor.full_name} tarafından Süper Admin {user.full_name} "
+                f"({user.email}) sistemden kaldırıldı."
+            ),
+            link="/users",
+        )
+
     await db.commit()
 
 
@@ -326,11 +447,7 @@ async def list_audit_logs(
     stmt = select(AuditLog)
     if conditions:
         stmt = stmt.where(and_(*conditions))
-    stmt = (
-        stmt.order_by(AuditLog.id.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    stmt = stmt.order_by(AuditLog.id.desc()).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.execute(stmt)).scalars().all()
     items = [
         {

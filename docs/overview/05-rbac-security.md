@@ -145,9 +145,34 @@ Bir kullanıcı tek bir role atanır. Rol birden fazla izne sahiptir. Kullanıc�
 
 ### 5.5.2 Süper Admin Sistem Rolü
 
-Süper Admin rolü `is_system=TRUE` flag ile işaretlenmiştir. Silinemez, düzenlenemez, kopyalanamaz. `role_permissions` tablosunda yer almaz; kod tarafında "tüm yetkilere sahip" kabul edilir.
+Süper Admin rolü `is_system=TRUE` flag ile işaretlenmiştir. Rol kaydının kendisi silinemez/düzenlenemez/kopyalanamaz. `role_permissions` tablosunda yer almaz; kod tarafında "tüm yetkilere sahip" kabul edilir.
 
 İlk kurulumda DB seed işlemiyle `.env` dosyasındaki SUPER_ADMIN_EMAIL ve SUPER_ADMIN_PASSWORD değerleri kullanılarak otomatik oluşturulur.
+
+#### Pattern C — Süper Admin Lifecycle (≥1 Aktif Süper Admin Invariant'ı)
+
+Süper Admin **kullanıcıları** (rolün kendisi değil) eşittir — seed admin'in özel statüsü yoktur. Yönetim sektör standardı "peer + last-admin koruması" modelidir (Google Workspace / Microsoft 365 modeli).
+
+**Tek invariant:** Sistemde her zaman en az bir aktif (`is_active=TRUE`, `deleted_at IS NULL`) Süper Admin bulunur. Bu, service layer'da tek bir guard (`_assert_super_admin_invariant_holds` — `backend/app/services/user_management_service.py`) ile her mutating action öncesi kontrol edilir.
+
+**İzin verilen akışlar (≥1 başka aktif Süper Admin varsa):**
+
+| Action | Endpoint | Davranış |
+|---|---|---|
+| Bir Süper Admin'i sil | `DELETE /users/{id}` | OK — soft delete, diğer SA'lere bildirim |
+| Bir Süper Admin'i pasifleştir | `PATCH /users/{id}` (`is_active=false`) | OK — bildirim |
+| Bir Süper Admin'i düşür (rol değiştir) | `PATCH /users/{id}` (`role_id` non-system) | OK — bildirim |
+| Self-action (kendini silme/düşürme/pasifleştirme) | Yukarıdakiler | OK — başka aktif SA varsa |
+
+**Engellenen akışlar (son aktif Süper Admin):**
+
+Yukarıdaki action'ların hiçbiri son Süper Admin için yapılamaz → `LastSuperAdminError` (`code: LAST_SUPER_ADMIN`, HTTP 422). Frontend bu durumda butonları disable eder ve tooltip gösterir (`super_admin_last_tooltip` i18n key).
+
+**Bildirim:** Bir Süper Admin'in statüsü değiştiğinde (silme, pasifleştirme, atama/düşürme), `notify_other_super_admins` helper'ı diğer tüm aktif Süper Admin'lere in-app notification düşer (sessiz ele geçirme görünür kalsın diye).
+
+**Re-authentication / two-person rule:** Şimdilik yok — proje ölçeği (~50 kullanıcı, tek tenant) için over-engineering. İleride gerekirse guard'a onay adımı eklenir (geriye dönük breaking change değil).
+
+**Test kapsamı:** `backend/tests/integration/test_super_admin_protection.py` — 8 test (count endpoint, peer delete/demote/deactivate happy + last-admin blocked + notification).
 
 ### 5.5.3 Per-User Custom Role Pattern
 

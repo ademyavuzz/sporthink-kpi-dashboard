@@ -86,6 +86,13 @@ export const adminApi = {
     );
     return unwrap(r);
   },
+  // Pattern C: son Super Admin guard'ı için aktif Super Admin sayısı.
+  async getSuperAdminCount(): Promise<number> {
+    const r = await apiClient.get<ApiEnvelope<{ count: number }>>(
+      "/users/super-admins/count",
+    );
+    return unwrap(r).count;
+  },
 
   // Roles
   async listRoles(): Promise<RoleListItem[]> {
