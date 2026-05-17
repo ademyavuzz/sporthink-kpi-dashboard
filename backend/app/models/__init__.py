@@ -40,6 +40,7 @@ from app.models.meta_ads_breakdowns import (
     MetaBreakdownAge,
     MetaBreakdownGender,
 )
+from app.models.notification import Notification, NotificationType
 from app.models.order import (
     Order,
     OrderDevice,
@@ -94,6 +95,8 @@ __all__ = [
     "MetaAdsBreakdowns",
     "MetaBreakdownAge",
     "MetaBreakdownGender",
+    "Notification",
+    "NotificationType",
     "Order",
     "OrderDevice",
     "OrderItem",
