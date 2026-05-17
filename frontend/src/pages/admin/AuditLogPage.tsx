@@ -48,7 +48,7 @@ const CATEGORY_PREFIX: Record<Category, string[]> = {
   user: ["user."],
   role: ["role."],
   import: ["import."],
-  system: ["settings", "channel_mapping", "permission"],
+  system: ["settings", "permission"],
 };
 
 const CATEGORY_ICON: Record<Category, typeof Activity> = {

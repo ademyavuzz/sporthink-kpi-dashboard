@@ -223,7 +223,6 @@ Tek doğru kaynak. Yeni sayfa eklenirken bu tabloya eklenir; frontend `nav-items
 | `import/history` | `/import/history` | `imports.view` | `GET /imports` |
 | `reports` | `/reports` | `reports.view` | `GET /reports`, `/reports/sections` |
 | `segments` | `/segments` | `segments.view` | `GET /segments` |
-| `channel_mapping` | `/channel-mappings` | `mappings.view` | `GET /admin/channel-mappings` |
 | `user_management` | `/users` | `users.view` | `GET /users`, `/roles`, `/permissions` |
 | `audit_logs` | `/audit-logs` | `logs.view_audit` | `GET /admin/audit-logs` |
 | `notifications` | `/notifications` | — (kişisel) | yok (client-only Zustand store) |
