@@ -9,7 +9,7 @@
  */
 
 export const PERMISSIONS = {
-  // Kategori 1: Veri Görüntüleme (9)
+  // Kategori 1: Veri Görüntüleme (11)
   DASHBOARD_VIEW: "dashboard.view",
   TRAFFIC_VIEW: "traffic.view",
   META_ADS_VIEW: "meta_ads.view",
@@ -19,6 +19,8 @@ export const PERMISSIONS = {
   FUNNEL_VIEW: "funnel.view",
   COHORT_VIEW: "cohort.view",
   PRODUCTS_VIEW: "products.view",
+  CUSTOMERS_VIEW: "customers.view",
+  CHANNEL_ANALYSIS_VIEW: "channel_analysis.view",
 
   // Kategori 2: Veri İşlemleri (20)
   IMPORTS_VIEW: "imports.view",

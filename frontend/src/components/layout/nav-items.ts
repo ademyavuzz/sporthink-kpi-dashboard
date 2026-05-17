@@ -67,8 +67,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: "funnel", path: "/funnel", icon: Filter, permission: PERMISSIONS.FUNNEL_VIEW },
       { id: "cohort", path: "/cohort", icon: BarChart3, permission: PERMISSIONS.COHORT_VIEW },
       { id: "products", path: "/products", icon: Package, permission: PERMISSIONS.PRODUCTS_VIEW },
-      { id: "customers", path: "/customers", icon: UserRound, permission: PERMISSIONS.ECOMMERCE_VIEW },
-      { id: "channel_analysis", path: "/channel-analysis", icon: LineChartIcon, permission: PERMISSIONS.TRAFFIC_VIEW },
+      { id: "customers", path: "/customers", icon: UserRound, permission: PERMISSIONS.CUSTOMERS_VIEW },
+      { id: "channel_analysis", path: "/channel-analysis", icon: LineChartIcon, permission: PERMISSIONS.CHANNEL_ANALYSIS_VIEW },
     ],
   },
   {
