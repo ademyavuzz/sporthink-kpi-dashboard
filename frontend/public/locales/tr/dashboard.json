@@ -263,7 +263,9 @@
       "add_to_cart": "Sepete Ekleme",
       "checkout": "Ödeme Başlatma",
       "purchase": "Satın Alma"
-    }
+    },
+    "card_hint": "Adimlar arasi gecis ve dususler",
+    "step_details_hint": "Her adimin sayisi ve onceki adima gore dususu"
   },
   "cohort": {
     "title": "Cohort / Retention",
