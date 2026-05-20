@@ -68,7 +68,12 @@
     "col_roas": "ROAS",
     "col_aov": "Ort. Sepet",
     "col_customers": "Müşteri",
-    "empty": "Bu tarih aralığında kanal verisi yok."
+    "empty": "Bu tarih aralığında kanal verisi yok.",
+    "trend_hint": "Top 5 kanalin gunluk ciro hareketi",
+    "revenue_distribution_hint": "Kanallarin toplam ciroya katkisi",
+    "roas_hint": "Kanal bazli reklam getirisi",
+    "conversion_hint": "Kanal bazli donusum orani",
+    "table_hint": "Tum kanallarin detayli performans dokumu"
   },
   "customers": {
     "title": "Müşteri Analizi",
