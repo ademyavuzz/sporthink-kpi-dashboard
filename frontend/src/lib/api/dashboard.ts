@@ -31,6 +31,8 @@ function qs(p: DashboardQuery): string {
     date_to: p.date_to,
   });
   if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+  p.channels?.forEach((c) => params.append("channels", c));
+  p.devices?.forEach((d) => params.append("devices", d));
   return params.toString();
 }
 

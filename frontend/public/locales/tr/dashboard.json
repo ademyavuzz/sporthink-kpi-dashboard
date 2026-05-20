@@ -38,7 +38,14 @@
     "table_brand": "Marka",
     "table_units": "Adet",
     "table_revenue": "Ciro",
-    "drop_overall_conversion": "Genel Dönüşüm"
+    "drop_overall_conversion": "Genel Dönüşüm",
+    "channel_card_hint": "Bir kanala tıklayarak tüm sayfayı filtreleyin",
+    "funnel_card_hint": "Görüntülemeden satın almaya dönüşüm",
+    "geo_card_title": "Şehir Bazlı Ciro",
+    "geo_card_hint": "Baloncuk büyüklüğü ciroyu gösterir, şehre tıklayın",
+    "geo_orders": "sipariş",
+    "cmp_sequential": "Önceki Dönem",
+    "cmp_yoy": "Geçen Yıl"
   },
   "channel_analysis": {
     "title": "Kanal Analizi",

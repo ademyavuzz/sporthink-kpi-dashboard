@@ -21,6 +21,7 @@ from app.schemas.kpi import (
     FunnelDropoffPoint,
     FunnelGroup,
     FunnelStep,
+    GeoCityMetric,
     KPIResult,
     KPISummary,
     TopCustomerRow,
@@ -29,7 +30,11 @@ from app.schemas.kpi import (
 
 
 class OverviewResponse(BaseModel):
-    """`/dashboard/overview` — ana sayfa: 9 KPI + 4 chart bloğu."""
+    """`/dashboard/overview` — ana sayfa: 9 KPI + chart blokları + şehir geo.
+
+    `channels`/`devices` filtreleri tüm KPI'lara, trend'e ve geo'ya uygulanır
+    (cross-filter). `funnel`/`new_vs_returning`/`top_products` tarih kapsamlıdır.
+    """
 
     summary: KPISummary
     channels: list[ChannelMetric]
@@ -37,6 +42,7 @@ class OverviewResponse(BaseModel):
     new_vs_returning: list[CustomerTypeRevenue]
     funnel: list[FunnelStep]
     top_products: list[TopProductRow]
+    geo: list[GeoCityMetric]
 
 
 class DimensionBreakdown(BaseModel):

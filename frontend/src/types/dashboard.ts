@@ -129,6 +129,12 @@ export interface DimensionBreakdown {
 
 // --- Page response types ---
 
+export interface GeoCityMetric {
+  city: string;
+  revenue: string;
+  orders: number;
+}
+
 export interface OverviewResponse {
   summary: KPISummary;
   channels: ChannelMetric[];
@@ -136,6 +142,7 @@ export interface OverviewResponse {
   new_vs_returning: CustomerTypeRevenue[];
   funnel: FunnelStep[];
   top_products: TopProductRow[];
+  geo: GeoCityMetric[];
 }
 
 export interface TrafficDailyPoint {
@@ -516,4 +523,7 @@ export interface DashboardQuery {
   date_from: string;
   date_to: string;
   comparison_mode?: ComparisonMode;
+  /** Cross-filter — kanal/cihaz çoklu seçim. */
+  channels?: string[];
+  devices?: string[];
 }

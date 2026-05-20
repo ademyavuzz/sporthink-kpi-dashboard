@@ -99,24 +99,50 @@ async def get_overview(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
+    channels: list[str] | None = Query(None, description="Kanal filtresi (multi) — cross-filter"),
+    devices: list[str] | None = Query(None, description="Cihaz filtresi (multi) — cross-filter"),
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[OverviewResponse]:
     _validate_range(date_from, date_to)
+
+    ch = channels or None
+    dv = devices or None
+    # Filtreler cache key'inin parçası — her filtre kombinasyonu ayrı entry.
+    extra: dict[str, Any] = {}
+    if ch:
+        extra["ch"] = sorted(ch)
+    if dv:
+        extra["dv"] = sorted(dv)
     key = cache_keys.kpi_summary(
-        date_from=date_from, date_to=date_to, comparison_mode=comparison_mode
+        date_from=date_from,
+        date_to=date_to,
+        comparison_mode=comparison_mode,
+        extra_filters=extra or None,
     )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=OverviewResponse.model_validate(hit))
 
     summary = await kpi_service.calculate_summary(
-        db, date_from=date_from, date_to=date_to, comparison_mode=comparison_mode
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        comparison_mode=comparison_mode,
+        channels=ch,
+        devices=dv,
     )
-    channels = await kpi_service.revenue_by_channel(
-        db, date_from=date_from, date_to=date_to, limit=10
+    # Kanal donut'u cross-filter seçicisidir → her zaman tüm kanalları gösterir.
+    channels_data = await kpi_service.revenue_by_channel(
+        db, date_from=date_from, date_to=date_to, limit=10, devices=dv
     )
-    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
+    daily = await kpi_service.daily_revenue_series(
+        db, date_from=date_from, date_to=date_to, channels=ch, devices=dv
+    )
+    geo = await kpi_service.revenue_by_city(
+        db, date_from=date_from, date_to=date_to, channels=ch, devices=dv
+    )
+    # Funnel / new-vs-returning / top-products kanal kırılımı taşımaz → tarih kapsamlı.
     nvr = await kpi_service.new_vs_returning_revenue(db, date_from=date_from, date_to=date_to)
     funnel = await kpi_service.funnel_steps(db, date_from=date_from, date_to=date_to)
     top_products = await kpi_service.top_products(
@@ -125,11 +151,12 @@ async def get_overview(
 
     response = OverviewResponse(
         summary=summary,
-        channels=channels,
+        channels=channels_data,
         daily_series=daily,
         new_vs_returning=nvr,
         funnel=funnel,
         top_products=top_products,
+        geo=geo,
     )
     await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
     return SuccessEnvelope(data=response)
