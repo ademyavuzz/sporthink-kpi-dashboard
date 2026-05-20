@@ -17,8 +17,8 @@
   "clear_all": "Tümünü temizle",
   "remove_chip": "Kaldır",
   "none_active": "Aktif filtre yok",
-  "all_option": "Tumu",
-  "n_selected": "{{count}} secili",
-  "no_option": "Secenek yok",
-  "clear_selection": "Secimi temizle"
+  "all_option": "Tümü",
+  "n_selected": "{{count}} seçili",
+  "no_option": "Seçenek yok",
+  "clear_selection": "Seçimi temizle"
 }

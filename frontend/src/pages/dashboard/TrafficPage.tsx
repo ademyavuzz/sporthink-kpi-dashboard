@@ -92,7 +92,7 @@ export default function TrafficPage() {
           <BarChart
             loading={isLoading}
             horizontal
-            categories={data ? data.by_channel.map((c) => c.label ?? "Diger") : []}
+            categories={data ? data.by_channel.map((c) => c.label ?? "Diğer") : []}
             series={
               data
                 ? [
@@ -114,7 +114,7 @@ export default function TrafficPage() {
         >
           <BarChart
             loading={isLoading}
-            categories={data ? data.by_device.map((d) => d.label ?? "Diger") : []}
+            categories={data ? data.by_device.map((d) => d.label ?? "Diğer") : []}
             series={
               data
                 ? [
@@ -140,7 +140,7 @@ export default function TrafficPage() {
           loading={isLoading}
           horizontal
           height={420}
-          categories={data ? data.by_city.map((c) => c.label ?? "Diger") : []}
+          categories={data ? data.by_city.map((c) => c.label ?? "Diğer") : []}
           series={
             data
               ? [
