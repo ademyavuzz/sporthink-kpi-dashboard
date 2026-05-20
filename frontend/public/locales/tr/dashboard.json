@@ -269,14 +269,18 @@
   },
   "cohort": {
     "title": "Cohort / Retention",
-    "heatmap_card_title": "Retention Heatmap — Kayıt Ayı × Ay Sonra Aktivite",
+    "heatmap_card_title": "Retention Heatmap",
     "sizes_card_title": "Cohort Boyutları",
     "col_cohort": "Cohort",
     "col_size": "Boyut",
     "month_offset_short": "M",
     "customers_suffix": "müşteri",
     "m1_retention_label": "M1 retention:",
-    "empty": "Bu tarih aralığında cohort verisi yok."
+    "empty": "Bu tarih aralığında cohort verisi yok.",
+    "heatmap_hint": "Ilk siparis ayina gore ay-N tekrar gelme orani",
+    "sizes_hint": "Her cohortun buyuklugu ve M1 retention'i",
+    "legend_low": "Dusuk",
+    "legend_high": "Yuksek"
   },
   "products": {
     "title": "Ürün Performansı",

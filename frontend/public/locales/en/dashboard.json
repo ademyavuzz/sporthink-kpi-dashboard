@@ -269,14 +269,18 @@
   },
   "cohort": {
     "title": "Cohort / Retention",
-    "heatmap_card_title": "Retention Heatmap — Cohort Month × Activity Month",
+    "heatmap_card_title": "Retention Heatmap",
     "sizes_card_title": "Cohort Sizes",
     "col_cohort": "Cohort",
     "col_size": "Size",
     "month_offset_short": "M",
     "customers_suffix": "customers",
     "m1_retention_label": "M1 retention:",
-    "empty": "No cohort data for this date range."
+    "empty": "No cohort data for this date range.",
+    "heatmap_hint": "Month-N return rate by first-order month",
+    "sizes_hint": "Each cohort size and M1 retention",
+    "legend_low": "Low",
+    "legend_high": "High"
   },
   "products": {
     "title": "Product Performance",
