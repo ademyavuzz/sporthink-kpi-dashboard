@@ -5,6 +5,7 @@ import {
   Clock,
   Download,
   FileText,
+  History,
   Loader2,
   RefreshCw,
   Trash2,
@@ -13,9 +14,10 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ChartCard } from "@/components/feature/ChartCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -94,7 +96,7 @@ function presetRange(preset: PresetId): { from: string; to: string } {
 }
 
 function formatBytes(bytes: number | null): string {
-  if (bytes === null || bytes <= 0) return "—";
+  if (bytes === null || bytes <= 0) return "-";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -278,25 +280,15 @@ export default function ReportsPage() {
   const reports = listQuery.data ?? [];
 
   return (
-    <div className="container mx-auto max-w-[1400px] space-y-6 px-6 py-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-title-sm font-semibold text-foreground">
-          {t("reports:page.title")}
-        </h1>
-        <p className="mt-1 text-sm text-text-muted">
-          {t("reports:page.subtitle")}
-        </p>
-      </div>
+    <div className="container mx-auto max-w-[1400px] space-y-5 px-6 py-6">
+      <PageHeader
+        title={t("reports:page.title")}
+        subtitle={t("reports:page.subtitle")}
+      />
 
       {/* Create form */}
-      <Card>
-        <CardContent className="space-y-5 p-6">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("reports:create.section_title")}
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+      <ChartCard title={t("reports:create.section_title")} icon={FileText}>
+        <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
             <div className="space-y-1.5">
               <Label htmlFor="report-name">{t("reports:create.name_label")}</Label>
@@ -475,37 +467,33 @@ export default function ReportsPage() {
                 )}
               </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+        </form>
+      </ChartCard>
 
       {/* History */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {t("reports:history.section_title")}
-            </h2>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                queryClient.invalidateQueries({ queryKey: ["reports", "list"] })
-              }
-              disabled={listQuery.isFetching}
-              className="gap-1.5"
-            >
-              <RefreshCw
-                className={cn(
-                  "size-4",
-                  listQuery.isFetching && "animate-spin",
-                )}
-              />
-              {t("reports:history.refresh")}
-            </Button>
-          </div>
-
+      <ChartCard
+        title={t("reports:history.section_title")}
+        icon={History}
+        contentClassName="p-0"
+        action={
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["reports", "list"] })
+            }
+            disabled={listQuery.isFetching}
+            className="gap-1.5"
+          >
+            <RefreshCw
+              className={cn("size-4", listQuery.isFetching && "animate-spin")}
+            />
+            {t("reports:history.refresh")}
+          </Button>
+        }
+      >
+        <div>
           {actionError && (
             <Alert variant="destructive" className="m-4">
               <AlertCircle className="size-4" />
@@ -582,7 +570,7 @@ export default function ReportsPage() {
                         </TableCell>
                         <TableCell className="px-3 py-3 text-sm tabular-nums text-text-muted">
                           {dayjs(r.date_from).format("DD.MM.YYYY")}
-                          <span className="mx-1 text-text-dim">—</span>
+                          <span className="mx-1 text-text-dim">-</span>
                           {dayjs(r.date_to).format("DD.MM.YYYY")}
                         </TableCell>
                         <TableCell className="px-3 py-3">
@@ -655,8 +643,8 @@ export default function ReportsPage() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </ChartCard>
 
       {/* Delete confirm */}
       <Dialog

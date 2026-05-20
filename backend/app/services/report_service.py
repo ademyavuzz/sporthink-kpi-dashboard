@@ -47,8 +47,8 @@ SECTION_META: list[ReportSectionMeta] = [
         key="overview",
         label_tr="Genel Özet",
         label_en="Overview",
-        description_tr="Gelir, sipariş, AOV, oturum, kullanıcı, dönüşüm, ROAS — 8 KPI + günlük trend.",
-        description_en="Revenue, orders, AOV, sessions, users, conversion, ROAS — 8 KPIs + daily trend.",
+        description_tr="Gelir, sipariş, AOV, oturum, kullanıcı, dönüşüm, ROAS. 8 KPI ve günlük trend.",
+        description_en="Revenue, orders, AOV, sessions, users, conversion, ROAS. 8 KPIs and daily trend.",
     ),
     ReportSectionMeta(
         key="ga4",
