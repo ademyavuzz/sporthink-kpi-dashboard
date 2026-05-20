@@ -78,6 +78,18 @@ class ChannelMetric(BaseModel):
     conversion_rate: Decimal | None  # %
 
 
+class GeoCityMetric(BaseModel):
+    """Şehir × ciro/sipariş kırılımı — harita görselleştirmesi için.
+
+    `orders.city` doğrudan kullanılır; aggregate tablolar şehir kırılımı
+    taşımaz.
+    """
+
+    city: str
+    revenue: Decimal
+    orders: int
+
+
 class CampaignMetric(BaseModel):
     """Kampanya × performance metrics."""
 

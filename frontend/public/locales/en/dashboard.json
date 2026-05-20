@@ -38,7 +38,14 @@
     "table_brand": "Brand",
     "table_units": "Units",
     "table_revenue": "Revenue",
-    "drop_overall_conversion": "Overall Conversion"
+    "drop_overall_conversion": "Overall Conversion",
+    "channel_card_hint": "Click a channel to filter the whole page",
+    "funnel_card_hint": "Conversion from view to purchase",
+    "geo_card_title": "Revenue by City",
+    "geo_card_hint": "Bubble size shows revenue, click a city",
+    "geo_orders": "orders",
+    "cmp_sequential": "Previous Period",
+    "cmp_yoy": "Year over Year"
   },
   "channel_analysis": {
     "title": "Channel Analysis",

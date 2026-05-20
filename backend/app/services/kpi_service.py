@@ -50,6 +50,7 @@ from app.schemas.kpi import (
     FunnelDropoffPoint,
     FunnelGroup,
     FunnelStep,
+    GeoCityMetric,
     KPIResult,
     KPISummary,
     KPIUnit,
@@ -199,7 +200,13 @@ def _safe_div(num: Decimal, den: Decimal) -> Decimal | None:
 
 
 async def kpi_sessions(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Toplam Oturum — `SUM(sessions)` (`docs/09` §9.3.1)."""
     cur = await agg_repo.sum_metric_daily(
@@ -208,6 +215,8 @@ async def kpi_sessions(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     p = await agg_repo.sum_metric_daily(
         db,
@@ -215,6 +224,8 @@ async def kpi_sessions(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     return _build_result("sessions", cur, p)
 
@@ -231,7 +242,15 @@ async def total_ga4_sessions(db: AsyncSession, *, date_from: date, date_to: date
     return int(total or 0)
 
 
-async def kpi_users(db: AsyncSession, *, date_from: date, date_to: date, **prev: date) -> KPIResult:
+async def kpi_users(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
+) -> KPIResult:
     """Tekil Kullanıcı — `SUM(users)` (§9.3.2)."""
     cur = await agg_repo.sum_metric_daily(
         db,
@@ -239,6 +258,8 @@ async def kpi_users(db: AsyncSession, *, date_from: date, date_to: date, **prev:
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     p = await agg_repo.sum_metric_daily(
         db,
@@ -246,6 +267,8 @@ async def kpi_users(db: AsyncSession, *, date_from: date, date_to: date, **prev:
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     return _build_result("users", cur, p)
 
@@ -272,7 +295,13 @@ async def kpi_new_users(
 
 
 async def kpi_bounce_rate(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Hemen Çıkma Oranı — `SUM(bounce_sessions)/SUM(sessions) × 100` (§9.3.4).
 
@@ -284,6 +313,8 @@ async def kpi_bounce_rate(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     cur = _safe_div(metrics["bounce_sessions"], metrics["sessions"])
     cur_pct = _quantize(cur * 100) if cur is not None else None
@@ -294,6 +325,8 @@ async def kpi_bounce_rate(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     p = _safe_div(pmetrics["bounce_sessions"], pmetrics["sessions"])
     p_pct = _quantize(p * 100) if p is not None else None
@@ -347,7 +380,13 @@ async def kpi_avg_session_duration(
 
 
 async def kpi_conversion_rate(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Dönüşüm Oranı — `SUM(orders)/SUM(sessions) × 100` (§9.3.7).
 
@@ -360,6 +399,8 @@ async def kpi_conversion_rate(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     orders = await agg_repo.sum_metric_daily(
         db,
@@ -367,6 +408,8 @@ async def kpi_conversion_rate(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     cur = _safe_div(orders, sessions)
     cur_pct = _quantize(cur * 100) if cur is not None else None
@@ -377,6 +420,8 @@ async def kpi_conversion_rate(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.GA4],
+        channels=channels,
+        devices=devices,
     )
     p_orders = await agg_repo.sum_metric_daily(
         db,
@@ -384,6 +429,8 @@ async def kpi_conversion_rate(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     p = _safe_div(p_orders, p_sessions)
     p_pct = _quantize(p * 100) if p is not None else None
@@ -413,6 +460,8 @@ async def kpi_ad_spend(
     date_from: date,
     date_to: date,
     platforms: list[KPIPlatform] | None = None,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
     **prev: date,
 ) -> KPIResult:
     """Toplam Harcama (§9.4.1)."""
@@ -423,6 +472,8 @@ async def kpi_ad_spend(
         date_from=date_from,
         date_to=date_to,
         platforms=plats,
+        channels=channels,
+        devices=devices,
     )
     p = await agg_repo.sum_metric_daily(
         db,
@@ -430,6 +481,8 @@ async def kpi_ad_spend(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=plats,
+        channels=channels,
+        devices=devices,
     )
     return _build_result("ad_spend", _quantize(cur), _quantize(p))
 
@@ -642,6 +695,8 @@ async def kpi_roas(
     date_from: date,
     date_to: date,
     platforms: list[KPIPlatform] | None = None,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
     **prev: date,
 ) -> KPIResult:
     """ROAS — `ad_revenue/spend` (§9.4.9)."""
@@ -652,6 +707,8 @@ async def kpi_roas(
         date_from=date_from,
         date_to=date_to,
         platforms=plats,
+        channels=channels,
+        devices=devices,
     )
     cur = _quantize(_safe_div(m["ad_revenue"], m["spend"]), "0.0001")
     pm = await agg_repo.sum_metrics_daily(
@@ -660,6 +717,8 @@ async def kpi_roas(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=plats,
+        channels=channels,
+        devices=devices,
     )
     p = _quantize(_safe_div(pm["ad_revenue"], pm["spend"]), "0.0001")
     return _build_result("roas", cur, p)
@@ -702,7 +761,13 @@ async def kpi_frequency(
 
 
 async def kpi_revenue(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Toplam Ciro (§9.5.1)."""
     cur = await agg_repo.sum_metric_daily(
@@ -711,6 +776,8 @@ async def kpi_revenue(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     p = await agg_repo.sum_metric_daily(
         db,
@@ -718,12 +785,20 @@ async def kpi_revenue(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     return _build_result("revenue", _quantize(cur), _quantize(p))
 
 
 async def kpi_orders(
-    db: AsyncSession, *, date_from: date, date_to: date, **prev: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
 ) -> KPIResult:
     """Sipariş Sayısı (§9.5.2)."""
     cur = await agg_repo.sum_metric_daily(
@@ -732,6 +807,8 @@ async def kpi_orders(
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     p = await agg_repo.sum_metric_daily(
         db,
@@ -739,6 +816,8 @@ async def kpi_orders(
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     return _build_result("orders", cur, p)
 
@@ -764,7 +843,15 @@ async def kpi_items_sold(
     return _build_result("items_sold", cur, p)
 
 
-async def kpi_aov(db: AsyncSession, *, date_from: date, date_to: date, **prev: date) -> KPIResult:
+async def kpi_aov(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+    **prev: date,
+) -> KPIResult:
     """AOV — `revenue/orders` (§9.5.4)."""
     m = await agg_repo.sum_metrics_daily(
         db,
@@ -772,6 +859,8 @@ async def kpi_aov(db: AsyncSession, *, date_from: date, date_to: date, **prev: d
         date_from=date_from,
         date_to=date_to,
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     cur = _quantize(_safe_div(m["revenue"], m["orders"]))
     pm = await agg_repo.sum_metrics_daily(
@@ -780,6 +869,8 @@ async def kpi_aov(db: AsyncSession, *, date_from: date, date_to: date, **prev: d
         date_from=prev["prev_from"],
         date_to=prev["prev_to"],
         platforms=[KPIPlatform.ECOMMERCE],
+        channels=channels,
+        devices=devices,
     )
     p = _quantize(_safe_div(pm["revenue"], pm["orders"]))
     return _build_result("aov", cur, p)
@@ -895,14 +986,24 @@ async def calculate_summary(
     date_from: date,
     date_to: date,
     comparison_mode: Literal["sequential", "yoy"] = "sequential",
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
 ) -> KPISummary:
     """Overview sayfası için en kritik 9 KPI'yı tek API çağrısında hesaplar.
+
+    `channels`/`devices` verilirse tüm KPI'lar `kpi_daily_aggregates`
+    üzerinde bu kırılımlara göre filtrelenir (cross-filter desteği).
 
     Performance: ~10 SUM sorgusu (per KPI ~1-2 sorgu, çoğu paralel-batch).
     Cache'lenir (5 dk TTL) — `services/cache_service.py` üzerinden.
     """
     prev_from, prev_to = compute_comparison_period(date_from, date_to, comparison_mode)
-    kw = {"prev_from": prev_from, "prev_to": prev_to}
+    kw: dict[str, Any] = {
+        "prev_from": prev_from,
+        "prev_to": prev_to,
+        "channels": channels,
+        "devices": devices,
+    }
 
     return KPISummary(
         date_range=DateRange(
@@ -930,12 +1031,19 @@ async def calculate_summary(
 
 
 async def revenue_by_channel(
-    db: AsyncSession, *, date_from: date, date_to: date, limit: int = 20
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    limit: int = 20,
+    devices: list[str] | None = None,
 ) -> list[ChannelMetric]:
     """Kanal × revenue/orders/sessions/conversion_rate (§9.6.1, §9.6.2).
 
     `revenue` ecommerce satırlarından, `sessions` ga4 satırlarından gelir;
-    GROUP BY channel ile birleşir.
+    GROUP BY channel ile birleşir. Kanal donut'u cross-filter seçici olduğu
+    için `channels` ile filtrelenmez (her zaman tüm kanalları gösterir);
+    yalnızca `devices` filtresi uygulanır.
     """
     rows = await agg_repo.group_by_dimension_daily(
         db,
@@ -945,6 +1053,7 @@ async def revenue_by_channel(
         date_to=date_to,
         order_by_metric="revenue",
         limit=limit,
+        devices=devices,
     )
     return [
         ChannelMetric(
@@ -1585,18 +1694,25 @@ async def new_vs_returning_revenue(
 
 
 async def daily_revenue_series(
-    db: AsyncSession, *, date_from: date, date_to: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
 ) -> list[DailySeriesPoint]:
     """§9.6.5 — gün gün revenue/orders/sessions/spend (trend chart için).
 
     Tek query'de 4 metric çekilir; frontend chart wrapper bunları multi-series
-    olarak çizer.
+    olarak çizer. `channels`/`devices` cross-filter için uygulanır.
     """
     rows = await agg_repo.daily_series(
         db,
         ["revenue", "orders", "sessions", "spend"],
         date_from=date_from,
         date_to=date_to,
+        channels=channels,
+        devices=devices,
     )
     return [
         DailySeriesPoint(
@@ -1882,6 +1998,53 @@ async def by_dimension_revenue(
         order_by_metric="revenue",
         limit=limit,
     )
+
+
+async def revenue_by_city(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    limit: int = 81,
+    channels: list[str] | None = None,
+    devices: list[str] | None = None,
+) -> list[GeoCityMetric]:
+    """Şehir bazlı ciro + sipariş — Türkiye haritası için.
+
+    `kpi_daily_aggregates` şehir kırılımı taşımadığından `orders` tablosu
+    doğrudan kullanılır (`orders.city/channel/device` kolonları native).
+    Gerçekleşen statüler: completed/shipped/refunded.
+    """
+    clauses: list[Any] = [
+        func.date(Order.order_date) >= date_from,
+        func.date(Order.order_date) <= date_to,
+        Order.order_status.in_(("completed", "shipped", "refunded")),
+        Order.city.isnot(None),
+    ]
+    if channels:
+        clauses.append(Order.channel.in_(channels))
+    if devices:
+        clauses.append(Order.device.in_(devices))
+    stmt = (
+        select(
+            Order.city,
+            func.coalesce(func.sum(Order.net_revenue), 0).label("revenue"),
+            func.count(Order.id).label("orders"),
+        )
+        .where(and_(*clauses))
+        .group_by(Order.city)
+        .order_by(func.sum(Order.net_revenue).desc())
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        GeoCityMetric(
+            city=str(r[0]),
+            revenue=_quantize(Decimal(str(r[1]))) or Decimal(0),
+            orders=int(r[2]),
+        )
+        for r in rows
+    ]
 
 
 async def ga4_traffic_by_city(
