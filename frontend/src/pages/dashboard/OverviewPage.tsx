@@ -7,13 +7,13 @@ import {
   DateRangePicker,
   type DateRangeValue,
 } from "@/components/feature/DateRangePicker";
+import { ChartCard } from "@/components/feature/ChartCard";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { TurkeyMap } from "@/components/feature/charts/TurkeyMap";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -168,16 +168,45 @@ export default function OverviewPage() {
         )}
       </div>
 
-      {/* ─── Trend + Kanal ────────────────────────────────────────── */}
+      {/* ─── Şehir haritası + Kanal ───────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-8">
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-primary" />
-              {t("overview.trend_card_title")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ChartCard
+          title={t("overview.geo_card_title")}
+          hint={t("overview.geo_card_hint")}
+          icon={MapPin}
+          className="lg:col-span-8"
+        >
+            <TurkeyMap
+              data={geo}
+              loading={isLoading}
+              selectedCity={selectedCity}
+              onCityClick={toggleCity}
+            />
+        </ChartCard>
+
+        <ChartCard
+          title={t("overview.channel_card_title")}
+          hint={t("overview.channel_card_hint")}
+          className="lg:col-span-4"
+        >
+            <DonutChart
+              loading={isLoading}
+              labels={channelLabels}
+              values={channelValues}
+              valueFormatter={formatCurrency}
+              onSliceClick={handleChannelClick}
+              selectedLabel={selectedChannel}
+            />
+        </ChartCard>
+      </div>
+
+      {/* ─── Trend + Funnel ───────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <ChartCard
+          title={t("overview.trend_card_title")}
+          icon={TrendingUp}
+          className="lg:col-span-7"
+        >
             <LineChart
               loading={isLoading}
               multiAxis
@@ -195,7 +224,7 @@ export default function OverviewPage() {
                       },
                       {
                         name: t("overview.series_orders"),
-                        color: "#0ea5e9",
+                        color: "#2563eb",
                         data: data.daily_series.map((p) => ({
                           x: dayjs(p.date).valueOf(),
                           y: p.orders,
@@ -207,59 +236,15 @@ export default function OverviewPage() {
               }
               yFormatter={formatAxisCurrency}
             />
-          </CardContent>
-        </Card>
+        </ChartCard>
 
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>{t("overview.channel_card_title")}</CardTitle>
-            <p className="text-xs text-text-muted">
-              {t("overview.channel_card_hint")}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <DonutChart
-              loading={isLoading}
-              labels={channelLabels}
-              values={channelValues}
-              valueFormatter={formatCurrency}
-              onSliceClick={handleChannelClick}
-              selectedLabel={selectedChannel}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ─── Türkiye haritası + Funnel ────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-7">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="size-4 text-primary" />
-              {t("overview.geo_card_title")}
-            </CardTitle>
-            <p className="text-xs text-text-muted">{t("overview.geo_card_hint")}</p>
-          </CardHeader>
-          <CardContent>
-            <TurkeyMap
-              data={geo}
-              loading={isLoading}
-              selectedCity={selectedCity}
-              onCityClick={toggleCity}
-            />
-            <CitySpotlight geo={geo} selectedCity={selectedCity} />
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-5">
-          <CardHeader>
-            <CardTitle>{t("overview.funnel_card_title")}</CardTitle>
-            <p className="text-xs text-text-muted">{t("overview.funnel_card_hint")}</p>
-          </CardHeader>
-          <CardContent>
+        <ChartCard
+          title={t("overview.funnel_card_title")}
+          hint={t("overview.funnel_card_hint")}
+          className="lg:col-span-5"
+        >
             <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
-          </CardContent>
-        </Card>
+        </ChartCard>
       </div>
 
       {/* ─── Top ürünler ──────────────────────────────────────────── */}
@@ -392,62 +377,6 @@ function FunnelChart({
 
 /* ──────────────────────────────────────────────────────────────── */
 
-interface GeoCity {
-  city: string;
-  revenue: number;
-  orders: number;
-}
-
-/** Harita altında: seçili şehir detayı veya top-3 şehir özeti. */
-function CitySpotlight({
-  geo,
-  selectedCity,
-}: {
-  geo: GeoCity[];
-  selectedCity: string | null;
-}) {
-  const { t } = useTranslation("dashboard");
-  const total = useMemo(() => geo.reduce((s, g) => s + g.revenue, 0), [geo]);
-  if (geo.length === 0) return null;
-
-  const selected = selectedCity ? geo.find((g) => g.city === selectedCity) : null;
-  const items = selected ? [selected] : [...geo].slice(0, 3);
-
-  return (
-    <div className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-3">
-      {items.map((g) => {
-        const share = total > 0 ? (g.revenue / total) * 100 : 0;
-        return (
-          <div
-            key={g.city}
-            className={cn(
-              "rounded-lg border p-2.5",
-              selected
-                ? "border-primary/40 bg-primary/5 sm:col-span-3"
-                : "border-border bg-surface-2/40",
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-foreground">{g.city}</span>
-              <span className="text-[11px] font-medium text-text-muted">
-                %{share.toFixed(1).replace(".", ",")}
-              </span>
-            </div>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
-              {formatCurrency(g.revenue)}
-            </p>
-            <p className="text-[11px] text-text-muted">
-              {formatCount(g.orders)} {t("overview.geo_orders")}
-            </p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────── */
-
 interface TopProduct {
   sku: string;
   product_name: string | null;
@@ -471,14 +400,11 @@ function TopProductsCard({
   );
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="size-4 text-primary" />
-          {t("overview.top_products_card_title")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
+    <ChartCard
+      title={t("overview.top_products_card_title")}
+      icon={Package}
+      contentClassName="p-0"
+    >
         <div className="overflow-x-auto">
           <Table className="table-fixed">
             <colgroup>
@@ -596,7 +522,6 @@ function TopProductsCard({
             </TableBody>
           </Table>
         </div>
-      </CardContent>
-    </Card>
+    </ChartCard>
   );
 }
