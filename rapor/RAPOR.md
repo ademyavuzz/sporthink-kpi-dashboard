@@ -319,6 +319,11 @@ işi tamamlar.
 Veritabanı **27 alan tablosu** (+ Alembic'in `alembic_version` tablosu) içerir. Aşağıdaki
 bilgiler canlı MySQL `information_schema`'sından okunmuştur.
 
+> 📑 **Ayrıntılı veritabanı dokümanı:** Bu bölüm bir özettir. Her tablonun tüm
+> kolonları, tipleri, indeksleri, kısıtlamaları, generated kolonları, partitioning ve
+> FK politikaları **ayrı bir belgede** tam ayrıntısıyla dokümante edilmiştir:
+> **[`VERITABANI.md`](VERITABANI.md)**.
+
 ### 5.1 Tablo Grupları
 
 | Grup | Tablolar |
