@@ -94,7 +94,14 @@
     "col_orders": "Sipariş",
     "col_revenue": "Ciro",
     "col_last_order": "Son Sipariş",
-    "empty_top": "Henüz müşteri verisi yok."
+    "empty_top": "Henüz müşteri verisi yok.",
+    "new_customer_trend_hint": "Gunluk yeni musteri kazanimi",
+    "by_gender_hint": "Musteri tabaninin cinsiyet dagilimi",
+    "by_age_group_hint": "Yas grubu dagilimi",
+    "by_city_hint": "En cok musteri olan sehirler",
+    "order_frequency_hint": "Musteri basina siparis sayisi dagilimi",
+    "newsletter_hint": "Abone ve abone olmayan musteri karsilastirmasi",
+    "top_customers_hint": "En yuksek ciro getiren musteriler"
   },
   "traffic": {
     "title": "Trafik (GA4)",

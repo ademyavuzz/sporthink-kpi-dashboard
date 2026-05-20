@@ -94,7 +94,14 @@
     "col_orders": "Orders",
     "col_revenue": "Revenue",
     "col_last_order": "Last Order",
-    "empty_top": "No customer data yet."
+    "empty_top": "No customer data yet.",
+    "new_customer_trend_hint": "Daily new customer acquisition",
+    "by_gender_hint": "Gender split of the customer base",
+    "by_age_group_hint": "Age group distribution",
+    "by_city_hint": "Cities with the most customers",
+    "order_frequency_hint": "Orders-per-customer distribution",
+    "newsletter_hint": "Subscribed vs non-subscribed comparison",
+    "top_customers_hint": "Customers with the highest revenue"
   },
   "traffic": {
     "title": "Traffic (GA4)",
