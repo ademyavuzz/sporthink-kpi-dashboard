@@ -162,36 +162,52 @@ async def create_user(
     """
     email = email.strip().lower()
 
-    # Duplicate kontrolü
-    existing = await db.execute(select(User).where(User.email == email))
-    if existing.scalar_one_or_none() is not None:
-        raise ConflictError("EMAIL_ALREADY_EXISTS", params={"email": email})
-
     role = await db.get(Role, role_id)
     if role is None:
         raise ValidationError("Invalid role", field="role_id", params={"role_id": role_id})
 
-    user = User(
-        email=email,
-        password_hash=hash_password(_generate_placeholder_password()),
-        first_name=first_name,
-        last_name=last_name,
-        role_id=role_id,
-        is_active=True,
-    )
-    db.add(user)
+    # Duplicate kontrolü. `email` kolonu DB seviyesinde UNIQUE; soft-delete edilmiş
+    # satır da bu kısıtı tutar. Bu yüzden aynı e-posta ile aktif bir kullanıcı varsa
+    # 409 döneriz, ancak soft-deleted bir kayda aitse o satırı geri canlandırırız
+    # (yeni INSERT UNIQUE constraint'e takılır).
+    existing = (
+        await db.execute(select(User).where(User.email == email))
+    ).scalar_one_or_none()
+    if existing is not None and existing.deleted_at is None:
+        raise ConflictError("EMAIL_ALREADY_EXISTS", params={"email": email})
+
+    is_restore = existing is not None
+    if is_restore:
+        user = existing
+        user.deleted_at = None
+        user.first_name = first_name
+        user.last_name = last_name
+        user.role_id = role_id
+        user.is_active = True
+        # Eski şifre/oturum geçersiz: davet linkiyle yeni şifre belirlenecek.
+        user.password_hash = hash_password(_generate_placeholder_password())
+    else:
+        user = User(
+            email=email,
+            password_hash=hash_password(_generate_placeholder_password()),
+            first_name=first_name,
+            last_name=last_name,
+            role_id=role_id,
+            is_active=True,
+        )
+        db.add(user)
     await db.flush()
 
     await audit_log_repository.add(
         db,
-        action="user.created",
+        action="user.restored" if is_restore else "user.created",
         user_id=actor.id,
         user_email=actor.email,
         resource_type="user",
         resource_id=str(user.id),
         ip_address=ip,
         user_agent=user_agent,
-        details={"email": email, "role_id": role_id},
+        details={"email": email, "role_id": role_id, "restored": is_restore},
     )
     # Server defaults (created_at, updated_at) MySQL'de flush sonrası otomatik
     # fetch edilmez — commit sonrası lazy-load greenlet hatası verir. Refresh
