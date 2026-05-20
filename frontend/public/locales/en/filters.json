@@ -3,21 +3,22 @@
   "open_button": "Filters",
   "section_basic": "Basic Filters",
   "section_advanced": "Advanced Filters",
-
   "channel": "Channel",
   "device": "Device",
   "city": "City",
   "campaign": "Campaign",
-
   "revenue_range": "Revenue Range",
   "orders_range": "Orders Range",
   "roas_range": "ROAS Range",
   "conversion_range": "Conversion Range",
-
   "min": "min",
   "max": "max",
   "apply": "Apply",
   "clear_all": "Clear all",
   "remove_chip": "Remove",
-  "none_active": "No active filters"
+  "none_active": "No active filters",
+  "all_option": "All",
+  "n_selected": "{{count}} selected",
+  "no_option": "No options",
+  "clear_selection": "Clear selection"
 }

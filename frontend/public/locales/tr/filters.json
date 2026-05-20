@@ -3,21 +3,22 @@
   "open_button": "Filtreler",
   "section_basic": "Temel Filtreler",
   "section_advanced": "Gelişmiş Filtreler",
-
   "channel": "Kanal",
   "device": "Cihaz",
   "city": "Şehir",
   "campaign": "Kampanya",
-
   "revenue_range": "Ciro Aralığı",
   "orders_range": "Sipariş Aralığı",
   "roas_range": "ROAS Aralığı",
   "conversion_range": "Dönüşüm Aralığı",
-
   "min": "min",
   "max": "max",
   "apply": "Uygula",
   "clear_all": "Tümünü temizle",
   "remove_chip": "Kaldır",
-  "none_active": "Aktif filtre yok"
+  "none_active": "Aktif filtre yok",
+  "all_option": "Tumu",
+  "n_selected": "{{count}} secili",
+  "no_option": "Secenek yok",
+  "clear_selection": "Secimi temizle"
 }
