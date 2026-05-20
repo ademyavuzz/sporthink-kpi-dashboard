@@ -69,11 +69,11 @@
     "col_aov": "Ort. Sepet",
     "col_customers": "Müşteri",
     "empty": "Bu tarih aralığında kanal verisi yok.",
-    "trend_hint": "Top 5 kanalin gunluk ciro hareketi",
-    "revenue_distribution_hint": "Kanallarin toplam ciroya katkisi",
-    "roas_hint": "Kanal bazli reklam getirisi",
-    "conversion_hint": "Kanal bazli donusum orani",
-    "table_hint": "Tum kanallarin detayli performans dokumu"
+    "trend_hint": "Top 5 kanalın günlük ciro hareketi",
+    "revenue_distribution_hint": "Kanalların toplam ciroya katkısı",
+    "roas_hint": "Kanal bazlı reklam getirisi",
+    "conversion_hint": "Kanal bazlı dönüşüm oranı",
+    "table_hint": "Tüm kanalların detaylı performans dökümü"
   },
   "customers": {
     "title": "Müşteri Analizi",
@@ -100,13 +100,13 @@
     "col_revenue": "Ciro",
     "col_last_order": "Son Sipariş",
     "empty_top": "Henüz müşteri verisi yok.",
-    "new_customer_trend_hint": "Gunluk yeni musteri kazanimi",
-    "by_gender_hint": "Musteri tabaninin cinsiyet dagilimi",
-    "by_age_group_hint": "Yas grubu dagilimi",
-    "by_city_hint": "En cok musteri olan sehirler",
-    "order_frequency_hint": "Musteri basina siparis sayisi dagilimi",
-    "newsletter_hint": "Abone ve abone olmayan musteri karsilastirmasi",
-    "top_customers_hint": "En yuksek ciro getiren musteriler"
+    "new_customer_trend_hint": "Günlük yeni müşteri kazanımı",
+    "by_gender_hint": "Müşteri tabanının cinsiyet dağılımı",
+    "by_age_group_hint": "Yaş grubu dağılımı",
+    "by_city_hint": "En çok müşteri olan şehirler",
+    "order_frequency_hint": "Müşteri başına sipariş sayısı dağılımı",
+    "newsletter_hint": "Abone ve abone olmayan müşteri karşılaştırması",
+    "top_customers_hint": "En yüksek ciro getiren müşteriler"
   },
   "traffic": {
     "title": "Trafik (GA4)",
@@ -116,10 +116,10 @@
     "by_city_card_title": "Şehir Bazlı Trafik (Top 15)",
     "series_sessions": "Oturum",
     "value_sessions_suffix": "oturum",
-    "trend_hint": "Secili donemde gunluk oturum hareketi",
-    "by_channel_hint": "Hangi kanallar trafigi getiriyor",
-    "by_device_hint": "Cihaz kirilimi",
-    "by_city_hint": "En cok oturum gelen sehirler"
+    "trend_hint": "Seçili dönemde günlük oturum hareketi",
+    "by_channel_hint": "Hangi kanallar trafiği getiriyor",
+    "by_device_hint": "Cihaz kırılımı",
+    "by_city_hint": "En çok oturum gelen şehirler"
   },
   "meta_ads": {
     "title": "Meta Ads",
@@ -136,9 +136,9 @@
     "col_conversions": "Dönüşüm",
     "col_revenue": "Gelir",
     "col_roas": "ROAS",
-    "trend_hint": "Gunluk reklam harcamasi ve getirisi",
-    "campaigns_hint": "Kampanya bazli performans metrikleri",
-    "campaigns_empty": "Bu donemde kampanya verisi yok"
+    "trend_hint": "Günlük reklam harcaması ve getirisi",
+    "campaigns_hint": "Kampanya bazlı performans metrikleri",
+    "campaigns_empty": "Bu dönemde kampanya verisi yok"
   },
   "google_ads": {
     "title": "Google Ads",
@@ -155,9 +155,9 @@
     "col_conversions": "Dönüşüm",
     "col_revenue": "Gelir",
     "col_roas": "ROAS",
-    "trend_hint": "Gunluk reklam harcamasi ve getirisi",
-    "campaigns_hint": "Kampanya bazli performans metrikleri",
-    "campaigns_empty": "Bu donemde kampanya verisi yok"
+    "trend_hint": "Günlük reklam harcaması ve getirisi",
+    "campaigns_hint": "Kampanya bazlı performans metrikleri",
+    "campaigns_empty": "Bu dönemde kampanya verisi yok"
   },
   "ecom": {
     "title": "E-Ticaret",
@@ -233,16 +233,16 @@
     "col_amount": "Tutar",
     "col_status": "Durum",
     "col_payment": "Ödeme",
-    "trend_hint": "Gunluk ciro ve siparis hareketi",
-    "by_category_hint": "Kategori bazli ciro dagilimi",
-    "by_device_hint": "Cihaz bazli ciro",
-    "by_city_hint": "En cok ciro getiren sehirler",
-    "by_payment_hint": "Odeme yontemi dagilimi",
-    "new_vs_returning_hint": "Yeni ve tekrarlayan musteri karsilastirmasi",
-    "top_products_hint": "Donemin en cok satan urunleri",
-    "orders_hint": "Satira tiklayarak siparis detayini acin",
-    "top_products_empty": "Bu donemde satis kaydi yok",
-    "orders_empty": "Bu donemde siparis bulunamadi"
+    "trend_hint": "Günlük ciro ve sipariş hareketi",
+    "by_category_hint": "Kategori bazlı ciro dağılımı",
+    "by_device_hint": "Cihaz bazlı ciro",
+    "by_city_hint": "En çok ciro getiren şehirler",
+    "by_payment_hint": "Ödeme yöntemi dağılımı",
+    "new_vs_returning_hint": "Yeni ve tekrarlayan müşteri karşılaştırması",
+    "top_products_hint": "Dönemin en çok satan ürünleri",
+    "orders_hint": "Satıra tıklayarak sipariş detayını açın",
+    "top_products_empty": "Bu dönemde satış kaydı yok",
+    "orders_empty": "Bu dönemde sipariş bulunamadı"
   },
   "campaigns": {
     "title": "Kampanya Analizi",
@@ -259,8 +259,8 @@
     "col_roas": "ROAS",
     "col_action_detail": "Detay",
     "campaign_detail_aria": "Kampanya detayı",
-    "table_hint": "Satira tiklayarak kampanya detayini acin",
-    "empty": "Bu donemde kampanya verisi yok"
+    "table_hint": "Satıra tıklayarak kampanya detayını açın",
+    "empty": "Bu dönemde kampanya verisi yok"
   },
   "funnel": {
     "title": "Funnel Analizi",
@@ -276,8 +276,8 @@
       "checkout": "Ödeme Başlatma",
       "purchase": "Satın Alma"
     },
-    "card_hint": "Adimlar arasi gecis ve dususler",
-    "step_details_hint": "Her adimin sayisi ve onceki adima gore dususu"
+    "card_hint": "Adımlar arası geçiş ve düşüşler",
+    "step_details_hint": "Her adımın sayısı ve önceki adıma göre düşüşü"
   },
   "cohort": {
     "title": "Cohort / Retention",
@@ -289,10 +289,10 @@
     "customers_suffix": "müşteri",
     "m1_retention_label": "M1 retention:",
     "empty": "Bu tarih aralığında cohort verisi yok.",
-    "heatmap_hint": "Ilk siparis ayina gore ay-N tekrar gelme orani",
-    "sizes_hint": "Her cohortun buyuklugu ve M1 retention'i",
-    "legend_low": "Dusuk",
-    "legend_high": "Yuksek"
+    "heatmap_hint": "İlk sipariş ayına göre ay-N tekrar gelme oranı",
+    "sizes_hint": "Her cohortun büyüklüğü ve M1 retention oranı",
+    "legend_low": "Düşük",
+    "legend_high": "Yüksek"
   },
   "products": {
     "title": "Ürün Performansı",

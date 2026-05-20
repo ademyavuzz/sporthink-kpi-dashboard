@@ -35,7 +35,7 @@ import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 const GENDER_LABEL: Record<string, string> = {
   male: "Erkek",
-  female: "Kadin",
+  female: "Kadın",
   unknown: "Bilinmiyor",
 };
 
