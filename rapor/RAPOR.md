@@ -660,6 +660,8 @@ Genel Özet ve Kanal Analizi sayfalarında, kanal donut grafiğine veya Türkiye
 bir şehre tıklamak `useFiltersStore` (Zustand) durumunu günceller; TanStack Query'nin
 sorgu anahtarı bu duruma bağlı olduğu için tüm sayfa otomatik yeniden yüklenir. Backend
 `/dashboard/overview` endpoint'i `channels`/`devices` filtre parametrelerini kabul eder.
+Filtreler ayrıca çoklu seçim dropdown'lu bir panelden de yönetilebilir (bkz. Bölüm 11,
+Filtre Paneli ekran görüntüsü).
 
 ### 8.4 PDF Rapor Üretimi
 
@@ -713,7 +715,8 @@ sequenceDiagram
 
 İzinler `app/seed.py` ile DB'ye senkronize edilir; tek doğru kaynak enum'dur. Frontend de
 aynı izin kodlarını `lib/permissions.ts`'te yansıtır ancak frontend kontrolü yalnızca
-UX içindir — asıl güvenlik backend'dedir.
+UX içindir — asıl güvenlik backend'dedir. RBAC'in yönetim arayüzü (kullanıcı listesi, rol
+atama) ve tüm sistem olaylarının izlendiği denetim kaydı ekranı Bölüm 11'de gösterilmiştir.
 
 ### 9.3 Güvenlik Önlemleri
 
@@ -840,6 +843,38 @@ Yapışkan filtre çubuğu (GlobalFilterBar) ile filtrelenebilir kanal performan
 ### Raporlar
 PDF rapor üretim formu ve geçmiş raporlar tablosu.
 ![Raporlar](gorseller/14-reports.png)
+
+### Yönetim ve Sistem Ekranları
+
+**Kullanıcı ve Rol Yönetimi** — kullanıcı listesi, rol atama, arama ve durum filtreleri
+(Kullanıcılar / Roller sekmeli). RBAC'in yönetim arayüzü.
+![Kullanıcı Yönetimi](gorseller/17-users.png)
+
+**Denetim Kayıtları (Audit Log)** — sistemdeki tüm mutasyon ve kimlik doğrulama
+olaylarının kaydı.
+![Denetim Kayıtları](gorseller/18-audit-logs.png)
+
+**Bildirim Merkezi** — kullanıcı bazlı, sunucu kaynaklı bildirimler (import tamamlandı,
+rapor üretildi vb.).
+![Bildirimler](gorseller/19-notifications.png)
+
+**Profil Ayarları** — kullanıcının kendi profil bilgileri, avatar ve güvenlik ayarları.
+![Ayarlar](gorseller/20-settings.png)
+
+**Import Geçmişi** — geçmiş CSV import işlemlerinin durumu, satır sayıları ve süreleri.
+![Import Geçmişi](gorseller/21-import-history.png)
+
+### Filtre Paneli
+
+Çoklu seçim dropdown yapısındaki temel filtreler (kanal, cihaz, şehir) ve aralık tabanlı
+gelişmiş filtreler. "Uygula" ile global filtre durumuna yazılır.
+![Filtre Paneli](gorseller/22-filter-panel.png)
+
+### Aydınlık Tema
+
+Sistem aydınlık ve karanlık tema arasında geçişi destekler; tercih `localStorage`'da
+saklanır. Aşağıda Genel Özet sayfasının aydınlık tema görünümü:
+![Aydınlık Tema](gorseller/23-light-mode.png)
 
 ---
 
