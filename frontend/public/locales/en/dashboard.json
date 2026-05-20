@@ -68,7 +68,12 @@
     "col_roas": "ROAS",
     "col_aov": "AOV",
     "col_customers": "Customers",
-    "empty": "No channel data for this date range."
+    "empty": "No channel data for this date range.",
+    "trend_hint": "Daily revenue of the top 5 channels",
+    "revenue_distribution_hint": "Channel contribution to total revenue",
+    "roas_hint": "Return on ad spend by channel",
+    "conversion_hint": "Conversion rate by channel",
+    "table_hint": "Detailed performance breakdown of all channels"
   },
   "customers": {
     "title": "Customer Analytics",

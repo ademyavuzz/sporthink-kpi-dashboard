@@ -77,7 +77,7 @@ export default function EcommercePage() {
 
   const data = q.data;
   const isLoading = q.isPending;
-  const topProducts = data?.top_products ?? [];
+  const topProducts = useMemo(() => data?.top_products ?? [], [data]);
   const ordersList = data?.orders_list ?? [];
   const maxProductRevenue = useMemo(
     () => Math.max(...topProducts.map((p) => toNumber(p.revenue) ?? 0), 1),

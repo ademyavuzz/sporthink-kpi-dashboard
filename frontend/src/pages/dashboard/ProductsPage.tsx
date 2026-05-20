@@ -44,7 +44,7 @@ export default function ProductsPage() {
 
   const data = q.data;
   const isLoading = q.isPending;
-  const topProducts = data?.top_products ?? [];
+  const topProducts = useMemo(() => data?.top_products ?? [], [data]);
   const maxRevenue = useMemo(
     () => Math.max(...topProducts.map((p) => toNumber(p.revenue) ?? 0), 1),
     [topProducts],
