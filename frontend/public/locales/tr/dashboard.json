@@ -220,7 +220,17 @@
     "col_date": "Tarih",
     "col_amount": "Tutar",
     "col_status": "Durum",
-    "col_payment": "Ödeme"
+    "col_payment": "Ödeme",
+    "trend_hint": "Gunluk ciro ve siparis hareketi",
+    "by_category_hint": "Kategori bazli ciro dagilimi",
+    "by_device_hint": "Cihaz bazli ciro",
+    "by_city_hint": "En cok ciro getiren sehirler",
+    "by_payment_hint": "Odeme yontemi dagilimi",
+    "new_vs_returning_hint": "Yeni ve tekrarlayan musteri karsilastirmasi",
+    "top_products_hint": "Donemin en cok satan urunleri",
+    "orders_hint": "Satira tiklayarak siparis detayini acin",
+    "top_products_empty": "Bu donemde satis kaydi yok",
+    "orders_empty": "Bu donemde siparis bulunamadi"
   },
   "campaigns": {
     "title": "Kampanya Analizi",

@@ -220,7 +220,17 @@
     "col_date": "Date",
     "col_amount": "Amount",
     "col_status": "Status",
-    "col_payment": "Payment"
+    "col_payment": "Payment",
+    "trend_hint": "Daily revenue and order movement",
+    "by_category_hint": "Revenue by product category",
+    "by_device_hint": "Revenue by device",
+    "by_city_hint": "Cities with the most revenue",
+    "by_payment_hint": "Payment method distribution",
+    "new_vs_returning_hint": "New vs returning customer comparison",
+    "top_products_hint": "Best-selling products of the period",
+    "orders_hint": "Click a row to open order details",
+    "top_products_empty": "No sales recorded in this period",
+    "orders_empty": "No orders found in this period"
   },
   "campaigns": {
     "title": "Campaign Analysis",
