@@ -103,7 +103,11 @@
     "by_device_card_title": "Cihaz Dağılımı",
     "by_city_card_title": "Şehir Bazlı Trafik (Top 15)",
     "series_sessions": "Oturum",
-    "value_sessions_suffix": "oturum"
+    "value_sessions_suffix": "oturum",
+    "trend_hint": "Secili donemde gunluk oturum hareketi",
+    "by_channel_hint": "Hangi kanallar trafigi getiriyor",
+    "by_device_hint": "Cihaz kirilimi",
+    "by_city_hint": "En cok oturum gelen sehirler"
   },
   "meta_ads": {
     "title": "Meta Ads",
