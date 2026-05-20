@@ -263,7 +263,9 @@
       "add_to_cart": "Add to Cart",
       "checkout": "Checkout",
       "purchase": "Purchase"
-    }
+    },
+    "card_hint": "Step-to-step movement and drop-offs",
+    "step_details_hint": "Count per step and drop from the previous step"
   },
   "cohort": {
     "title": "Cohort / Retention",
