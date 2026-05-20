@@ -293,7 +293,11 @@
     "col_product": "Product",
     "col_brand": "Brand",
     "col_units": "Units",
-    "col_revenue": "Revenue"
+    "col_revenue": "Revenue",
+    "by_category_hint": "Revenue by category",
+    "by_brand_hint": "Revenue by brand",
+    "top_products_hint": "Best-selling products of the period",
+    "empty": "No product sales in this period"
   },
   "kpi": {
     "sessions": "Total Sessions",
