@@ -123,7 +123,10 @@
     "col_spend": "Harcama",
     "col_conversions": "Dönüşüm",
     "col_revenue": "Gelir",
-    "col_roas": "ROAS"
+    "col_roas": "ROAS",
+    "trend_hint": "Gunluk reklam harcamasi ve getirisi",
+    "campaigns_hint": "Kampanya bazli performans metrikleri",
+    "campaigns_empty": "Bu donemde kampanya verisi yok"
   },
   "google_ads": {
     "title": "Google Ads",
@@ -139,7 +142,10 @@
     "col_spend": "Harcama",
     "col_conversions": "Dönüşüm",
     "col_revenue": "Gelir",
-    "col_roas": "ROAS"
+    "col_roas": "ROAS",
+    "trend_hint": "Gunluk reklam harcamasi ve getirisi",
+    "campaigns_hint": "Kampanya bazli performans metrikleri",
+    "campaigns_empty": "Bu donemde kampanya verisi yok"
   },
   "ecom": {
     "title": "E-Ticaret",

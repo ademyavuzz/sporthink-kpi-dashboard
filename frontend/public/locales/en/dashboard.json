@@ -123,7 +123,10 @@
     "col_spend": "Spend",
     "col_conversions": "Conversions",
     "col_revenue": "Revenue",
-    "col_roas": "ROAS"
+    "col_roas": "ROAS",
+    "trend_hint": "Daily ad spend and return",
+    "campaigns_hint": "Per-campaign performance metrics",
+    "campaigns_empty": "No campaign data in this period"
   },
   "google_ads": {
     "title": "Google Ads",
@@ -139,7 +142,10 @@
     "col_spend": "Spend",
     "col_conversions": "Conversions",
     "col_revenue": "Revenue",
-    "col_roas": "ROAS"
+    "col_roas": "ROAS",
+    "trend_hint": "Daily ad spend and return",
+    "campaigns_hint": "Per-campaign performance metrics",
+    "campaigns_empty": "No campaign data in this period"
   },
   "ecom": {
     "title": "E-Commerce",
