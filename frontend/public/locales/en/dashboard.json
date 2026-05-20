@@ -103,7 +103,11 @@
     "by_device_card_title": "Device Distribution",
     "by_city_card_title": "Traffic by City (Top 15)",
     "series_sessions": "Sessions",
-    "value_sessions_suffix": "sessions"
+    "value_sessions_suffix": "sessions",
+    "trend_hint": "Daily session movement in the selected period",
+    "by_channel_hint": "Which channels drive traffic",
+    "by_device_hint": "Device breakdown",
+    "by_city_hint": "Cities with the most sessions"
   },
   "meta_ads": {
     "title": "Meta Ads",
