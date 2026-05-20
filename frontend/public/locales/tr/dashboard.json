@@ -246,7 +246,9 @@
     "col_revenue": "Gelir",
     "col_roas": "ROAS",
     "col_action_detail": "Detay",
-    "campaign_detail_aria": "Kampanya detayı"
+    "campaign_detail_aria": "Kampanya detayı",
+    "table_hint": "Satira tiklayarak kampanya detayini acin",
+    "empty": "Bu donemde kampanya verisi yok"
   },
   "funnel": {
     "title": "Funnel Analizi",

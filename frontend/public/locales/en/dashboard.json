@@ -246,7 +246,9 @@
     "col_revenue": "Revenue",
     "col_roas": "ROAS",
     "col_action_detail": "Detail",
-    "campaign_detail_aria": "Campaign detail"
+    "campaign_detail_aria": "Campaign detail",
+    "table_hint": "Click a row to open campaign details",
+    "empty": "No campaign data in this period"
   },
   "funnel": {
     "title": "Funnel Analysis",
