@@ -293,7 +293,11 @@
     "col_product": "Ürün",
     "col_brand": "Marka",
     "col_units": "Adet",
-    "col_revenue": "Ciro"
+    "col_revenue": "Ciro",
+    "by_category_hint": "Kategori bazli ciro",
+    "by_brand_hint": "Marka bazli ciro",
+    "top_products_hint": "Donemin en cok satan urunleri",
+    "empty": "Bu donemde urun satisi yok"
   },
   "kpi": {
     "sessions": "Toplam Oturum",
