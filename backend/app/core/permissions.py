@@ -2,7 +2,7 @@ from enum import StrEnum
 
 
 class Permission(StrEnum):
-    """43 granüler izin — `docs/overview/05-rbac-security.md` §5.5.4 referans.
+    """41 granüler izin — `docs/overview/05-rbac-security.md` §5.5.4 referans.
 
     DB'deki `permissions` tablosu ile birebir uyumlu. `app/seed.py` her boot'ta
     enum ile DB tablosunu senkronize eder (eksik izin eklenir, fazla izin uyarılır).
@@ -26,7 +26,7 @@ class Permission(StrEnum):
     CUSTOMERS_VIEW = "customers.view"
     CHANNEL_ANALYSIS_VIEW = "channel_analysis.view"
 
-    # --- Kategori 2: Veri İşlemleri (20 izin) ---
+    # --- Kategori 2: Veri İşlemleri (16 izin) ---
     IMPORTS_VIEW = "imports.view"
     IMPORTS_CREATE = "imports.create"
     IMPORTS_DELETE = "imports.delete"
@@ -34,10 +34,6 @@ class Permission(StrEnum):
     MAPPINGS_CREATE = "mappings.create"
     MAPPINGS_UPDATE = "mappings.update"
     MAPPINGS_DELETE = "mappings.delete"
-    SEGMENTS_VIEW = "segments.view"
-    SEGMENTS_CREATE = "segments.create"
-    SEGMENTS_UPDATE = "segments.update"
-    SEGMENTS_DELETE = "segments.delete"
     VIEWS_VIEW = "views.view"
     VIEWS_CREATE = "views.create"
     VIEWS_UPDATE = "views.update"
@@ -97,10 +93,6 @@ PERMISSION_CATEGORIES: dict[Permission, str] = {
             Permission.MAPPINGS_CREATE,
             Permission.MAPPINGS_UPDATE,
             Permission.MAPPINGS_DELETE,
-            Permission.SEGMENTS_VIEW,
-            Permission.SEGMENTS_CREATE,
-            Permission.SEGMENTS_UPDATE,
-            Permission.SEGMENTS_DELETE,
             Permission.VIEWS_VIEW,
             Permission.VIEWS_CREATE,
             Permission.VIEWS_UPDATE,
@@ -161,10 +153,6 @@ PERMISSION_DESCRIPTIONS: dict[Permission, str] = {
     Permission.MAPPINGS_CREATE: "Yeni kanal eşlemesi oluşturma",
     Permission.MAPPINGS_UPDATE: "Kanal eşlemesi düzenleme",
     Permission.MAPPINGS_DELETE: "Kanal eşlemesi silme",
-    Permission.SEGMENTS_VIEW: "Segmentleri görme",
-    Permission.SEGMENTS_CREATE: "Yeni segment oluşturma",
-    Permission.SEGMENTS_UPDATE: "Segment düzenleme",
-    Permission.SEGMENTS_DELETE: "Segment silme",
     Permission.VIEWS_VIEW: "Kayıtlı görünümleri görme",
     Permission.VIEWS_CREATE: "Yeni görünüm oluşturma",
     Permission.VIEWS_UPDATE: "Görünüm düzenleme",

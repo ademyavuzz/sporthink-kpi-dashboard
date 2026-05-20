@@ -77,13 +77,12 @@ test.describe("Frontend kapsamlı kapsam", () => {
     }
   });
 
-  test("10 operasyonel sayfa tek tek render olur", async ({ page }) => {
+  test("operasyonel sayfalar tek tek render olur", async ({ page }) => {
     await login(page);
 
     const adminPages = [
       "/users",
       "/audit-logs",
-      "/segments",
       "/notifications",
       "/settings/profile",
       "/settings/security",

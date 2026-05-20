@@ -1,5 +1,5 @@
 """Admin endpoint'leri: users, audit logs, channel mapping, aggregations rebuild,
-segments, saved views, RFM, filters, export.
+saved views, filters, export.
 
 Bu router büyük; pratik için tek dosyada — Sprint 10'da modüler ayrılabilir.
 """
@@ -14,7 +14,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import cache_keys
-from app.core.exceptions import ResourceNotFoundError
 from app.core.permissions import Permission
 from app.dependencies import get_db, require_permission
 from app.models import Role, User
@@ -27,8 +26,6 @@ from app.schemas.admin import (
     ChannelMappingItem,
     ChannelMappingUpdate,
     PermissionItem,
-    RFMResponse,
-    RFMRow,
     RoleCreate,
     RoleDetail,
     RoleListItem,
@@ -37,10 +34,6 @@ from app.schemas.admin import (
     SavedViewCreate,
     SavedViewItem,
     SavedViewUpdate,
-    SegmentCreate,
-    SegmentItem,
-    SegmentPreviewResponse,
-    SegmentUpdate,
     UserCreate,
     UserCreateResponse,
     UserListItem,
@@ -53,7 +46,6 @@ from app.services import (
     filter_service,
     role_service,
     saved_view_service,
-    segment_service,
     user_management_service,
 )
 from app.services.cache_service import cache
@@ -627,153 +619,6 @@ async def admin_reset_password(
     return SuccessEnvelope(
         data=AdminPasswordResetResponse(user_id=user.id, email=user.email, reset_email_sent=True)
     )
-
-
-# ---------------------------------------------------------------------- #
-# /segments — CRUD + RFM
-# ---------------------------------------------------------------------- #
-
-
-@router.get(
-    "/segments",
-    response_model=PaginatedEnvelope[SegmentItem],
-)
-async def list_segments(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    current: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
-    db: AsyncSession = Depends(get_db),
-) -> PaginatedEnvelope[SegmentItem]:
-    rows, total = await segment_service.list_for_user(
-        db, user_id=current.id, page=page, page_size=page_size
-    )
-    return PaginatedEnvelope(
-        data=[SegmentItem.model_validate(r) for r in rows],
-        pagination=PaginationMeta(page=page, page_size=page_size, total=total),
-    )
-
-
-@router.post(
-    "/segments",
-    response_model=SuccessEnvelope[SegmentItem],
-)
-async def create_segment(
-    payload: SegmentCreate,
-    current: User = Depends(require_permission(Permission.SEGMENTS_CREATE)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[SegmentItem]:
-    seg = await segment_service.create_segment(
-        db,
-        user_id=current.id,
-        name=payload.name,
-        description=payload.description,
-        rules=payload.rules,
-        is_shared=payload.is_shared,
-    )
-    return SuccessEnvelope(data=SegmentItem.model_validate(seg))
-
-
-@router.post(
-    "/segments/preview",
-    response_model=SuccessEnvelope[SegmentPreviewResponse],
-    summary="Segment kuralını uygulamadan önce sayım + örnek müşteriler",
-)
-async def preview_segment(
-    payload: SegmentCreate,
-    _user: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[SegmentPreviewResponse]:
-    count = await segment_service.evaluate_count(db, payload.rules)
-    sample_customers = await segment_service.list_customers(db, payload.rules, limit=10)
-    sample = [
-        {
-            "customer_id": c.customer_id,
-            "customer_name": c.customer_name,
-            "city": c.city,
-            "total_orders": c.total_orders,
-            "total_revenue": str(c.total_revenue),
-        }
-        for c in sample_customers
-    ]
-    return SuccessEnvelope(data=SegmentPreviewResponse(count=count, sample=sample))
-
-
-@router.patch(
-    "/segments/{segment_id}",
-    response_model=SuccessEnvelope[SegmentItem],
-)
-async def update_segment(
-    payload: SegmentUpdate,
-    segment_id: int = Path(..., ge=1),
-    current: User = Depends(require_permission(Permission.SEGMENTS_UPDATE)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[SegmentItem]:
-    seg = await segment_service.update_segment(
-        db,
-        segment_id,
-        actor=current,
-        name=payload.name,
-        description=payload.description,
-        rules=payload.rules,
-        is_shared=payload.is_shared,
-    )
-    return SuccessEnvelope(data=SegmentItem.model_validate(seg))
-
-
-@router.delete(
-    "/segments/{segment_id}",
-    response_model=SuccessEnvelope[dict],
-)
-async def delete_segment(
-    segment_id: int = Path(..., ge=1),
-    current: User = Depends(require_permission(Permission.SEGMENTS_DELETE)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[dict]:
-    await segment_service.soft_delete_segment(db, segment_id, actor=current)
-    return SuccessEnvelope(data={"deleted": True, "id": segment_id})
-
-
-@router.get(
-    "/segments/rfm",
-    response_model=SuccessEnvelope[RFMResponse],
-    summary="RFM tablo + segment dağılımı",
-)
-async def get_rfm(
-    reference_date: date_type | None = Query(None),
-    _user: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[RFMResponse]:
-    ref = reference_date or date_type.today()
-    rows = await segment_service.rfm_table(db, reference_date=ref)
-    distribution = await segment_service.rfm_distribution(db, reference_date=ref)
-    return SuccessEnvelope(
-        data=RFMResponse(
-            reference_date=ref,
-            rows=[RFMRow(**r) for r in rows],
-            distribution=distribution,
-        )
-    )
-
-
-# `/segments/{segment_id}` (GET) burada — `/segments/rfm`'den SONRA tanımlandı
-# çünkü FastAPI route'ları sırayla eşler; aksi halde "rfm" int parse'a düşer
-# ve 422 alırız. PATCH/DELETE `{segment_id}` farklı method olduğu için yukarıda
-# tanımlı olsa da çakışma yapmaz.
-@router.get(
-    "/segments/{segment_id}",
-    response_model=SuccessEnvelope[SegmentItem],
-    summary="Tek segment detayı (sahibi olmasa bile shared ise görür)",
-)
-async def get_segment_endpoint(
-    segment_id: int = Path(..., ge=1),
-    current: User = Depends(require_permission(Permission.SEGMENTS_VIEW)),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessEnvelope[SegmentItem]:
-    seg = await segment_service.get_segment(db, segment_id)
-    # Görünürlük kuralı list_for_user ile aynı: kendi segmenti VEYA paylaşılmış.
-    if seg.user_id != current.id and not seg.is_shared:
-        raise ResourceNotFoundError(params={"segment_id": segment_id})
-    return SuccessEnvelope(data=SegmentItem.model_validate(seg))
 
 
 # ---------------------------------------------------------------------- #

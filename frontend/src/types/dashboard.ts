@@ -321,7 +321,6 @@ export interface EcommerceQuery {
   brands?: string[];
   statuses?: string[];
   payment_methods?: string[];
-  segment_id?: number | null;
   orders_limit?: number;
 }
 

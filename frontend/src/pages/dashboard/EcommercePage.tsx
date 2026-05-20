@@ -61,7 +61,6 @@ export default function EcommercePage() {
         payment_methods: filters.payment_methods.length
           ? filters.payment_methods
           : undefined,
-        segment_id: filters.segment_id,
         orders_limit: 50,
       }),
     staleTime: 5 * 60 * 1000,

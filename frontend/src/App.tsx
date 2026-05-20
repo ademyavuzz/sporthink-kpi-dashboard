@@ -25,7 +25,6 @@ const ImportHistoryPage = lazy(() => import("@/pages/import/ImportHistoryPage"))
 const ReportsPage = lazy(() => import("@/pages/reports/ReportsPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
-const SegmentsPage = lazy(() => import("@/pages/admin/SegmentsPage"));
 const NotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
 const SettingsLayout = lazy(() => import("@/pages/settings/SettingsLayout"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
@@ -191,14 +190,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/segments"
-          element={
-            <ProtectedRoute permission="segments.view">
-              <SegmentsPage />
-            </ProtectedRoute>
-          }
-        />
         {/*
           Bildirimler ve Ayarlar (profil/güvenlik) izinsizdir — kişisel
           sayfalar her oturum açan kullanıcıya açıktır. Sistem ayarları
@@ -241,7 +232,6 @@ export default function App() {
               "channel_analysis",
               "import",
               "reports",
-              "segments",
               "user_management",
               "audit_logs",
               "notifications",

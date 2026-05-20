@@ -11,8 +11,7 @@ karşılaştırma değeri (önceki periyot) "yeni müşteri" için hesaplanır;
 diğer KPI'lar zaman bazlı olmadığı için karşılaştırma yok (None döner).
 
 `docs/overview/09-kpi-formulas.md`'de müşteri-spesifik formüller olmadığı için
-bu dosya kendi formüllerini tanımlar (RFM analizi `segment_service`'te zaten
-ayrı yaşar; bu sayfa overview niteliğindedir).
+bu dosya kendi formüllerini tanımlar; bu sayfa overview niteliğindedir.
 """
 
 from __future__ import annotations

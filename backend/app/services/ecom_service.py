@@ -1,7 +1,7 @@
 """E-Ticaret sayfası için filtreli sorgular.
 
-`/dashboard/ecom` endpoint'i kategori, marka, sipariş durumu, ödeme yöntemi
-ve müşteri segmenti filtreleriyle çalışır. KPI'lar `kpi_*_aggregates`
+`/dashboard/ecom` endpoint'i kategori, marka, sipariş durumu ve ödeme yöntemi
+filtreleriyle çalışır. KPI'lar `kpi_*_aggregates`
 tablolarında bu kırılımları taşımadığı için filtreli sorgular doğrudan
 `orders` ve `order_items` tabloları üzerinden hesaplanır.
 
@@ -10,7 +10,6 @@ Filtre semantiği (`docs/09` §9.5, §9.6.4):
   (EXISTS). KPI'lar sipariş bazında (tüm net_revenue) hesaplanır.
 - `statuses`: belirtilmezse `completed/shipped/refunded` (gerçekleşen).
 - `payment_methods`: orders.payment_method üzerinde IN.
-- `segment_id`: segment kuralları → eşleşen müşteriler → orders.customer_pk_id IN.
 
 Tüm para hesaplamaları `Decimal` ile yapılır; UI tarafına `_quantize` ile
 2 ondalık yuvarlanmış olarak gönderilir.
@@ -28,7 +27,7 @@ from sqlalchemy import Select, and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ResourceNotFoundError
-from app.models import Customer, Order, OrderItem, Product, Segment
+from app.models import Customer, Order, OrderItem, Product
 from app.schemas.dashboard import (
     DimensionBreakdown,
     OrderDetailCustomer,
@@ -44,7 +43,6 @@ from app.schemas.kpi import (
     TopCustomerRow,
     TopProductRow,
 )
-from app.services import segment_service
 from app.services.kpi_service import _build_result, _quantize, _safe_div
 
 logger = logging.getLogger(__name__)
@@ -62,7 +60,6 @@ class EcomFilters:
     brands: tuple[str, ...] = field(default_factory=tuple)
     statuses: tuple[str, ...] = field(default_factory=tuple)
     payment_methods: tuple[str, ...] = field(default_factory=tuple)
-    customer_pk_ids: tuple[int, ...] | None = None  # segment'ten gelen liste
 
     def with_period(self, date_from: date, date_to: date) -> EcomFilters:
         """Karşılaştırma periyodu için aynı filtrelerle yeni instance döner."""
@@ -73,12 +70,11 @@ class EcomFilters:
             brands=self.brands,
             statuses=self.statuses,
             payment_methods=self.payment_methods,
-            customer_pk_ids=self.customer_pk_ids,
         )
 
     def is_unfiltered(self) -> bool:
         """Sadece tarih aralığı set edilmişse True. GA4 trafiği sipariş-level
-        filtrelere (kategori/marka/segment) join edilemez; bu yüzden filtre
+        filtrelere (kategori/marka) join edilemez; bu yüzden filtre
         varken `sessions` 0 döndürülür ("veri uygulanamadı"). Filtre yokken
         ise GA4 toplamları olduğu gibi doldurulur."""
         return (
@@ -86,21 +82,7 @@ class EcomFilters:
             and not self.brands
             and not self.statuses
             and not self.payment_methods
-            and self.customer_pk_ids is None
         )
-
-
-async def resolve_segment_customers(db: AsyncSession, segment_id: int) -> tuple[int, ...]:
-    """Segment kurallarını eval edip customer pk id listesini döner.
-
-    Boş segment (eşleşme yok) `()` döner — `customer_pk_ids IN ()` MySQL'de
-    her zaman `False` üretir, dolayısıyla tüm KPI'lar 0/None çıkar.
-    """
-    seg = await db.get(Segment, segment_id)
-    if seg is None or seg.deleted_at is not None:
-        raise ResourceNotFoundError(f"Segment {segment_id} not found")
-    customers = await segment_service.list_customers(db, seg.rules, limit=100_000)
-    return tuple(c.id for c in customers)
 
 
 def _orders_filter(filters: EcomFilters, *, default_realized: bool = True) -> Any:
@@ -109,7 +91,6 @@ def _orders_filter(filters: EcomFilters, *, default_realized: bool = True) -> An
     - Tarih aralığı (`order_date`)
     - Sipariş durumu (verilmediyse default gerçekleşen statüler)
     - Ödeme yöntemi
-    - Segment müşteri whitelist'i
     - Kategori/Marka → EXISTS subquery (order_items × products)
     """
     clauses: list[Any] = [
@@ -123,13 +104,6 @@ def _orders_filter(filters: EcomFilters, *, default_realized: bool = True) -> An
 
     if filters.payment_methods:
         clauses.append(Order.payment_method.in_(filters.payment_methods))
-
-    if filters.customer_pk_ids is not None:
-        if not filters.customer_pk_ids:
-            # Boş segment → kimse eşleşmesin
-            clauses.append(Order.id.is_(None))
-        else:
-            clauses.append(Order.customer_pk_id.in_(filters.customer_pk_ids))
 
     if filters.categories or filters.brands:
         sub = (
@@ -196,7 +170,7 @@ async def _repeat_purchase_rate(db: AsyncSession, filters: EcomFilters) -> Decim
     """Tekrar satın alma oranı (§9.5.6) — filtre kapsamındaki müşterilerle.
 
     Filtreli orders'dan distinct customer'lar; bunların `total_orders >= 2`
-    olanların oranı. Segment seçiliyse zaten o havuzda hesaplanır.
+    olanların oranı.
     """
     customer_subq = (
         select(Order.customer_pk_id).where(_orders_filter(filters)).distinct().subquery()
@@ -290,7 +264,7 @@ async def daily_series(db: AsyncSession, filters: EcomFilters) -> list[DailySeri
     """Filtrelenmiş günlük revenue + orders serisi.
 
     `sessions`: filtre yoksa GA4 günlük toplamlarından doldurulur. Filtre
-    varken (kategori/marka/segment vb.) GA4 sipariş-level filtrelere join
+    varken (kategori/marka vb.) GA4 sipariş-level filtrelere join
     edilemediği için 0 döner; bu durum frontend'de bilinçli kabuldür.
 
     `spend`: bu serinin scope'unda değil; her zaman 0 döner.
