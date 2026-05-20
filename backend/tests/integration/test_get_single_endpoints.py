@@ -1,9 +1,8 @@
 """Yeni `GET /{resource}/{id}` endpoint'leri için regresyon koruması.
 
-Audit raporundaki Bulgu #3: bu 4 endpoint eskiden yoktu (405 dönüyordu).
+Audit raporundaki Bulgu #3: bu endpoint'ler eskiden yoktu (405 dönüyordu).
 Eklenen endpoint'ler:
 - GET /admin/channel-mappings/{mapping_id}
-- GET /segments/{segment_id}
 - GET /saved-views/{view_id}
 - GET /users/{user_id}
 
@@ -17,7 +16,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete
 
 from app.db.session import AsyncSessionLocal
-from app.models import ChannelMapping, SavedView, Segment
+from app.models import ChannelMapping, SavedView
 
 pytestmark = [
     pytest.mark.integration,
@@ -65,43 +64,6 @@ async def test_get_channel_mapping_404(
     assert r.status_code == 404
     assert r.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
     assert r.json()["error"]["params"]["mapping_id"] == 9999999
-
-
-# ─── /segments/{id} ────────────────────────────────────────────────────────
-
-
-async def test_get_segment_happy(
-    client: AsyncClient, super_admin_credentials: dict[str, str]
-) -> None:
-    headers = await _auth_headers(client, super_admin_credentials)
-    create_r = await client.post(
-        "/api/v1/segments",
-        headers=headers,
-        json={
-            "name": "get-test-seg",
-            "rules": {"op": "AND", "rules": [{"field": "total_orders", "op": ">=", "value": 1}]},
-            "is_shared": False,
-        },
-    )
-    seg_id = create_r.json()["data"]["id"]
-    try:
-        r = await client.get(f"/api/v1/segments/{seg_id}", headers=headers)
-        assert r.status_code == 200
-        assert r.json()["data"]["id"] == seg_id
-        assert r.json()["data"]["name"] == "get-test-seg"
-    finally:
-        async with AsyncSessionLocal() as db:
-            await db.execute(delete(Segment).where(Segment.id == seg_id))
-            await db.commit()
-
-
-async def test_get_segment_404(
-    client: AsyncClient, super_admin_credentials: dict[str, str]
-) -> None:
-    headers = await _auth_headers(client, super_admin_credentials)
-    r = await client.get("/api/v1/segments/9999999", headers=headers)
-    assert r.status_code == 404
-    assert r.json()["error"]["params"]["segment_id"] == 9999999
 
 
 # ─── /saved-views/{id} ─────────────────────────────────────────────────────
@@ -169,7 +131,6 @@ async def test_get_user_404(
 async def test_all_single_get_endpoints_require_auth(client: AsyncClient) -> None:
     for url in (
         "/api/v1/admin/channel-mappings/1",
-        "/api/v1/segments/1",
         "/api/v1/saved-views/1",
         "/api/v1/users/1",
     ):

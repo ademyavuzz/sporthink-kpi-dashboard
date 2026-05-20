@@ -77,7 +77,6 @@ export const dashboardApi = {
     p.brands?.forEach((b) => params.append("brands", b));
     p.statuses?.forEach((s) => params.append("statuses", s));
     p.payment_methods?.forEach((m) => params.append("payment_methods", m));
-    if (p.segment_id != null) params.set("segment_id", String(p.segment_id));
     if (p.orders_limit != null) params.set("orders_limit", String(p.orders_limit));
     const r = await apiClient.get<ApiEnvelope<EcommerceResponse>>(
       `/dashboard/ecom?${params.toString()}`,

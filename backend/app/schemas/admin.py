@@ -1,8 +1,8 @@
-"""User management, audit log, channel mapping, segment, saved view şemaları."""
+"""User management, audit log, channel mapping, saved view şemaları."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -167,42 +167,6 @@ class ChannelMappingUpdate(BaseModel):
     notes: str | None = None
 
 
-# --- Segment ---
-
-
-class SegmentItem(BaseModel):
-    id: int
-    name: str
-    description: str | None = None
-    rules: dict[str, Any]
-    cached_count: int | None = None
-    cached_at: datetime | None = None
-    is_shared: bool
-    user_id: int
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class SegmentCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    description: str | None = None
-    rules: dict[str, Any]
-    is_shared: bool = False
-
-
-class SegmentUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    rules: dict[str, Any] | None = None
-    is_shared: bool | None = None
-
-
-class SegmentPreviewResponse(BaseModel):
-    count: int
-    sample: list[dict[str, Any]]
-
-
 # --- Saved view ---
 
 
@@ -232,25 +196,3 @@ class SavedViewUpdate(BaseModel):
     description: str | None = None
     filters: dict[str, Any] | None = None
     is_default: bool | None = None
-
-
-# --- RFM ---
-
-
-class RFMRow(BaseModel):
-    customer_id: str
-    customer_name: str | None = None
-    city: str | None = None
-    recency_days: int
-    frequency: int
-    monetary: str
-    r_score: int
-    f_score: int
-    m_score: int
-    segment: str
-
-
-class RFMResponse(BaseModel):
-    reference_date: date
-    rows: list[RFMRow]
-    distribution: dict[str, int]

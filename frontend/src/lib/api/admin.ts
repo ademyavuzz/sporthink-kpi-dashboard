@@ -4,7 +4,6 @@ import type {
   AdminPasswordResetResponse,
   AuditLogItem,
   PermissionsGrouped,
-  RFMResponse,
   RoleCreate,
   RoleDetail,
   RoleListItem,
@@ -12,10 +11,6 @@ import type {
   SavedViewCreate,
   SavedViewItem,
   SavedViewUpdate,
-  SegmentCreate,
-  SegmentItem,
-  SegmentPreviewResponse,
-  SegmentUpdate,
   UserCreate,
   UserCreateResponse,
   UserListItem,
@@ -23,7 +18,7 @@ import type {
 } from "@/types/admin";
 
 /**
- * Admin API — `/api/v1/{filters,admin,users,segments,saved-views,export}`.
+ * Admin API — `/api/v1/{filters,admin,users,saved-views,export}`.
  */
 export const adminApi = {
   // Filters
@@ -173,39 +168,6 @@ export const adminApi = {
       "/admin/aggregations/rebuild",
       { date_from, date_to },
     );
-    return unwrap(r);
-  },
-
-  // Segments
-  async listSegments(): Promise<SegmentItem[]> {
-    const r = await apiClient.get<ApiEnvelope<SegmentItem[]>>(
-      "/segments?page=1&page_size=200",
-    );
-    return unwrap(r);
-  },
-  async previewSegment(p: SegmentCreate): Promise<SegmentPreviewResponse> {
-    const r = await apiClient.post<ApiEnvelope<SegmentPreviewResponse>>(
-      "/segments/preview",
-      p,
-    );
-    return unwrap(r);
-  },
-  async createSegment(p: SegmentCreate): Promise<SegmentItem> {
-    const r = await apiClient.post<ApiEnvelope<SegmentItem>>("/segments", p);
-    return unwrap(r);
-  },
-  async updateSegment(id: number, p: SegmentUpdate): Promise<SegmentItem> {
-    const r = await apiClient.patch<ApiEnvelope<SegmentItem>>(`/segments/${id}`, p);
-    return unwrap(r);
-  },
-  async deleteSegment(id: number): Promise<void> {
-    await apiClient.delete<ApiEnvelope<{ deleted: boolean }>>(`/segments/${id}`);
-  },
-  async getRFM(referenceDate?: string): Promise<RFMResponse> {
-    const url = referenceDate
-      ? `/segments/rfm?reference_date=${referenceDate}`
-      : "/segments/rfm";
-    const r = await apiClient.get<ApiEnvelope<RFMResponse>>(url);
     return unwrap(r);
   },
 

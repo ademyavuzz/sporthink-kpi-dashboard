@@ -260,8 +260,8 @@ class OrderDetailResponse(BaseModel):
 class EcommerceResponse(BaseModel):
     """`/dashboard/ecom` — E-Ticaret sayfası.
 
-    Filtreler (`categories`, `brands`, `statuses`, `payment_methods`,
-    `segment_id`) tüm KPI/chart/tablolarda uygulanır. Filtreler boşsa veri
+    Filtreler (`categories`, `brands`, `statuses`, `payment_methods`)
+    tüm KPI/chart/tablolarda uygulanır. Filtreler boşsa veri
     aralığındaki tüm siparişler dahildir.
     """
 

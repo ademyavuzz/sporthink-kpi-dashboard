@@ -22,7 +22,7 @@ interface EcommerceFiltersProps {
 
 /**
  * E-ticaret sayfası özelinde filtre çubuğu (kategori, marka, durum,
- * ödeme yöntemi, müşteri segmenti). Her dropdown bir popover; seçim
+ * ödeme yöntemi). Her dropdown bir popover; seçim
  * değişikliği üst sayfaya `onChange` ile yansır ve sayfa veriyi
  * yeniden çeker.
  */
@@ -49,11 +49,6 @@ export function EcommerceFilters({ value, onChange }: EcommerceFiltersProps) {
     queryFn: () => adminApi.filterPaymentMethods(),
     staleTime: 60 * 60 * 1000,
   });
-  const segmentsQ = useQuery({
-    queryKey: ["segments"],
-    queryFn: () => adminApi.listSegments(),
-    staleTime: 5 * 60 * 1000,
-  });
 
   const setField = <K extends keyof EcomFilterValue>(
     key: K,
@@ -66,13 +61,7 @@ export function EcommerceFilters({ value, onChange }: EcommerceFiltersProps) {
     value.categories.length +
     value.brands.length +
     value.statuses.length +
-    value.payment_methods.length +
-    (value.segment_id != null ? 1 : 0);
-
-  const segmentLabel = useMemo(() => {
-    if (value.segment_id == null) return null;
-    return segmentsQ.data?.find((s) => s.id === value.segment_id)?.name ?? null;
-  }, [value.segment_id, segmentsQ.data]);
+    value.payment_methods.length;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -106,14 +95,6 @@ export function EcommerceFilters({ value, onChange }: EcommerceFiltersProps) {
         selected={value.payment_methods}
         onChange={(next) => setField("payment_methods", next)}
         renderOption={(o) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o })}
-      />
-      <SegmentSelector
-        label={t("dashboard:ecom.filter_segment")}
-        loading={segmentsQ.isPending}
-        options={segmentsQ.data ?? []}
-        value={value.segment_id}
-        valueLabel={segmentLabel}
-        onChange={(next) => setField("segment_id", next)}
       />
       {activeCount > 0 && (
         <Button
@@ -258,110 +239,3 @@ function MultiSelectDropdown({
   );
 }
 
-interface SegmentSelectorProps {
-  label: string;
-  loading?: boolean;
-  options: { id: number; name: string; cached_count?: number | null }[];
-  value: number | null;
-  valueLabel: string | null;
-  onChange: (next: number | null) => void;
-}
-
-function SegmentSelector({
-  label,
-  loading,
-  options,
-  value,
-  valueLabel,
-  onChange,
-}: SegmentSelectorProps) {
-  const { t } = useTranslation(["common", "dashboard"]);
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-9 gap-1.5 px-3 text-xs font-medium",
-            value != null && "border-primary/50 bg-primary/5 text-primary",
-          )}
-        >
-          <span>{label}</span>
-          {valueLabel && (
-            <span className="max-w-[120px] truncate text-[11px] text-primary/80">
-              · {valueLabel}
-            </span>
-          )}
-          <ChevronDown className="size-3.5 opacity-60" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-1">
-        <div className="max-h-72 overflow-y-auto">
-          {loading ? (
-            <div className="space-y-1 p-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-7 w-full animate-pulse rounded bg-muted/40"
-                />
-              ))}
-            </div>
-          ) : options.length === 0 ? (
-            <p className="p-3 text-center text-xs text-text-muted">
-              {t("dashboard:ecom.no_segments")}
-            </p>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(null);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                  value == null
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-muted/60",
-                )}
-              >
-                <span>{t("dashboard:ecom.segment_all")}</span>
-                {value == null && <Check className="size-3.5 shrink-0" />}
-              </button>
-              {options.map((opt) => {
-                const active = value === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(opt.id);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground hover:bg-muted/60",
-                    )}
-                  >
-                    <span className="truncate">{opt.name}</span>
-                    {opt.cached_count != null && (
-                      <span className="text-[10px] text-text-dim">
-                        {opt.cached_count}
-                      </span>
-                    )}
-                    {active && <Check className="size-3.5 shrink-0" />}
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}

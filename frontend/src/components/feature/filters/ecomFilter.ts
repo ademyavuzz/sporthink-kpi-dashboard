@@ -3,7 +3,6 @@ export interface EcomFilterValue {
   brands: string[];
   statuses: string[];
   payment_methods: string[];
-  segment_id: number | null;
 }
 
 export const emptyEcomFilter: EcomFilterValue = {
@@ -11,5 +10,4 @@ export const emptyEcomFilter: EcomFilterValue = {
   brands: [],
   statuses: [],
   payment_methods: [],
-  segment_id: null,
 };

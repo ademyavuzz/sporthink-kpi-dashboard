@@ -22,7 +22,7 @@ export const PERMISSIONS = {
   CUSTOMERS_VIEW: "customers.view",
   CHANNEL_ANALYSIS_VIEW: "channel_analysis.view",
 
-  // Kategori 2: Veri İşlemleri (20)
+  // Kategori 2: Veri İşlemleri (16)
   IMPORTS_VIEW: "imports.view",
   IMPORTS_CREATE: "imports.create",
   IMPORTS_DELETE: "imports.delete",
@@ -30,10 +30,6 @@ export const PERMISSIONS = {
   MAPPINGS_CREATE: "mappings.create",
   MAPPINGS_UPDATE: "mappings.update",
   MAPPINGS_DELETE: "mappings.delete",
-  SEGMENTS_VIEW: "segments.view",
-  SEGMENTS_CREATE: "segments.create",
-  SEGMENTS_UPDATE: "segments.update",
-  SEGMENTS_DELETE: "segments.delete",
   VIEWS_VIEW: "views.view",
   VIEWS_CREATE: "views.create",
   VIEWS_UPDATE: "views.update",

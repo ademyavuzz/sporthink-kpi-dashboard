@@ -53,72 +53,6 @@ export interface AuditLogItem {
   created_at: string | null;
 }
 
-// --- Segments ---
-
-export type SegmentRuleField =
-  | "total_revenue"
-  | "total_orders"
-  | "city"
-  | "gender"
-  | "age_group"
-  | "registration_source"
-  | "is_newsletter_subscriber";
-
-export type SegmentRuleOp =
-  | "=="
-  | "!="
-  | ">"
-  | ">="
-  | "<"
-  | "<="
-  | "IN"
-  | "NOT IN"
-  | "LIKE";
-
-export interface SegmentLeafRule {
-  field: SegmentRuleField;
-  op: SegmentRuleOp;
-  value: string | number | boolean | (string | number)[];
-}
-
-export interface SegmentGroupRule {
-  op: "AND" | "OR";
-  rules: (SegmentLeafRule | SegmentGroupRule)[];
-}
-
-export type SegmentRule = SegmentLeafRule | SegmentGroupRule;
-
-export interface SegmentItem {
-  id: number;
-  name: string;
-  description: string | null;
-  rules: SegmentGroupRule;
-  cached_count: number | null;
-  cached_at: string | null;
-  is_shared: boolean;
-  user_id: number;
-  created_at: string;
-}
-
-export interface SegmentCreate {
-  name: string;
-  description?: string | null;
-  rules: SegmentGroupRule;
-  is_shared?: boolean;
-}
-
-export interface SegmentUpdate {
-  name?: string | null;
-  description?: string | null;
-  rules?: SegmentGroupRule | null;
-  is_shared?: boolean | null;
-}
-
-export interface SegmentPreviewResponse {
-  count: number;
-  sample: Array<Record<string, unknown>>;
-}
-
 // --- Saved Views ---
 
 export interface SavedViewItem {
@@ -145,27 +79,6 @@ export interface SavedViewUpdate {
   description?: string | null;
   filters?: Record<string, unknown> | null;
   is_default?: boolean | null;
-}
-
-// --- RFM ---
-
-export interface RFMRow {
-  customer_id: string;
-  customer_name: string | null;
-  city: string | null;
-  recency_days: number;
-  frequency: number;
-  monetary: string;
-  r_score: number;
-  f_score: number;
-  m_score: number;
-  segment: string;
-}
-
-export interface RFMResponse {
-  reference_date: string;
-  rows: RFMRow[];
-  distribution: Record<string, number>;
 }
 
 // --- Roles + Permissions ---

@@ -444,7 +444,6 @@ async def get_ecom(
     brands: list[str] | None = Query(None, description="Marka filtresi (multi)"),
     statuses: list[str] | None = Query(None, description="Sipariş durumu filtresi (multi)"),
     payment_methods: list[str] | None = Query(None, description="Ödeme yöntemi filtresi (multi)"),
-    segment_id: int | None = Query(None, description="Müşteri segmenti id"),
     orders_limit: int = Query(50, ge=1, le=200, description="Sipariş listesi sayfa boyutu"),
     _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
@@ -461,8 +460,6 @@ async def get_ecom(
         filter_key["st"] = sorted(statuses)
     if payment_methods:
         filter_key["pm"] = sorted(payment_methods)
-    if segment_id is not None:
-        filter_key["seg"] = segment_id
     if orders_limit != 50:
         filter_key["lim"] = orders_limit
 
@@ -476,10 +473,6 @@ async def get_ecom(
     if hit is not None:
         return SuccessEnvelope(data=EcommerceResponse.model_validate(hit))
 
-    customer_pk_ids: tuple[int, ...] | None = None
-    if segment_id is not None:
-        customer_pk_ids = await ecom_service.resolve_segment_customers(db, segment_id)
-
     filters = ecom_service.EcomFilters(
         date_from=date_from,
         date_to=date_to,
@@ -487,7 +480,6 @@ async def get_ecom(
         brands=tuple(brands or ()),
         statuses=tuple(statuses or ()),
         payment_methods=tuple(payment_methods or ()),
-        customer_pk_ids=customer_pk_ids,
     )
     prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     prev_filters = filters.with_period(prev_from, prev_to)
