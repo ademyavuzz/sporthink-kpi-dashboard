@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronDown, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { adminApi } from "@/lib/api/admin";
 import { cn } from "@/lib/utils";
 import {
@@ -29,7 +34,7 @@ interface FilterPanelProps {
 /**
  * Tüm filtreleri tek dialog'da yöneten panel.
  *
- * - Temel filtreler: kanal, cihaz, şehir (multi-select chips)
+ * - Temel filtreler: kanal, cihaz, şehir (multi-select dropdown)
  * - Gelişmiş filtreler: ciro, sipariş, ROAS, dönüşüm aralığı (min/max input)
  * - Local state'te tutar; "Uygula" basılınca store'a yazar (URL otomatik
  *   senkronize olur — useFilterUrlSync üzerinden)
@@ -82,10 +87,7 @@ export function FilterPanel({ open, onOpenChange }: FilterPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const toggle = (
-    field: "channels" | "devices" | "cities",
-    value: string,
-  ) => {
+  const toggle = (field: "channels" | "devices" | "cities", value: string) => {
     setDraft((d) => {
       const arr = d[field];
       return {
@@ -95,6 +97,10 @@ export function FilterPanel({ open, onOpenChange }: FilterPanelProps) {
           : [...arr, value],
       };
     });
+  };
+
+  const clearField = (field: "channels" | "devices" | "cities") => {
+    setDraft((d) => ({ ...d, [field]: [] }));
   };
 
   const setRange = (
@@ -156,28 +162,33 @@ export function FilterPanel({ open, onOpenChange }: FilterPanelProps) {
         <div className="max-h-[70vh] space-y-7 overflow-y-auto px-6 py-5">
           {/* Temel Filtreler */}
           <Section title={t("filters:section_basic")}>
-            <ChipGroup
-              label={t("filters:channel")}
-              options={channelsQ.data ?? []}
-              selected={draft.channels}
-              loading={channelsQ.isPending}
-              onToggle={(v) => toggle("channels", v)}
-            />
-            <ChipGroup
-              label={t("filters:device")}
-              options={devicesQ.data ?? []}
-              selected={draft.devices}
-              loading={devicesQ.isPending}
-              onToggle={(v) => toggle("devices", v)}
-            />
-            <ChipGroup
-              label={t("filters:city")}
-              options={citiesQ.data ?? []}
-              selected={draft.cities}
-              loading={citiesQ.isPending}
-              onToggle={(v) => toggle("cities", v)}
-              capPreview
-            />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <MultiSelect
+                label={t("filters:channel")}
+                options={channelsQ.data ?? []}
+                selected={draft.channels}
+                loading={channelsQ.isPending}
+                onToggle={(v) => toggle("channels", v)}
+                onClear={() => clearField("channels")}
+              />
+              <MultiSelect
+                label={t("filters:device")}
+                options={devicesQ.data ?? []}
+                selected={draft.devices}
+                loading={devicesQ.isPending}
+                onToggle={(v) => toggle("devices", v)}
+                onClear={() => clearField("devices")}
+              />
+              <MultiSelect
+                label={t("filters:city")}
+                options={citiesQ.data ?? []}
+                selected={draft.cities}
+                loading={citiesQ.isPending}
+                onToggle={(v) => toggle("cities", v)}
+                onClear={() => clearField("cities")}
+                searchable
+              />
+            </div>
           </Section>
 
           {/* Gelişmiş Filtreler */}
@@ -243,72 +254,127 @@ function Section({
   );
 }
 
-function ChipGroup({
+/** Çoklu seçim dropdown — tetikleyici buton + popover içinde checkbox listesi. */
+function MultiSelect({
   label,
   options,
   selected,
   loading,
   onToggle,
-  capPreview,
+  onClear,
+  searchable,
 }: {
   label: string;
   options: string[];
   selected: string[];
   loading?: boolean;
   onToggle: (value: string) => void;
-  /** Çok sayıda seçenekte ilk 30'u göster + "Daha fazla" toggle. */
-  capPreview?: boolean;
+  onClear: () => void;
+  searchable?: boolean;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const limit = capPreview && !showAll ? 30 : options.length;
-  const visible = options.slice(0, limit);
-  const more = options.length - visible.length;
+  const { t } = useTranslation(["filters", "common"]);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const visible = useMemo(() => {
+    if (!searchable || !query.trim()) return options;
+    const q = query.trim().toLocaleLowerCase("tr-TR");
+    return options.filter((o) => o.toLocaleLowerCase("tr-TR").includes(q));
+  }, [options, query, searchable]);
+
+  const summary =
+    selected.length === 0
+      ? t("filters:all_option")
+      : selected.length === 1
+        ? selected[0]
+        : t("filters:n_selected", { count: selected.length });
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <Label className="text-[12px] font-medium text-foreground">{label}</Label>
-      {loading ? (
-        <div className="flex flex-wrap gap-1.5">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span
-              key={i}
-              className="h-7 w-20 rounded-full bg-muted/40 animate-pulse"
-            />
-          ))}
-        </div>
-      ) : options.length === 0 ? (
-        <p className="text-xs text-text-muted">—</p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {visible.map((opt) => {
-            const active = selected.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onToggle(opt)}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                  active
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-surface text-text-muted hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {opt}
-              </button>
-            );
-          })}
-          {more > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="inline-flex items-center rounded-full border border-dashed border-border bg-surface px-2.5 py-1 text-xs font-medium text-text-muted hover:bg-muted"
-            >
-              +{more}
-            </button>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            disabled={loading}
+            className={cn(
+              "flex h-9 w-full items-center justify-between gap-2 rounded-lg border px-3 text-xs font-medium transition-colors",
+              selected.length > 0
+                ? "border-primary/50 bg-primary/5 text-foreground"
+                : "border-border bg-surface text-text-muted hover:bg-muted",
+              loading && "cursor-not-allowed opacity-60",
+            )}
+          >
+            <span className="truncate">{summary}</span>
+            <span className="flex shrink-0 items-center gap-1">
+              {selected.length > 0 && (
+                <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {selected.length}
+                </span>
+              )}
+              <ChevronDown className="size-3.5 opacity-60" />
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] min-w-56 p-0"
+        >
+          {searchable && (
+            <div className="border-b border-border p-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-text-dim" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t("common:search")}
+                  className="h-8 pl-7 text-xs"
+                />
+              </div>
+            </div>
           )}
-        </div>
-      )}
+          <div className="max-h-64 overflow-y-auto p-1">
+            {visible.length === 0 ? (
+              <p className="p-3 text-center text-xs text-text-muted">
+                {t("filters:no_option")}
+              </p>
+            ) : (
+              visible.map((opt) => {
+                const active = selected.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => onToggle(opt)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-foreground hover:bg-muted/60",
+                    )}
+                  >
+                    <span className="truncate">{opt}</span>
+                    {active && <Check className="size-3.5 shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+          {selected.length > 0 && (
+            <div className="border-t border-border p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-full justify-start gap-1 text-xs text-text-muted hover:text-foreground"
+                onClick={onClear}
+              >
+                <RotateCcw className="size-3" />
+                {t("filters:clear_selection")}
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -339,7 +405,7 @@ function RangeRow({
           value={value.min ?? ""}
           onChange={(e) => onChange("min", e.target.value)}
         />
-        <span className="text-text-dim">–</span>
+        <span className="text-text-dim">/</span>
         <Input
           type="number"
           inputMode="decimal"
