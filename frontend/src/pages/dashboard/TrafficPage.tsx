@@ -69,7 +69,7 @@ export default function TrafficPage() {
               ? [
                   {
                     name: sessionsLabel,
-                    color: "#0ea5e9",
+                    color: "#2563eb",
                     data: data.daily_series.map((p) => ({
                       x: dayjs(p.date).valueOf(),
                       y: p.sessions,

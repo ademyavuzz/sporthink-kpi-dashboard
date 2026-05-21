@@ -88,7 +88,7 @@ export default function EcommercePage() {
     <PageShell>
       <DashboardHeader title={t("ecom.title")} range={range} onChangeRange={setRange} />
 
-      <div className="sticky top-0 z-20 rounded-xl border border-border/60 bg-card/90 px-3 py-2.5 backdrop-blur">
+      <div className="sticky top-0 z-20 rounded-md border border-border/70 bg-card/90 px-3 py-2.5 shadow-theme-xs backdrop-blur">
         <EcommerceFilters value={filters} onChange={setFilters} />
       </div>
 
@@ -132,7 +132,7 @@ export default function EcommercePage() {
                     },
                     {
                       name: t("ecom.series_orders"),
-                      color: "#0ea5e9",
+                      color: "#2563eb",
                       data: data.daily_series.map((p) => ({
                         x: dayjs(p.date).valueOf(),
                         y: p.orders,

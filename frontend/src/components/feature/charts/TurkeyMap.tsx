@@ -1,58 +1,11 @@
+import { MapPin, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { cities as turkeyCities } from "turkey-map-react/lib/data";
 
 import { ChartEmpty } from "@/components/feature/charts/ChartEmpty";
 import { formatCurrency, formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-/**
- * Türkiye şehir baloncuk haritası — `/dashboard/overview` geo bloğu için.
- *
- * Harici harita kütüphanesi YOK: stilize Türkiye silueti (enlem/boylam
- * poligonu) + ekvanteriktangüler projeksiyonla yerleştirilmiş şehir
- * baloncukları. Baloncuk yarıçapı `sqrt(revenue)` ile orantılı (alan-doğru).
- * Bir şehre tıklamak cross-filter tetikler.
- */
-
-const VB_W = 1000;
-const VB_H = 360;
-// Projeksiyon sınırları (biraz pay bırakılmış).
-const LON_MIN = 25.4;
-const LON_MAX = 45.4;
-const LAT_MIN = 35.5;
-const LAT_MAX = 42.5;
-
-function project(lat: number, lon: number): [number, number] {
-  const x = ((lon - LON_MIN) / (LON_MAX - LON_MIN)) * VB_W;
-  const y = ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN)) * VB_H;
-  return [x, y];
-}
-
-/** Stilize Türkiye sınır poligonu — [lat, lon] saat yönünde. */
-const TR_OUTLINE: [number, number][] = [
-  [41.7, 26.6], [41.2, 28.0], [41.1, 29.9], [41.4, 31.8], [42.05, 35.0],
-  [41.3, 36.3], [41.1, 38.4], [41.0, 39.7], [41.45, 41.5], [41.2, 43.4],
-  [40.0, 43.7], [39.4, 44.4], [38.8, 44.3], [37.7, 44.6], [37.4, 44.2],
-  [37.2, 42.5], [37.1, 41.2], [37.3, 40.0], [36.8, 38.8], [36.7, 37.5],
-  [36.6, 36.5], [35.9, 36.2], [36.6, 36.0], [36.65, 35.3], [36.8, 34.6],
-  [36.6, 33.5], [36.9, 31.5], [36.6, 30.5], [36.2, 29.7], [36.7, 28.5],
-  [37.0, 27.3], [38.0, 26.7], [38.4, 26.3], [39.5, 26.6], [40.3, 26.2],
-  [40.6, 26.6], [41.0, 26.3], [41.7, 26.6],
-];
-
-/** Şehir → [enlem, boylam]. Anahtarlar `orders.city` (İngilizce yazım) ile birebir. */
-const CITY_COORDS: Record<string, [number, number]> = {
-  Istanbul: [41.01, 28.98], Ankara: [39.93, 32.85], Izmir: [38.42, 27.14],
-  Bursa: [40.19, 29.06], Antalya: [36.9, 30.71], Adana: [37.0, 35.32],
-  Konya: [37.87, 32.48], Gaziantep: [37.07, 37.38], Mersin: [36.8, 34.63],
-  Kayseri: [38.73, 35.49], Samsun: [41.29, 36.33], Trabzon: [41.0, 39.72],
-  Eskisehir: [39.78, 30.52], Diyarbakir: [37.91, 40.24], Sanliurfa: [37.17, 38.79],
-  Malatya: [38.35, 38.31], Erzurum: [39.9, 41.27], Van: [38.49, 43.41],
-  Denizli: [37.78, 29.09], Sakarya: [40.78, 30.4], Kocaeli: [40.77, 29.92],
-  Manisa: [38.61, 27.43], Balikesir: [39.65, 27.88], Hatay: [36.2, 36.16],
-  Aydin: [37.85, 27.84], Afyonkarahisar: [38.76, 30.54], Tekirdag: [40.98, 27.51],
-  Mugla: [37.22, 28.36], Ordu: [40.98, 37.88], Elazig: [38.68, 39.22],
-};
 
 export interface GeoCity {
   city: string;
@@ -67,10 +20,63 @@ interface TurkeyMapProps {
   onCityClick?: (city: string) => void;
 }
 
-const OUTLINE_PATH = `${TR_OUTLINE.map(([lat, lon], i) => {
-  const [x, y] = project(lat, lon);
-  return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-}).join("")}Z`;
+type TurkeyCityPath = {
+  id: string;
+  plateNumber: number;
+  name: string;
+  path: string;
+};
+
+const LABEL_POINTS: Record<string, { x: number; y: number }> = {
+  Istanbul: { x: 235, y: 216 },
+  Tekirdag: { x: 162, y: 220 },
+  Kocaeli: { x: 292, y: 236 },
+  Sakarya: { x: 326, y: 235 },
+  Bursa: { x: 254, y: 315 },
+  Balikesir: { x: 180, y: 337 },
+  Izmir: { x: 130, y: 430 },
+  Manisa: { x: 165, y: 395 },
+  Aydin: { x: 142, y: 474 },
+  Mugla: { x: 190, y: 520 },
+  Denizli: { x: 250, y: 455 },
+  Antalya: { x: 355, y: 545 },
+  Afyonkarahisar: { x: 345, y: 395 },
+  Eskisehir: { x: 355, y: 320 },
+  Ankara: { x: 470, y: 335 },
+  Konya: { x: 485, y: 470 },
+  Mersin: { x: 610, y: 555 },
+  Adana: { x: 655, y: 520 },
+  Hatay: { x: 715, y: 600 },
+  Kayseri: { x: 625, y: 405 },
+  Samsun: { x: 625, y: 215 },
+  Ordu: { x: 710, y: 220 },
+  Trabzon: { x: 820, y: 220 },
+  Gaziantep: { x: 750, y: 505 },
+  Sanliurfa: { x: 830, y: 480 },
+  Diyarbakir: { x: 865, y: 405 },
+  Malatya: { x: 755, y: 400 },
+  Elazig: { x: 800, y: 380 },
+  Erzurum: { x: 900, y: 300 },
+  Van: { x: 1000, y: 405 },
+};
+
+function normalizeCityName(value: string): string {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function formatShare(value: number): string {
+  return `%${value.toFixed(1).replace(".", ",")}`;
+}
 
 export function TurkeyMap({
   data,
@@ -79,98 +85,283 @@ export function TurkeyMap({
   onCityClick,
 }: TurkeyMapProps) {
   const { t } = useTranslation("dashboard");
-  const [hover, setHover] = useState<GeoCity | null>(null);
+  const [hoveredCity, setHoveredCity] = useState<GeoCity | null>(null);
 
-  const bubbles = useMemo(() => {
-    const max = Math.max(...data.map((d) => d.revenue), 1);
-    return data
-      .map((d) => {
-        const coord = CITY_COORDS[d.city];
-        if (!coord) return null;
-        const [x, y] = project(coord[0], coord[1]);
-        // Alan-doğru ölçek: r ∝ √value. 5–34px aralığı.
-        const r = 5 + Math.sqrt(d.revenue / max) * 29;
-        return { ...d, x, y, r };
-      })
-      .filter((b): b is GeoCity & { x: number; y: number; r: number } => b !== null)
-      .sort((a, b) => b.r - a.r); // büyük baloncuklar altta
+  const sorted = useMemo(
+    () => [...data].sort((a, b) => b.revenue - a.revenue),
+    [data],
+  );
+  const cityStats = useMemo(() => {
+    const stats = new Map<string, GeoCity>();
+    for (const city of data) stats.set(normalizeCityName(city.city), city);
+    return stats;
   }, [data]);
+  const totalRevenue = useMemo(
+    () => sorted.reduce((sum, city) => sum + city.revenue, 0),
+    [sorted],
+  );
+  const totalOrders = useMemo(
+    () => sorted.reduce((sum, city) => sum + city.orders, 0),
+    [sorted],
+  );
+  const maxRevenue = sorted[0]?.revenue ?? 1;
+  const focusCity =
+    hoveredCity ??
+    (selectedCity ? sorted.find((city) => city.city === selectedCity) : null) ??
+    sorted[0] ??
+    null;
+  const selectedKey = selectedCity ? normalizeCityName(selectedCity) : null;
+  const topMarkers = sorted
+    .filter((city) => LABEL_POINTS[city.city])
+    .slice(0, 8);
 
   if (loading) {
-    return <div className="h-[340px] w-full animate-pulse rounded-xl bg-muted/40" />;
+    return (
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="h-[420px] animate-pulse rounded-md bg-muted/45" />
+        <div className="space-y-2.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-md bg-muted/45" />
+          ))}
+        </div>
+      </div>
+    );
   }
-  if (data.length === 0) {
-    return <ChartEmpty />;
+
+  if (sorted.length === 0) {
+    return <ChartEmpty height={360} />;
   }
 
   return (
-    <div className="relative w-full">
-      <svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        className="w-full"
-        role="img"
-        aria-label={t("overview.geo_card_title")}
-      >
-        {/* Türkiye silueti */}
-        <path
-          d={OUTLINE_PATH}
-          className="fill-muted/50 stroke-border"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-        {/* Şehir baloncukları */}
-        {bubbles.map((b) => {
-          const active = selectedCity === b.city;
-          const dim = selectedCity != null && !active;
-          return (
-            <g
-              key={b.city}
-              transform={`translate(${b.x} ${b.y})`}
-              className="cursor-pointer"
-              onMouseEnter={() => setHover(b)}
-              onMouseLeave={() => setHover(null)}
-              onClick={() => onCityClick?.(b.city)}
-            >
-              <circle
-                r={b.r}
-                className={cn(
-                  "transition-all duration-150",
-                  active
-                    ? "fill-primary/85 stroke-primary"
-                    : "fill-primary/35 stroke-primary/70 hover:fill-primary/55",
-                )}
-                strokeWidth={active ? 2 : 1}
-                style={{ opacity: dim ? 0.3 : 1 }}
-              />
-              {b.r > 16 && (
-                <text
-                  textAnchor="middle"
-                  dy="0.34em"
-                  className="pointer-events-none fill-primary-foreground text-[10px] font-semibold"
-                  style={{ opacity: dim ? 0.3 : 1 }}
-                >
-                  {b.city}
-                </text>
-              )}
+    <div className="space-y-4">
+      <div className="rounded-md border border-border/70 bg-surface-2/35 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase text-text-dim">
+              {focusCity?.city ?? t("overview.geo_card_title")}
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
+              {focusCity ? formatCurrency(focusCity.revenue) : "—"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-text-muted">
+            <span className="inline-flex size-2.5 rounded-full bg-primary/25" />
+            <span>{t("overview.geo_map_legend_low")}</span>
+            <span className="inline-flex size-2.5 rounded-full bg-primary" />
+            <span>{t("overview.geo_map_legend_high")}</span>
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-md border border-border/70 bg-card p-4">
+          <svg
+            viewBox="0 80 1050 585"
+            role="img"
+            aria-label={t("overview.geo_card_title")}
+            className="h-auto w-full"
+          >
+            <g>
+              {(turkeyCities as TurkeyCityPath[]).map((mapCity) => {
+                const key = normalizeCityName(mapCity.name);
+                const stat = cityStats.get(key);
+                const active = selectedKey === key;
+                const ratio = stat ? Math.sqrt(stat.revenue / maxRevenue) : 0;
+                const fillOpacity = active ? 0.92 : stat ? 0.2 + ratio * 0.58 : 0.08;
+                return (
+                  <path
+                    key={mapCity.id}
+                    d={mapCity.path}
+                    tabIndex={stat ? 0 : -1}
+                    role={stat ? "button" : "img"}
+                    aria-label={
+                      stat
+                        ? `${stat.city}: ${formatCurrency(stat.revenue)}`
+                        : mapCity.name
+                    }
+                    className={cn(
+                      "stroke-border transition-all duration-150 focus-visible:outline-none",
+                      stat
+                        ? "cursor-pointer hover:stroke-primary"
+                        : "cursor-default",
+                    )}
+                    style={{
+                      fill: stat ? "var(--primary)" : "var(--surface-3)",
+                      fillOpacity,
+                      strokeWidth: active ? 2.2 : stat ? 1.2 : 0.8,
+                      filter: active
+                        ? "drop-shadow(0 4px 10px rgba(233, 69, 96, 0.28))"
+                        : undefined,
+                    }}
+                    onMouseEnter={() => setHoveredCity(stat ?? null)}
+                    onMouseLeave={() => setHoveredCity(null)}
+                    onFocus={() => setHoveredCity(stat ?? null)}
+                    onBlur={() => setHoveredCity(null)}
+                    onClick={() => {
+                      if (stat) onCityClick?.(stat.city);
+                    }}
+                    onKeyDown={(event) => {
+                      if (!stat) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onCityClick?.(stat.city);
+                      }
+                    }}
+                  />
+                );
+              })}
             </g>
+
+            {topMarkers.map((city, index) => {
+              const point = LABEL_POINTS[city.city];
+              if (!point) return null;
+              const active = selectedCity === city.city;
+              const size = 8 + Math.sqrt(city.revenue / maxRevenue) * 16;
+              return (
+                <g
+                  key={city.city}
+                  transform={`translate(${point.x} ${point.y})`}
+                  className="pointer-events-none"
+                >
+                  <circle
+                    r={size}
+                    className={cn(
+                      active ? "fill-primary" : "fill-primary/35",
+                      "stroke-primary",
+                    )}
+                    strokeWidth={active ? 2 : 1.2}
+                  />
+                  {index < 4 && (
+                    <text
+                      y={-(size + 8)}
+                      textAnchor="middle"
+                      className="fill-foreground text-[18px] font-semibold"
+                    >
+                      {city.city}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <MiniStat
+            label={t("overview.geo_orders")}
+            value={formatCount(focusCity?.orders ?? 0)}
+          />
+          <MiniStat
+            label={t("overview.geo_revenue_share")}
+            value={
+              focusCity && totalRevenue > 0
+                ? formatShare((focusCity.revenue / totalRevenue) * 100)
+                : "—"
+            }
+          />
+          <MiniStat
+            label={t("overview.geo_total_revenue")}
+            value={formatCurrency(totalRevenue)}
+          />
+          <MiniStat
+            label={t("overview.geo_total_orders")}
+            value={formatCount(totalOrders)}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {sorted.slice(0, 6).map((city, index) => {
+          const share = totalRevenue > 0 ? (city.revenue / totalRevenue) * 100 : 0;
+          const width = (city.revenue / maxRevenue) * 100;
+          const active = selectedCity === city.city;
+          return (
+            <button
+              key={city.city}
+              type="button"
+              onClick={() => onCityClick?.(city.city)}
+              onMouseEnter={() => setHoveredCity(city)}
+              onMouseLeave={() => setHoveredCity(null)}
+              className={cn(
+                "group w-full rounded-md border px-3 py-3 text-left transition-colors",
+                active
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border/70 bg-card hover:border-primary/25 hover:bg-surface-2/70",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={cn(
+                      "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+                      index < 3
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-text-muted",
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {city.city}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {formatCount(city.orders)} {t("overview.geo_orders")}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-semibold tabular-nums text-foreground">
+                    {formatCurrency(city.revenue)}
+                  </p>
+                  <p className="text-xs tabular-nums text-text-muted">
+                    {formatShare(share)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    active ? "bg-primary" : "bg-primary/65 group-hover:bg-primary",
+                  )}
+                  style={{ width: `${Math.max(width, 4)}%` }}
+                />
+              </div>
+            </button>
           );
         })}
-      </svg>
 
-      {/* Hover tooltip */}
-      {hover && (
-        <div className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-1.5 text-xs shadow-md">
-          <span className="font-semibold text-foreground">{hover.city}</span>
-          <span className="mx-1.5 text-text-dim">·</span>
-          <span className="font-medium text-primary">
-            {formatCurrency(hover.revenue)}
-          </span>
-          <span className="mx-1.5 text-text-dim">·</span>
-          <span className="text-text-muted">
-            {formatCount(hover.orders)} {t("overview.geo_orders")}
-          </span>
+        <div className="rounded-md border border-border/70 bg-surface-2/35 p-3 text-xs sm:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 font-medium text-text-muted">
+              <TrendingUp className="size-3.5 text-emerald-500" />
+              {t("overview.geo_total_revenue")}
+            </span>
+            <span className="font-semibold tabular-nums text-foreground">
+              {formatCurrency(totalRevenue)}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-text-muted">
+              <MapPin className="size-3.5 text-primary" />
+              {t("overview.geo_total_orders")}
+            </span>
+            <span className="font-semibold tabular-nums text-foreground">
+              {formatCount(totalOrders)}
+            </span>
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border/70 bg-card px-3 py-2">
+      <p className="text-[11px] font-medium text-text-muted">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </p>
     </div>
   );
 }

@@ -120,7 +120,7 @@ export default function FunnelPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {isLoading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-28 animate-pulse rounded-xl bg-muted/40" />
+                <div key={i} className="h-28 animate-pulse rounded-md bg-muted/40" />
               ))
             : steps.map((s, idx) => {
                 const stepLabel = t(`funnel.steps.${s.step}`, {
@@ -129,7 +129,7 @@ export default function FunnelPage() {
                 return (
                   <div
                     key={s.step}
-                    className="space-y-1.5 rounded-xl border border-border bg-surface-2/40 p-4"
+                    className="space-y-1.5 rounded-md border border-border bg-surface-2/40 p-4"
                   >
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
                       {t("funnel.step_label")} {idx + 1}

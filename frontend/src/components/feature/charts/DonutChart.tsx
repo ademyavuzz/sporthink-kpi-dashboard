@@ -96,15 +96,21 @@ export function DonutChart({
         type: "donut",
         height,
         parentHeightOffset: 0,
-        events: onSliceClick
-          ? {
-              dataPointSelection: (_e, _ctx, config: { dataPointIndex: number }) => {
-                const label = displayLabels[config.dataPointIndex];
-                if (!label || label === otherLabel) return;
-                onSliceClick(selectedLabel === label ? null : label);
-              },
-            }
-          : undefined,
+        // `events` anahtarı yalnızca handler varsa eklenir; `events: undefined`
+        // ApexCharts 4'te render sırasında `beforeMount` okurken patlatıyor.
+        ...(onSliceClick && {
+          events: {
+            dataPointSelection: (
+              _e,
+              _ctx,
+              config: { dataPointIndex: number },
+            ) => {
+              const label = displayLabels[config.dataPointIndex];
+              if (!label || label === otherLabel) return;
+              onSliceClick(selectedLabel === label ? null : label);
+            },
+          },
+        }),
       },
       labels: displayLabels,
       stroke: { width: 2, colors: ["transparent"] },
@@ -211,46 +217,46 @@ export function DonutChart({
           className="space-y-1.5 text-sm @md:max-h-[260px] @md:overflow-y-auto @md:pr-1"
           role="list"
         >
-        {items.map((it) => {
-          const dimmed =
-            selectedLabel !== null &&
-            selectedLabel !== undefined &&
-            selectedLabel !== it.label;
-          const active = selectedLabel === it.label;
-          return (
-            <li
-              key={it.label}
-              className={cn(
-                "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
-                "hover:bg-surface-2/50",
-                isClickable && "cursor-pointer",
-                active && "bg-surface-2",
-                dimmed && "opacity-40",
-              )}
-              onClick={
-                isClickable && it.label !== otherLabel
-                  ? () => onSliceClick?.(active ? null : it.label)
-                  : undefined
-              }
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: it.color }}
-                  aria-hidden="true"
-                />
-                <span className="truncate text-foreground" title={it.label}>
-                  {it.label}
+          {items.map((it) => {
+            const dimmed =
+              selectedLabel !== null &&
+              selectedLabel !== undefined &&
+              selectedLabel !== it.label;
+            const active = selectedLabel === it.label;
+            return (
+              <li
+                key={it.label}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors",
+                  "hover:bg-surface-2/50",
+                  isClickable && "cursor-pointer",
+                  active && "bg-surface-2",
+                  dimmed && "opacity-40",
+                )}
+                onClick={
+                  isClickable && it.label !== otherLabel
+                    ? () => onSliceClick?.(active ? null : it.label)
+                    : undefined
+                }
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: it.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-foreground" title={it.label}>
+                    {it.label}
+                  </span>
                 </span>
-              </span>
-              <span className="flex shrink-0 items-baseline gap-2 text-xs tabular-nums">
-                <span className="font-semibold text-foreground">
-                  {fmt(it.value)}
+                <span className="flex shrink-0 items-baseline gap-2 text-xs tabular-nums">
+                  <span className="font-semibold text-foreground">
+                    {fmt(it.value)}
+                  </span>
+                  <span className="w-12 text-right text-text-muted">
+                    {it.pct.toFixed(1).replace(".", ",")}%
+                  </span>
                 </span>
-                <span className="w-12 text-right text-text-muted">
-                  {it.pct.toFixed(1).replace(".", ",")}%
-                </span>
-              </span>
               </li>
             );
           })}

@@ -46,6 +46,7 @@
     "react-router-dom": "^7.1.1",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
+    "turkey-map-react": "^2.0.5",
     "zod": "^3.24.1",
     "zustand": "^5.0.2"
   },

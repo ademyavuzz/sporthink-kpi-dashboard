@@ -14,16 +14,16 @@ import { useThemeStore } from "@/stores/useThemeStore";
  *   blue, emerald, amber, rose, cyan, violet, pink, slate, lime, orange.
  */
 export const CHART_PALETTE = [
-  "#3b82f6", // blue-500
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#f43f5e", // rose-500
-  "#06b6d4", // cyan-500
-  "#8b5cf6", // violet-500
-  "#ec4899", // pink-500
-  "#84cc16", // lime-500
-  "#fb923c", // orange-400
-  "#64748b", // slate-500
+  "#e94560", // brand rose
+  "#2563eb", // blue-600
+  "#12b76a", // success
+  "#f79009", // amber
+  "#7a5af8", // violet
+  "#0891b2", // cyan
+  "#64748b", // slate
+  "#ec4899", // pink
+  "#84cc16", // lime
+  "#fb923c", // orange
 ];
 
 export function useChartTheme(): ApexOptions {
@@ -33,15 +33,15 @@ export function useChartTheme(): ApexOptions {
   // Theme tokenları
   const fg = isDark ? "#e4e4e7" : "#27272a";
   const fgMuted = isDark ? "#a1a1aa" : "#71717a";
-  const border = isDark ? "#27272a" : "#e4e4e7";
-  const borderStrong = isDark ? "#3f3f46" : "#d4d4d8";
+  const border = isDark ? "rgba(152,162,179,0.18)" : "rgba(102,112,133,0.16)";
+  const borderStrong = isDark ? "rgba(152,162,179,0.34)" : "rgba(102,112,133,0.28)";
 
   return useMemo<ApexOptions>(
     () => ({
       chart: {
         toolbar: { show: false },
         zoom: { enabled: false },
-        animations: { enabled: true, speed: 350, animateGradually: { enabled: false } },
+        animations: { enabled: true, speed: 280, animateGradually: { enabled: false } },
         background: "transparent",
         fontFamily:
           "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -52,7 +52,7 @@ export function useChartTheme(): ApexOptions {
       colors: CHART_PALETTE,
       grid: {
         borderColor: border,
-        strokeDashArray: 4,
+        strokeDashArray: 3,
         xaxis: { lines: { show: false } },
         yaxis: { lines: { show: true } },
         padding: { top: 0, right: 12, bottom: 0, left: 12 },

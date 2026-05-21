@@ -134,7 +134,7 @@ export default function CustomersPage() {
               ? [
                   {
                     name: t("customers.new_customers_label"),
-                    color: "#0ea5e9",
+                    color: "#2563eb",
                     data: data.daily_new_customers.map((p) => ({
                       x: dayjs(p.date).valueOf(),
                       y: p.new_customers,
@@ -223,7 +223,7 @@ export default function CustomersPage() {
             {Array.from({ length: 2 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28 animate-pulse rounded-xl border border-border/60 bg-muted/30"
+                className="h-28 animate-pulse rounded-md border border-border/60 bg-muted/30"
               />
             ))}
           </div>
@@ -366,7 +366,7 @@ function NewsletterCompareCard({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-xl border p-4",
+        "flex items-start gap-3 rounded-md border p-4",
         data.is_subscriber
           ? "border-primary/20 bg-primary/[0.04]"
           : "border-border/60 bg-card",

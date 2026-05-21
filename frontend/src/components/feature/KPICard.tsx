@@ -212,9 +212,8 @@ export function KPICard({
   return (
     <Card
       className={cn(
-        "relative gap-0 overflow-hidden py-0 transition-all duration-150",
-        "hover:-translate-y-px hover:border-gray-300 hover:shadow-sm",
-        "dark:hover:border-gray-700",
+        "relative gap-0 overflow-hidden py-0 transition-colors duration-150",
+        "hover:border-gray-300 dark:hover:border-gray-700",
       )}
     >
       {/* Sol accent şeridi — KPI tonuna göre. Hero'da biraz kalın. */}
@@ -238,7 +237,7 @@ export function KPICard({
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-lg",
+              "inline-flex shrink-0 items-center justify-center rounded-md",
               tone.bg,
               hero ? "size-10" : compact ? "size-7" : "size-8",
             )}
@@ -301,7 +300,7 @@ export function KPICard({
           {kpi.change_percentage !== null && (
             <span
               className={cn(
-                "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold shrink-0",
+                "inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
                 isFlat
                   ? "bg-muted text-text-muted dark:bg-gray-800 dark:text-gray-400"
                   : kpi.is_positive
@@ -343,7 +342,7 @@ export function KPICardSkeleton({
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
-              "rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse",
+              "animate-pulse rounded-md bg-gray-100 dark:bg-gray-800",
               hero ? "size-10" : compact ? "size-7" : "size-8",
             )}
           />

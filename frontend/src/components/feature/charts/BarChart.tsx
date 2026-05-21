@@ -2,7 +2,7 @@ import type { ApexOptions } from "apexcharts";
 import { useMemo } from "react";
 import { ApexChart } from "./ApexChart";
 
-import { useChartTheme } from "@/hooks/useChartTheme";
+import { CHART_PALETTE, useChartTheme } from "@/hooks/useChartTheme";
 
 import { ChartEmpty, ChartLoading } from "./ChartEmpty";
 import { ChartErrorBoundary } from "./ChartErrorBoundary";
@@ -37,6 +37,7 @@ export function BarChart({
   const base = useChartTheme();
   // Yatay bar'da sayı etiketi göstermek varsayılan.
   const showLabel = showValueLabel ?? horizontal;
+  const useDistributedColors = !stacked && horizontal && series.length === 1;
 
   // Uzun label'ları truncate (yatay bar'da y axis label'ı 28 karakter sınırı)
   const truncatedCategories = useMemo(
@@ -58,9 +59,11 @@ export function BarChart({
     () => ({
       ...base,
       chart: { ...base.chart, type: "bar", height: computedHeight, stacked },
+      colors: useDistributedColors ? CHART_PALETTE : base.colors,
       plotOptions: {
         bar: {
           horizontal,
+          distributed: useDistributedColors,
           borderRadius: 6,
           borderRadiusApplication: "end",
           columnWidth: "55%",
@@ -73,7 +76,11 @@ export function BarChart({
         enabled: showLabel,
         formatter: (val: number) =>
           valueFormatter ? valueFormatter(val) : val.toLocaleString("tr-TR"),
-        style: { fontSize: "11px", fontWeight: 600, colors: ["#52525b"] },
+        style: {
+          fontSize: "11px",
+          fontWeight: 600,
+          colors: [base.theme?.mode === "dark" ? "#d0d5dd" : "#344054"],
+        },
         offsetX: horizontal ? 28 : 0,
         offsetY: horizontal ? 0 : -20,
       },
@@ -131,6 +138,7 @@ export function BarChart({
       showLabel,
       series.length,
       stacked,
+      useDistributedColors,
     ],
   );
 

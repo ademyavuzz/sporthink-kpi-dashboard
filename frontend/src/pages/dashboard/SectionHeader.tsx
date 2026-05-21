@@ -52,7 +52,7 @@ export function SectionHeader({
     <div className="flex items-center gap-3">
       <span
         className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-xl",
+          "inline-flex size-9 shrink-0 items-center justify-center rounded-md",
           bg,
         )}
       >

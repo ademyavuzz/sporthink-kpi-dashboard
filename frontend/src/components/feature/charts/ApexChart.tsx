@@ -27,7 +27,13 @@ interface ApexChartProps {
  * StrictMode'un synchronous double-cycle'ı ilk frame'den önce tamamlanır,
  * böylece chart yalnızca ikinci (gerçek) mount'ta yaratılır.
  */
-export function ApexChart({ options, series, type, height, width }: ApexChartProps) {
+export function ApexChart({
+  options,
+  series,
+  type,
+  height,
+  width,
+}: ApexChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ApexCharts | null>(null);
 
@@ -71,7 +77,7 @@ export function ApexChart({ options, series, type, height, width }: ApexChartPro
         { ...options, chart: { ...options.chart, type, height, width } },
         false,
         true,
-        false
+        false,
       );
     } catch {
       // Update sırasında DOM kaybolursa sessiz geç

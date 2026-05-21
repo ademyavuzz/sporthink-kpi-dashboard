@@ -135,7 +135,7 @@ export function GlobalFilterBar() {
   const total = countActiveFilters(store);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2.5 shadow-theme-xs">
       <Button
         type="button"
         variant="outline"
@@ -162,7 +162,7 @@ export function GlobalFilterBar() {
               type="button"
               onClick={chip.onRemove}
               className={cn(
-                "group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted",
+                "group inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted",
               )}
               title={t("filters:remove_chip")}
             >

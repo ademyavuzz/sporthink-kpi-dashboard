@@ -97,7 +97,7 @@ export default function GoogleAdsPage() {
                   },
                   {
                     name: t("google_ads.series_ad_spend"),
-                    color: "#8b5cf6",
+                    color: "#7a5af8",
                     data: data.daily_series.map((p) => ({
                       x: dayjs(p.date).valueOf(),
                       y: toNumber(p.spend) ?? 0,
