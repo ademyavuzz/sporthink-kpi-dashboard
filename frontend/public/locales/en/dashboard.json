@@ -54,7 +54,10 @@
     "geo_north": "North",
     "geo_south": "South",
     "cmp_sequential": "Previous Period",
-    "cmp_yoy": "Year over Year"
+    "cmp_yoy": "Year over Year",
+    "product_share_card_title": "Sales Distribution by Product",
+    "product_share_hint": "Share of units sold across top-selling products",
+    "product_share_center": "Total Units"
   },
   "channel_analysis": {
     "title": "Channel Analysis",

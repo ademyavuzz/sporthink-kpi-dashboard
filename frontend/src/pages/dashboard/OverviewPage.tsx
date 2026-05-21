@@ -92,7 +92,8 @@ export default function OverviewPage() {
   const selectedCity = cities[0] ?? null;
 
   const channelLabels = useMemo(
-    () => data?.channels.map((c) => c.channel ?? t("overview.channel_other")) ?? [],
+    () =>
+      data?.channels.map((c) => c.channel ?? t("overview.channel_other")) ?? [],
     [data, t],
   );
   const channelValues = useMemo(
@@ -108,6 +109,21 @@ export default function OverviewPage() {
       })) ?? [],
     [data],
   );
+  // En çok satan ürünlerin adet payı — donut için. Adet bazlı: ciro
+  // (line_total) toplam ciroyla bire bir örtüşmediği için satış adedi
+  // kullanılır. Sıfır satışlılar dışlanır; küçük dilimleri DonutChart gruplar.
+  const prod = useMemo(
+    () =>
+      (data?.top_products ?? [])
+        .map((p) => ({
+          label: p.product_name?.trim() || p.sku,
+          value: p.units_sold,
+        }))
+        .filter((x) => x.value > 0),
+    [data],
+  );
+  const prodLabels = useMemo(() => prod.map((x) => x.label), [prod]);
+  const prodValues = useMemo(() => prod.map((x) => x.value), [prod]);
 
   /** Donut slice / legend tıklama → kanal cross-filter. */
   const handleChannelClick = (label: string | null) => {
@@ -155,7 +171,9 @@ export default function OverviewPage() {
       {/* ─── KPI: 6 destek ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {isLoading || !data ? (
-          Array.from({ length: 6 }).map((_, i) => <KPICardSkeleton key={i} compact />)
+          Array.from({ length: 6 }).map((_, i) => (
+            <KPICardSkeleton key={i} compact />
+          ))
         ) : (
           <>
             <KPICard kpi={data.summary.sessions} compact />
@@ -168,87 +186,99 @@ export default function OverviewPage() {
         )}
       </div>
 
-      {/* ─── Şehir haritası + Kanal ───────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <ChartCard
-          title={t("overview.geo_card_title")}
-          hint={t("overview.geo_card_hint")}
-          icon={MapPin}
-          className="lg:col-span-8"
-        >
-            <TurkeyMap
-              data={geo}
-              loading={isLoading}
-              selectedCity={selectedCity}
-              onCityClick={toggleCity}
-            />
-        </ChartCard>
+      {/* ─── Şehir haritası ───────────────────────────────────────── */}
+      <ChartCard
+        title={t("overview.geo_card_title")}
+        hint={t("overview.geo_card_hint")}
+        icon={MapPin}
+      >
+        <TurkeyMap
+          data={geo}
+          loading={isLoading}
+          selectedCity={selectedCity}
+          onCityClick={toggleCity}
+        />
+      </ChartCard>
 
+      {/* ─── Kanal + Yeni vs Tekrarlayan + Funnel ─────────────────── */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         <ChartCard
           title={t("overview.channel_card_title")}
           hint={t("overview.channel_card_hint")}
-          className="lg:col-span-4"
+          className="h-full self-stretch"
         >
-            <DonutChart
-              loading={isLoading}
-              labels={channelLabels}
-              values={channelValues}
-              valueFormatter={formatCurrency}
-              onSliceClick={handleChannelClick}
-              selectedLabel={selectedChannel}
-            />
+          <DonutChart
+            loading={isLoading}
+            labels={channelLabels}
+            values={channelValues}
+            valueFormatter={formatCurrency}
+            onSliceClick={handleChannelClick}
+            selectedLabel={selectedChannel}
+          />
         </ChartCard>
-      </div>
 
-      {/* ─── Trend + Funnel ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <ChartCard
-          title={t("overview.trend_card_title")}
-          icon={TrendingUp}
-          className="lg:col-span-7"
+          title={t("overview.product_share_card_title")}
+          hint={t("overview.product_share_hint")}
+          icon={Package}
+          className="h-full self-stretch"
         >
-            <LineChart
-              loading={isLoading}
-              multiAxis
-              series={
-                data
-                  ? [
-                      {
-                        name: t("overview.series_revenue"),
-                        color: "#e94560",
-                        data: data.daily_series.map((p) => ({
-                          x: dayjs(p.date).valueOf(),
-                          y: toNumber(p.revenue) ?? 0,
-                        })),
-                        formatter: formatCurrency,
-                      },
-                      {
-                        name: t("overview.series_orders"),
-                        color: "#2563eb",
-                        data: data.daily_series.map((p) => ({
-                          x: dayjs(p.date).valueOf(),
-                          y: p.orders,
-                        })),
-                        formatter: formatCount,
-                      },
-                    ]
-                  : []
-              }
-              yFormatter={formatAxisCurrency}
-            />
+          <DonutChart
+            loading={isLoading}
+            labels={prodLabels}
+            values={prodValues}
+            valueFormatter={formatCount}
+            totalLabel={t("overview.product_share_center")}
+          />
         </ChartCard>
 
         <ChartCard
           title={t("overview.funnel_card_title")}
           hint={t("overview.funnel_card_hint")}
-          className="lg:col-span-5"
+          className="h-full self-stretch"
         >
-            <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
+          <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
         </ChartCard>
       </div>
 
+      {/* ─── Ciro & Sipariş trendi ────────────────────────────────── */}
+      <ChartCard title={t("overview.trend_card_title")} icon={TrendingUp}>
+        <LineChart
+          loading={isLoading}
+          multiAxis
+          series={
+            data
+              ? [
+                  {
+                    name: t("overview.series_revenue"),
+                    color: "#e94560",
+                    data: data.daily_series.map((p) => ({
+                      x: dayjs(p.date).valueOf(),
+                      y: toNumber(p.revenue) ?? 0,
+                    })),
+                    formatter: formatCurrency,
+                  },
+                  {
+                    name: t("overview.series_orders"),
+                    color: "#2563eb",
+                    data: data.daily_series.map((p) => ({
+                      x: dayjs(p.date).valueOf(),
+                      y: p.orders,
+                    })),
+                    formatter: formatCount,
+                  },
+                ]
+              : []
+          }
+          yFormatter={formatAxisCurrency}
+        />
+      </ChartCard>
+
       {/* ─── Top ürünler ──────────────────────────────────────────── */}
-      <TopProductsCard products={data?.top_products ?? []} loading={isLoading} />
+      <TopProductsCard
+        products={data?.top_products ?? []}
+        loading={isLoading}
+      />
     </PageShell>
   );
 }
@@ -330,7 +360,9 @@ function FunnelChart({
       <div className="space-y-2">
         {steps.map((s, idx) => {
           const pct = (s.count / max) * 100;
-          const stepLabel = t(`funnel.steps.${s.step}`, { defaultValue: s.label_tr });
+          const stepLabel = t(`funnel.steps.${s.step}`, {
+            defaultValue: s.label_tr,
+          });
           return (
             <div key={s.step}>
               <div className="mb-1 flex items-baseline justify-between text-sm">
@@ -405,123 +437,125 @@ function TopProductsCard({
       icon={Package}
       contentClassName="p-0"
     >
-        <div className="overflow-x-auto">
-          <Table className="table-fixed">
-            <colgroup>
-              <col className="w-[56px]" />
-              <col className="w-[132px]" />
-              <col />
-              <col className="w-[150px]" />
-              <col className="w-[100px]" />
-              <col className="w-[200px]" />
-            </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  #
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("overview.table_sku")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("overview.table_product")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("overview.table_brand")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("overview.table_units")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("overview.table_revenue")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={6} className="px-4 py-3.5">
-                      <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : products.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="px-4 py-12 text-center">
-                    <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-text-muted">
-                      <Package className="size-6 text-text-dim" />
-                      <p className="text-sm font-semibold text-foreground">
-                        {t("overview.top_products_empty_title")}
-                      </p>
-                      <p className="text-xs">{t("overview.top_products_empty_body")}</p>
-                    </div>
+      <div className="overflow-x-auto">
+        <Table className="table-fixed">
+          <colgroup>
+            <col className="w-[56px]" />
+            <col className="w-[132px]" />
+            <col />
+            <col className="w-[150px]" />
+            <col className="w-[100px]" />
+            <col className="w-[200px]" />
+          </colgroup>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
+              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                #
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                {t("overview.table_sku")}
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                {t("overview.table_product")}
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
+                {t("overview.table_brand")}
+              </TableHead>
+              <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                {t("overview.table_units")}
+              </TableHead>
+              <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
+                {t("overview.table_revenue")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell colSpan={6} className="px-4 py-3.5">
+                    <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                   </TableCell>
                 </TableRow>
-              ) : (
-                products.map((p, idx) => {
-                  const rev = toNumber(p.revenue) ?? 0;
-                  const barPct = (rev / maxRevenue) * 100;
-                  return (
-                    <TableRow
-                      key={p.sku}
-                      className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
-                    >
-                      <TableCell className="px-3 py-3.5">
-                        <span
-                          className={cn(
-                            "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                            idx < 3
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-text-muted",
-                          )}
-                        >
-                          {idx + 1}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
-                        {p.sku}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        <span
-                          className="block truncate font-medium text-foreground"
-                          title={p.product_name ?? ""}
-                        >
-                          {p.product_name ?? "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        {p.brand ? (
-                          <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
-                            {p.brand}
-                          </span>
-                        ) : (
-                          <span className="text-text-dim">—</span>
+              ))
+            ) : products.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={6} className="px-4 py-12 text-center">
+                  <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-text-muted">
+                    <Package className="size-6 text-text-dim" />
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("overview.top_products_empty_title")}
+                    </p>
+                    <p className="text-xs">
+                      {t("overview.top_products_empty_body")}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              products.map((p, idx) => {
+                const rev = toNumber(p.revenue) ?? 0;
+                const barPct = (rev / maxRevenue) * 100;
+                return (
+                  <TableRow
+                    key={p.sku}
+                    className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
+                  >
+                    <TableCell className="px-3 py-3.5">
+                      <span
+                        className={cn(
+                          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+                          idx < 3
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-text-muted",
                         )}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                        {formatCount(p.units_sold)}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
-                            <div
-                              className="h-full rounded-full bg-primary/70"
-                              style={{ width: `${Math.max(barPct, 3)}%` }}
-                            />
-                          </div>
-                          <span className="tabular-nums text-sm font-semibold text-foreground">
-                            {formatCurrency(rev)}
-                          </span>
+                      >
+                        {idx + 1}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
+                      {p.sku}
+                    </TableCell>
+                    <TableCell className="px-3 py-3.5 text-sm">
+                      <span
+                        className="block truncate font-medium text-foreground"
+                        title={p.product_name ?? ""}
+                      >
+                        {p.product_name ?? "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-3 py-3.5 text-sm">
+                      {p.brand ? (
+                        <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
+                          {p.brand}
+                        </span>
+                      ) : (
+                        <span className="text-text-dim">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
+                      {formatCount(p.units_sold)}
+                    </TableCell>
+                    <TableCell className="px-3 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
+                          <div
+                            className="h-full rounded-full bg-primary/70"
+                            style={{ width: `${Math.max(barPct, 3)}%` }}
+                          />
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        <span className="tabular-nums text-sm font-semibold text-foreground">
+                          {formatCurrency(rev)}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </ChartCard>
   );
 }

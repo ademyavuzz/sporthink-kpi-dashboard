@@ -54,7 +54,10 @@
     "geo_north": "Kuzey",
     "geo_south": "Güney",
     "cmp_sequential": "Önceki Dönem",
-    "cmp_yoy": "Geçen Yıl"
+    "cmp_yoy": "Geçen Yıl",
+    "product_share_card_title": "Ürün Bazlı Satış Dağılımı",
+    "product_share_hint": "En çok satan ürünlerin adet bazında payı",
+    "product_share_center": "Toplam Adet"
   },
   "channel_analysis": {
     "title": "Kanal Analizi",
