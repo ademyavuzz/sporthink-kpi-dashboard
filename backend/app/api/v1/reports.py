@@ -1,17 +1,17 @@
-"""Reports router — `/api/v1/reports/*`.
+"""Reports router: `/api/v1/reports/*`.
 
 Endpoint'ler:
-- GET    /reports/sections        → bölüm meta listesi (UI checkbox grid)
-- POST   /reports                  → yeni rapor üret (Celery enqueue)
-- GET    /reports                  → geçmiş rapor listesi (en yeni 50)
-- GET    /reports/{id}             → tek rapor durumu (polling)
-- GET    /reports/{id}/download    → tamamlanmış PDF indir
-- DELETE /reports/{id}             → soft delete + dosya temizle
+- GET    /reports/sections        -> bölüm meta listesi (UI checkbox grid)
+- POST   /reports                  -> yeni rapor üret (Celery enqueue)
+- GET    /reports                  -> geçmiş rapor listesi (en yeni 50)
+- GET    /reports/{id}             -> tek rapor durumu (polling)
+- GET    /reports/{id}/download    -> tamamlanmış PDF indir
+- DELETE /reports/{id}             -> soft delete + dosya temizle
 
 İzinler:
-- GET   → REPORTS_VIEW
-- POST  → REPORTS_CREATE
-- DELETE → REPORTS_DELETE
+- GET   -> REPORTS_VIEW
+- POST  -> REPORTS_CREATE
+- DELETE -> REPORTS_DELETE
 """
 
 from __future__ import annotations
@@ -65,7 +65,11 @@ def _to_list_item(r: Report) -> ReportListItem:
 @router.get(
     "/sections",
     response_model=SuccessEnvelope[list[ReportSectionMeta]],
-    summary="PDF rapor için seçilebilir bölümler — UI checkbox grid'i",
+    summary="Rapor bölümlerini listele",
+    description=(
+        "PDF raporuna eklenebilecek bölümlerin meta listesini döner (başlık ve "
+        "anahtar). Rapor oluşturma ekranındaki bölüm seçim ızgarasını besler."
+    ),
 )
 async def list_sections(
     _current_user: User = Depends(require_permission(Permission.REPORTS_VIEW)),
@@ -77,7 +81,13 @@ async def list_sections(
     "",
     response_model=SuccessEnvelope[ReportDetailResponse],
     status_code=201,
-    summary="Yeni rapor üretim isteği — async, Celery worker'a enqueue eder",
+    summary="Yeni PDF rapor oluştur",
+    description=(
+        "Verilen tarih aralığı, seçili bölümler ve dil ile yeni bir PDF rapor "
+        "üretimi başlatır. Üretim asenkrondur; istek Celery worker'a kuyruğa "
+        "alınır. Yanıt, durumu 'pending' olan rapor kaydını döner. İlerleme "
+        "durum sorgusu ile takip edilir."
+    ),
 )
 async def create_report(
     payload: ReportCreateRequest,
@@ -99,7 +109,12 @@ async def create_report(
 @router.get(
     "",
     response_model=PaginatedEnvelope[ReportListItem],
-    summary="Raporlar — sayfalı (en yeni → eski)",
+    summary="Raporları listele",
+    description=(
+        "Oluşturulmuş raporları en yeniden eskiye doğru sayfalı olarak döner. "
+        "Her kayıt rapor adı, tarih aralığı, durum, dosya boyutu ve zaman "
+        "damgalarını içerir."
+    ),
 )
 async def list_reports(
     page: int = Query(1, ge=1),
@@ -119,7 +134,11 @@ async def list_reports(
 @router.get(
     "/{report_id}",
     response_model=SuccessEnvelope[ReportDetailResponse],
-    summary="Tek rapor durumu — UI polling kullanır",
+    summary="Rapor durumunu getir",
+    description=(
+        "Tek bir raporun güncel durumunu ve detayını döner. Frontend, rapor "
+        "üretimi tamamlanana kadar bu ucu düzenli aralıklarla sorgular (polling)."
+    ),
 )
 async def get_report(
     report_id: int = Path(..., ge=1),
@@ -133,7 +152,11 @@ async def get_report(
 @router.get(
     "/{report_id}/download",
     response_class=FileResponse,
-    summary="Tamamlanmış raporu PDF olarak indir",
+    summary="Raporu PDF olarak indir",
+    description=(
+        "Tamamlanmış bir raporun PDF dosyasını indirir. Rapor henüz hazır "
+        "değilse 422, dosya bulunamazsa 404 döner."
+    ),
 )
 async def download_report(
     report_id: int = Path(..., ge=1),
@@ -157,7 +180,10 @@ async def download_report(
 @router.delete(
     "/{report_id}",
     response_model=SuccessEnvelope[dict],
-    summary="Rapor kaydını soft delete + dosyayı sil",
+    summary="Raporu sil",
+    description=(
+        "Rapor kaydını yumuşak siler (soft delete) ve üretilmiş PDF dosyasını diskten kaldırır."
+    ),
 )
 async def delete_report(
     report_id: int = Path(..., ge=1),

@@ -118,12 +118,13 @@ function UsersTab() {
 
   // Pattern C: backend her zaman ≥1 aktif Süper Admin invariant'ını korur.
   // Bu sayım UI guard'ı için — son admin durumunda buton/aksiyon disable.
+  // Backend error.code (örn: EMAIL_ALREADY_EXISTS, LAST_SUPER_ADMIN) için
+  // errors namespace'inde yerelleştirilmiş karşılık varsa onu göster; yoksa
+  // backend'in default (İngilizce) mesajına düş.
   const translateError = (err: unknown, fallbackKey: string): string => {
     if (err instanceof ApiError) {
-      if (err.code === "LAST_SUPER_ADMIN") return t("errors:LAST_SUPER_ADMIN");
-      if (err.code === "SELF_DESTRUCTIVE_ACTION_FORBIDDEN") {
-        return t("errors:SELF_DESTRUCTIVE_ACTION_FORBIDDEN");
-      }
+      const key = `errors:${err.code}`;
+      if (i18n.exists(key)) return t(key, err.params ?? {});
       return err.message;
     }
     return t(fallbackKey);

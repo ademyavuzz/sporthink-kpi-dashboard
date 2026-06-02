@@ -1,7 +1,7 @@
-"""Auth router — `/api/v1/auth/*`.
+"""Auth router: `/api/v1/auth/*`.
 
 Bkz: docs/overview/06-api-spec.md
-     docs/overview/05-rbac-security.md §5.4 token & §5.7 cookie kuralları
+     docs/overview/05-rbac-security.md §5.4 token, §5.7 cookie kuralları
 
 Refresh token httpOnly cookie ile döner; body'de yer almaz. Frontend axios
 client `withCredentials: true` ile bu cookie'yi otomatik gönderir.
@@ -77,7 +77,13 @@ def _client_ip(request: Request) -> str | None:
 @router.post(
     "/login",
     response_model=SuccessEnvelope[TokenResponse],
-    summary="Email + parola ile giriş",
+    summary="Email ve parola ile giriş yap",
+    description=(
+        "Email ve parola ile kimlik doğrular. Başarılı olursa access token "
+        "ve kullanıcı bilgisini döner; refresh token httpOnly cookie olarak "
+        "ayarlanır. 'Beni hatırla' işaretlenmezse cookie oturumluk olur. "
+        "Hatalı denemeler hesap kilitlenmesine yol açabilir."
+    ),
 )
 async def login(
     body: LoginRequest,
@@ -107,7 +113,12 @@ async def login(
 @router.post(
     "/refresh",
     response_model=SuccessEnvelope[TokenResponse],
-    summary="Refresh cookie ile yeni access token üret",
+    summary="Refresh cookie ile yeni access token al",
+    description=(
+        "httpOnly refresh cookie'sini kullanarak yeni bir access token üretir "
+        "ve refresh token'ı döndürür (rotasyon). Cookie yoksa veya geçersizse "
+        "401 döner. Frontend, access token süresi dolduğunda otomatik çağırır."
+    ),
 )
 async def refresh(
     request: Request,
@@ -139,17 +150,21 @@ async def refresh(
 @router.post(
     "/logout",
     response_model=SuccessEnvelope[dict],
-    summary="Refresh token'ı revoke et ve cookie'yi temizle",
+    summary="Oturumu kapat",
+    description=(
+        "Aktif refresh token'ı iptal eder ve refresh cookie'sini temizler. "
+        "İşlem idempotenttir: token yoksa veya süresi dolmuşsa da 200 döner."
+    ),
 )
 async def logout(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[dict]:
-    """Logout idempotenttir — token yoksa veya geçersizse de 200 döner."""
+    """Logout idempotenttir; token yoksa veya geçersizse de 200 döner."""
     refresh_jwt = request.cookies.get(REFRESH_COOKIE_NAME)
 
-    # Mevcut user'ı yumuşak çek — token süresi dolduysa bile logout cookie'yi
+    # Mevcut user'ı yumuşak çek; token süresi dolduysa bile logout cookie'yi
     # temizlemeli.
     user: User | None = None
     auth_header = request.headers.get("authorization")
@@ -173,7 +188,12 @@ async def logout(
 @router.get(
     "/me",
     response_model=SuccessEnvelope[MeResponse],
-    summary="Mevcut kullanıcı + izin listesi",
+    summary="Mevcut kullanıcı ve izin listesi",
+    description=(
+        "Oturum açan kullanıcının profil bilgilerini ve sahip olduğu izin "
+        "kodlarını döner. Frontend, menü ve buton görünürlüğünü bu izinlere "
+        "göre belirler."
+    ),
 )
 async def me(
     current_user: User = Depends(get_current_user),
@@ -192,6 +212,11 @@ async def me(
     "/me",
     response_model=SuccessEnvelope[UserResponse],
     summary="Kendi profil bilgilerini güncelle",
+    description=(
+        "Kullanıcının kendi profil alanlarını günceller (ad, soyad, telefon, "
+        "departman, görev, biyografi, sosyal medya bağlantıları vb.). Email "
+        "bu uçtan değiştirilemez; email değişikliği yönetici işidir."
+    ),
 )
 async def update_me(
     body: MeUpdateRequest,
@@ -199,7 +224,7 @@ async def update_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[UserResponse]:
-    """Email değişmiyor — admin işidir. Diğer profil alanları (ad, soyad,
+    """Email değişmiyor (yönetici işidir). Diğer profil alanları (ad, soyad,
     telefon, departman, görev) güncellenebilir."""
     user = await profile_service.update_me(
         db,
@@ -226,7 +251,11 @@ async def update_me(
 @router.post(
     "/me/avatar",
     response_model=SuccessEnvelope[AvatarResponse],
-    summary="Profil resmi yükle (PNG/JPG/WEBP, max 2MB)",
+    summary="Profil resmi yükle",
+    description=(
+        "Kullanıcının profil resmini yükler. Desteklenen biçimler: PNG, JPG, "
+        "WEBP. En fazla 2 MB. Yüklenen resmin erişilebilir URL'i döner."
+    ),
 )
 async def upload_avatar(
     request: Request,
@@ -250,6 +279,10 @@ async def upload_avatar(
     "/me/avatar",
     response_model=SuccessEnvelope[AvatarResponse],
     summary="Profil resmini kaldır",
+    description=(
+        "Kullanıcının yüklediği profil resmini kaldırır ve varsayılan avatara "
+        "döner. Güncel avatar URL'i döner."
+    ),
 )
 async def remove_avatar(
     request: Request,
@@ -268,7 +301,12 @@ async def remove_avatar(
 @router.post(
     "/me/change-password",
     response_model=SuccessEnvelope[ChangePasswordResponse],
-    summary="Kendi şifreni değiştir (mevcut şifre doğrulamasıyla)",
+    summary="Kendi şifreni değiştir",
+    description=(
+        "Kullanıcının kendi şifresini değiştirir. Mevcut şifre doğrulaması "
+        "ister. Başarılı olunca tüm aktif refresh token'lar iptal edilir ve "
+        "refresh cookie temizlenir; kullanıcının yeniden giriş yapması gerekir."
+    ),
 )
 async def change_password(
     body: ChangePasswordRequest,
@@ -277,7 +315,7 @@ async def change_password(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[ChangePasswordResponse]:
-    """Başarılı olunca tüm aktif refresh tokenlar revoke edilir; refresh
+    """Başarılı olunca tüm aktif refresh token'lar iptal edilir; refresh
     cookie de temizlenir. Frontend'in kullanıcıyı login sayfasına yönlendirmesi
     beklenir."""
     await profile_service.change_password(
@@ -293,7 +331,7 @@ async def change_password(
 
 
 def _mask_email(email: str) -> str:
-    """`adem.yavuz@gmail.com` → `ad***@gmail.com` — token verify response'da."""
+    """`adem.yavuz@gmail.com` -> `ad***@gmail.com` (token verify response'da)."""
     try:
         local, domain = email.split("@", 1)
     except ValueError:
@@ -306,7 +344,13 @@ def _mask_email(email: str) -> str:
 @router.post(
     "/forgot-password",
     response_model=SuccessEnvelope[ForgotPasswordResponse],
-    summary="Şifre sıfırlama linki email ile gönderir",
+    summary="Şifre sıfırlama linki iste",
+    description=(
+        "Verilen email adresine şifre sıfırlama bağlantısı gönderir. "
+        "Kayıtlı email adreslerinin sızmaması için yanıt her durumda aynıdır "
+        "(`{ sent: true }`); adres kayıtlı değilse veya pasifse e-posta "
+        "gönderilmez ama yanıt değişmez."
+    ),
 )
 async def forgot_password(
     body: ForgotPasswordRequest,
@@ -315,7 +359,7 @@ async def forgot_password(
 ) -> SuccessEnvelope[ForgotPasswordResponse]:
     """Email enum'unu sızdırmamak için yanıt her zaman aynı (`{sent: true}`).
 
-    Kullanıcı yoksa ya da pasifse sessizce no-op olur — saldırgan response'tan
+    Kullanıcı yoksa ya da pasifse sessizce no-op olur; saldırgan response'tan
     email kayıtlı mı anlayamaz. Audit log'a yine yazılır.
     """
     await password_reset_service.request_password_reset(
@@ -330,7 +374,13 @@ async def forgot_password(
 @router.get(
     "/verify-reset-token",
     response_model=SuccessEnvelope[VerifyResetTokenResponse],
-    summary="Davet/sıfırlama token'ı geçerli mi?",
+    summary="Davet veya sıfırlama token'ını doğrula",
+    description=(
+        "Şifre sıfırlama veya davet token'ının geçerli olup olmadığını "
+        "kontrol eder. Geçerliyse token'ın amacını, maskelenmiş email adresini "
+        "ve kullanıcının adını döner. Her iki durumda da 200 döner; sonuç "
+        "`data.valid` alanından okunur."
+    ),
 )
 async def verify_reset_token(
     token: str,
@@ -340,7 +390,7 @@ async def verify_reset_token(
 
     Geçerli/geçersiz iki durumun ikisinde de 200 + envelope döner; frontend
     `data.valid` field'ına bakar. Exception fırlatmak (eskiden 422) endpoint
-    adının semantiğine (verify = sorgu) ters düşüyordu — UX olarak tek path
+    adının semantiğine (verify = sorgu) ters düşüyordu; UX olarak tek path
     daha temiz.
     """
     try:
@@ -361,7 +411,12 @@ async def verify_reset_token(
 @router.post(
     "/reset-password",
     response_model=SuccessEnvelope[ResetPasswordResponse],
-    summary="Token ile yeni şifre belirler (davet veya sıfırlama)",
+    summary="Token ile yeni şifre belirle",
+    description=(
+        "Geçerli bir davet veya sıfırlama token'ı ile kullanıcının yeni "
+        "şifresini belirler. Token tek kullanımlıktır; işlem sonrası tüm aktif "
+        "refresh token'lar iptal edilir ve kullanıcının giriş yapması gerekir."
+    ),
 )
 async def reset_password(
     body: ResetPasswordRequest,

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/feature/ChartCard";
+import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import {
@@ -22,6 +23,7 @@ import {
   toNumber,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { TopProductRow } from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
@@ -50,6 +52,32 @@ export default function ProductsPage() {
     [topProducts],
   );
 
+  const productExportColumns = useMemo(
+    () => [
+      {
+        header: t("products.col_sku"),
+        accessor: (p: TopProductRow) => p.sku,
+      },
+      {
+        header: t("products.col_product"),
+        accessor: (p: TopProductRow) => p.product_name,
+      },
+      {
+        header: t("products.col_brand"),
+        accessor: (p: TopProductRow) => p.brand,
+      },
+      {
+        header: t("products.col_units"),
+        accessor: (p: TopProductRow) => p.units_sold,
+      },
+      {
+        header: t("products.col_revenue"),
+        accessor: (p: TopProductRow) => toNumber(p.revenue),
+      },
+    ],
+    [t],
+  );
+
   return (
     <PageShell>
       <DashboardHeader title={t("products.title")} range={range} onChangeRange={setRange} />
@@ -63,11 +91,12 @@ export default function ProductsPage() {
       </div>
 
       {/* Kategori + Marka */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <ChartCard
           title={t("products.by_category_card_title")}
           hint={t("products.by_category_hint")}
           icon={Tag}
+          className="h-full self-stretch"
         >
           <BarChart
             loading={isLoading}
@@ -92,6 +121,7 @@ export default function ProductsPage() {
           title={t("products.by_brand_card_title")}
           hint={t("products.by_brand_hint")}
           icon={Package}
+          className="h-full self-stretch"
         >
           <BarChart
             loading={isLoading}
@@ -119,6 +149,16 @@ export default function ProductsPage() {
         hint={t("products.top_products_hint")}
         icon={Trophy}
         contentClassName="p-0"
+        action={
+          <ExportMenu
+            rows={topProducts}
+            columns={productExportColumns}
+            fileBase="products-top"
+            dateFrom={range.date_from}
+            dateTo={range.date_to}
+            sheetName={t("products.top_products_card_title")}
+          />
+        }
       >
         <div className="overflow-x-auto">
           <Table className="table-fixed">

@@ -34,6 +34,7 @@
     "import": "Data Import",
     "user_management": "Users / Roles",
     "audit_logs": "Audit Logs",
+    "channel_mapping": "Channel Mapping",
     "notifications": "Notifications",
     "settings": "Settings",
     "reports": "Reports"
@@ -64,10 +65,24 @@
   "preset_custom": "Custom",
   "other_bucket": "Other",
   "total": "Total",
+  "columns": {
+    "button": "Columns",
+    "menu_label": "Manage columns",
+    "reset": "Reset to default",
+    "drag_hint": "Drag column headers to reorder"
+  },
   "pagination": {
     "previous": "Previous",
     "next": "Next",
     "page_of": "Page {{page}} / {{totalPages}}",
     "total_items": "{{total}} records"
+  },
+  "export": {
+    "button": "Export",
+    "menu_label": "Export data",
+    "as_csv": "Download as CSV",
+    "as_xlsx": "Download as Excel (XLSX)",
+    "success_csv": "CSV file downloaded",
+    "success_xlsx": "Excel file downloaded"
   }
 }

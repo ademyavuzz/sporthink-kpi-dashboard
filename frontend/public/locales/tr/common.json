@@ -34,6 +34,7 @@
     "import": "Veri Import",
     "user_management": "Kullanıcı / Roller",
     "audit_logs": "Denetim Kayıtları",
+    "channel_mapping": "Kanal Eşleme",
     "notifications": "Bildirimler",
     "settings": "Ayarlar",
     "reports": "Raporlar"
@@ -64,10 +65,24 @@
   "preset_custom": "Özel",
   "other_bucket": "Diğer",
   "total": "Toplam",
+  "columns": {
+    "button": "Kolonlar",
+    "menu_label": "Kolonları yönet",
+    "reset": "Varsayılana dön",
+    "drag_hint": "Sütun başlıklarını sürükleyerek yeniden sıralayın"
+  },
   "pagination": {
     "previous": "Önceki",
     "next": "Sonraki",
     "page_of": "Sayfa {{page}} / {{totalPages}}",
     "total_items": "{{total}} kayıt"
+  },
+  "export": {
+    "button": "Dışa aktar",
+    "menu_label": "Veriyi dışa aktar",
+    "as_csv": "CSV olarak indir",
+    "as_xlsx": "Excel (XLSX) olarak indir",
+    "success_csv": "CSV dosyası indirildi",
+    "success_xlsx": "Excel dosyası indirildi"
   }
 }

@@ -25,6 +25,21 @@ async def get_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_any_by_email(db: AsyncSession, email: str) -> User | None:
+    """Email lookup; soft-deleted DAHİL.
+
+    `users.email` üzerinde plain UNIQUE constraint var (soft-delete için
+    partial-unique uygulanmamış), bu yüzden bir email'e karşılık en fazla
+    tek satır olur. Davet/oluşturma akışı bu helper ile soft-deleted bir
+    kaydı tespit edip reaktive edebilir (yeni satır insert etmek 1062
+    Duplicate entry'ye düşerdi). Email lowercase normalize edilir.
+    """
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).where(User.email == email.lower().strip())
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_by_id(db: AsyncSession, user_id: int) -> User | None:
     result = await db.execute(
         select(User)

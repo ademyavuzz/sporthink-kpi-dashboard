@@ -53,6 +53,31 @@ export interface AuditLogItem {
   created_at: string | null;
 }
 
+// --- Channel Mappings ---
+
+export interface ChannelMappingItem {
+  id: number;
+  source: string;
+  medium: string;
+  channel_group: string;
+  is_auto_assigned: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChannelMappingCreate {
+  source: string;
+  medium: string;
+  channel_group: string;
+  notes?: string | null;
+}
+
+export interface ChannelMappingUpdate {
+  channel_group?: string;
+  notes?: string | null;
+}
+
 // --- Saved Views ---
 
 export interface SavedViewItem {

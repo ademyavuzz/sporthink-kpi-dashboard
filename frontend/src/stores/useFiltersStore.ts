@@ -34,6 +34,11 @@ export interface FiltersState {
   selected_devices: string[];
   selected_cities: string[];
   selected_campaigns: string[];
+  // E-ticaret boyut filtreleri (backend: /dashboard/ecom)
+  selected_categories: string[];
+  selected_brands: string[];
+  selected_statuses: string[];
+  selected_payment_methods: string[];
   // Gelişmiş range filtreler
   revenue_range: RangeFilter;
   orders_range: RangeFilter;
@@ -51,6 +56,10 @@ export interface FiltersState {
   toggleCity: (city: string) => void;
   setSelectedCampaigns: (campaigns: string[]) => void;
   toggleCampaign: (campaign: string) => void;
+  setSelectedCategories: (categories: string[]) => void;
+  setSelectedBrands: (brands: string[]) => void;
+  setSelectedStatuses: (statuses: string[]) => void;
+  setSelectedPaymentMethods: (paymentMethods: string[]) => void;
   setRevenueRange: (r: RangeFilter) => void;
   setOrdersRange: (r: RangeFilter) => void;
   setRoasRange: (r: RangeFilter) => void;
@@ -75,6 +84,10 @@ export const useFiltersStore = create<FiltersState>()(
       selected_devices: [],
       selected_cities: [],
       selected_campaigns: [],
+      selected_categories: [],
+      selected_brands: [],
+      selected_statuses: [],
+      selected_payment_methods: [],
       revenue_range: { ..._emptyRange },
       orders_range: { ..._emptyRange },
       roas_range: { ..._emptyRange },
@@ -110,6 +123,11 @@ export const useFiltersStore = create<FiltersState>()(
             ? s.selected_campaigns.filter((c) => c !== campaign)
             : [...s.selected_campaigns, campaign],
         })),
+      setSelectedCategories: (categories) => set({ selected_categories: categories }),
+      setSelectedBrands: (brands) => set({ selected_brands: brands }),
+      setSelectedStatuses: (statuses) => set({ selected_statuses: statuses }),
+      setSelectedPaymentMethods: (paymentMethods) =>
+        set({ selected_payment_methods: paymentMethods }),
       setRevenueRange: (r) => set({ revenue_range: r }),
       setOrdersRange: (r) => set({ orders_range: r }),
       setRoasRange: (r) => set({ roas_range: r }),
@@ -120,6 +138,10 @@ export const useFiltersStore = create<FiltersState>()(
           selected_devices: [],
           selected_cities: [],
           selected_campaigns: [],
+          selected_categories: [],
+          selected_brands: [],
+          selected_statuses: [],
+          selected_payment_methods: [],
           revenue_range: { ..._emptyRange },
           orders_range: { ..._emptyRange },
           roas_range: { ..._emptyRange },
@@ -140,6 +162,10 @@ export function countActiveFilters(s: FiltersState): number {
   n += s.selected_devices.length > 0 ? 1 : 0;
   n += s.selected_cities.length > 0 ? 1 : 0;
   n += s.selected_campaigns.length > 0 ? 1 : 0;
+  n += s.selected_categories.length > 0 ? 1 : 0;
+  n += s.selected_brands.length > 0 ? 1 : 0;
+  n += s.selected_statuses.length > 0 ? 1 : 0;
+  n += s.selected_payment_methods.length > 0 ? 1 : 0;
   n += s.revenue_range.min !== null || s.revenue_range.max !== null ? 1 : 0;
   n += s.orders_range.min !== null || s.orders_range.max !== null ? 1 : 0;
   n += s.roas_range.min !== null || s.roas_range.max !== null ? 1 : 0;

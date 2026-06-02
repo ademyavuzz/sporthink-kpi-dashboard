@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import {
   CreditCard,
   MapPin,
@@ -10,30 +11,26 @@ import {
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 
 import { ChartCard } from "@/components/feature/ChartCard";
+import { ExportMenu } from "@/components/feature/ExportMenu";
 import { OrderDetailDialog } from "@/components/feature/OrderDetailDialog";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { ChartErrorBoundary } from "@/components/feature/charts/ChartErrorBoundary";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
-import { EcommerceFilters } from "@/components/feature/filters/EcommerceFilters";
-import {
-  emptyEcomFilter,
-  type EcomFilterValue,
-} from "@/components/feature/filters/ecomFilter";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
+import { useFilterUrlSync } from "@/lib/filter-url";
 import {
   formatAxisCurrency,
   formatCount,
@@ -41,8 +38,191 @@ import {
   toNumber,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useFiltersStore } from "@/stores/useFiltersStore";
+import type { OrderListRow, TopProductRow } from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
+
+/** Top urun tablosu satir-render baglami (siralama + bar genisligi icin). */
+interface TopProductCtx {
+  index: number;
+  maxRevenue: number;
+}
+
+interface TopProductColumn extends ColumnDef {
+  width: string;
+  numeric?: boolean;
+  cell: (row: TopProductRow, ctx: TopProductCtx) => ReactNode;
+  /** Disa aktarmada kullanilacak ham hucre degeri (formatsiz). */
+  exportValue: (row: TopProductRow, ctx: TopProductCtx) => string | number | null;
+}
+
+const TOP_PRODUCT_COLUMNS: TopProductColumn[] = [
+  {
+    id: "rank",
+    labelKey: "ecom.col_rank",
+    required: true,
+    width: "w-[52px]",
+    cell: (_p, { index }) => (
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+          index < 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+        )}
+      >
+        {index + 1}
+      </span>
+    ),
+    exportValue: (_p, { index }) => index + 1,
+  },
+  {
+    id: "sku",
+    labelKey: "ecom.col_sku",
+    width: "w-[132px]",
+    cell: (p) => (
+      <span className="font-mono text-xs text-text-muted">{p.sku}</span>
+    ),
+    exportValue: (p) => p.sku,
+  },
+  {
+    id: "product",
+    labelKey: "ecom.col_product",
+    width: "",
+    cell: (p) => (
+      <span
+        className="block truncate text-sm font-medium text-foreground"
+        title={p.product_name ?? ""}
+      >
+        {p.product_name ?? "-"}
+      </span>
+    ),
+    exportValue: (p) => p.product_name,
+  },
+  {
+    id: "brand",
+    labelKey: "ecom.col_brand",
+    width: "w-[150px]",
+    cell: (p) =>
+      p.brand ? (
+        <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
+          {p.brand}
+        </span>
+      ) : (
+        <span className="text-text-dim">-</span>
+      ),
+    exportValue: (p) => p.brand,
+  },
+  {
+    id: "units",
+    labelKey: "ecom.col_units",
+    width: "w-[100px]",
+    numeric: true,
+    cell: (p) => (
+      <span className="tabular-nums text-sm">{formatCount(p.units_sold)}</span>
+    ),
+    exportValue: (p) => p.units_sold,
+  },
+  {
+    id: "revenue",
+    labelKey: "ecom.col_revenue",
+    width: "w-[200px]",
+    numeric: true,
+    cell: (p, { maxRevenue }) => {
+      const rev = toNumber(p.revenue) ?? 0;
+      const barPct = (rev / maxRevenue) * 100;
+      return (
+        <div className="flex items-center justify-end gap-2">
+          <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
+            <div
+              className="h-full rounded-full bg-primary/70"
+              style={{ width: `${Math.max(barPct, 3)}%` }}
+            />
+          </div>
+          <span className="tabular-nums text-sm font-semibold text-foreground">
+            {formatCurrency(rev)}
+          </span>
+        </div>
+      );
+    },
+    exportValue: (p) => toNumber(p.revenue),
+  },
+];
+
+interface OrderColumn extends ColumnDef {
+  width: string;
+  numeric?: boolean;
+  cell: (row: OrderListRow, t: TFunction) => ReactNode;
+  /** Disa aktarmada kullanilacak hucre degeri (gerektiginde t() ile cevrili). */
+  exportValue: (row: OrderListRow, t: TFunction) => string | number | null;
+}
+
+const ORDER_COLUMNS: OrderColumn[] = [
+  {
+    id: "order_id",
+    labelKey: "ecom.col_order_id",
+    width: "w-[120px]",
+    cell: (o) => (
+      <span className="font-mono text-xs text-text-muted">{o.order_id}</span>
+    ),
+    exportValue: (o) => o.order_id,
+  },
+  {
+    id: "date",
+    labelKey: "ecom.col_date",
+    width: "w-[110px]",
+    cell: (o) => (
+      <span className="text-xs tabular-nums text-text-muted">
+        {dayjs(o.order_date).format("DD.MM.YYYY")}
+      </span>
+    ),
+    exportValue: (o) => dayjs(o.order_date).format("DD.MM.YYYY"),
+  },
+  {
+    id: "customer",
+    labelKey: "ecom.col_customer",
+    width: "",
+    cell: (o) => (
+      <span className="block truncate text-sm" title={o.customer_name ?? o.customer_id}>
+        {o.customer_name ?? (
+          <span className="font-mono text-xs text-text-muted">{o.customer_id}</span>
+        )}
+      </span>
+    ),
+    exportValue: (o) => o.customer_name ?? o.customer_id,
+  },
+  {
+    id: "amount",
+    labelKey: "ecom.col_amount",
+    width: "w-[120px]",
+    numeric: true,
+    cell: (o) => (
+      <span className="text-sm font-semibold tabular-nums text-foreground">
+        {formatCurrency(o.net_revenue)}
+      </span>
+    ),
+    exportValue: (o) => toNumber(o.net_revenue),
+  },
+  {
+    id: "status",
+    labelKey: "ecom.col_status",
+    width: "w-[120px]",
+    cell: (o) => <StatusPill status={o.order_status} />,
+    exportValue: (o, t) =>
+      t(`ecom.status_${o.order_status}`, { defaultValue: o.order_status }),
+  },
+  {
+    id: "payment",
+    labelKey: "ecom.col_payment",
+    width: "w-[140px]",
+    cell: (o, t) => (
+      <span className="text-xs text-text-muted">
+        {t(`ecom.payment_${o.payment_method}`, { defaultValue: o.payment_method })}
+      </span>
+    ),
+    exportValue: (o, t) =>
+      t(`ecom.payment_${o.payment_method}`, { defaultValue: o.payment_method }),
+  },
+];
 
 /**
  * E-Ticaret sayfasi. Filtreli (kategori/marka/durum/odeme) 6 KPI,
@@ -51,12 +231,23 @@ import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
  */
 export default function EcommercePage() {
   const { t } = useTranslation("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  useFilterUrlSync(searchParams, setSearchParams);
+
   const [range, setRange] = useDashboardRange();
-  const [filters, setFilters] = useState<EcomFilterValue>(emptyEcomFilter);
   const [orderDialog, setOrderDialog] = useState<{
     open: boolean;
     orderPkId: number | null;
   }>({ open: false, orderPkId: null });
+
+  const filters = useFiltersStore(
+    useShallow((s) => ({
+      categories: s.selected_categories,
+      brands: s.selected_brands,
+      statuses: s.selected_statuses,
+      payment_methods: s.selected_payment_methods,
+    })),
+  );
 
   const q = useQuery({
     queryKey: ["dashboard", "ecom", range.date_from, range.date_to, filters],
@@ -84,16 +275,42 @@ export default function EcommercePage() {
     [topProducts],
   );
 
+  const productColumns = useColumnManager("ecom-top-products", TOP_PRODUCT_COLUMNS);
+  const orderColumns = useColumnManager("ecom-orders", ORDER_COLUMNS);
+
+  const productExportColumns = useMemo(
+    () =>
+      productColumns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (p: TopProductRow) =>
+          col.exportValue(p, {
+            index: topProducts.indexOf(p),
+            maxRevenue: maxProductRevenue,
+          }),
+      })),
+    [productColumns.visibleColumns, t, topProducts, maxProductRevenue],
+  );
+
+  const orderExportColumns = useMemo(
+    () =>
+      orderColumns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (o: OrderListRow) => col.exportValue(o, t),
+      })),
+    [orderColumns.visibleColumns, t],
+  );
+
   return (
     <PageShell>
-      <DashboardHeader title={t("ecom.title")} range={range} onChangeRange={setRange} />
-
-      <div className="sticky top-0 z-20 rounded-md border border-border/70 bg-card/90 px-3 py-2.5 shadow-theme-xs backdrop-blur">
-        <EcommerceFilters value={filters} onChange={setFilters} />
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+        <DashboardHeader title={t("ecom.title")} range={range} onChangeRange={setRange} />
+        <GlobalFilterBar
+          fields={["categories", "brands", "statuses", "payment_methods"]}
+        />
       </div>
 
       {/* KPI kartlari */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-6">
         {isLoading || !data
           ? Array.from({ length: 6 }).map((_, i) => <KPICardSkeleton key={i} compact />)
           : (
@@ -148,11 +365,12 @@ export default function EcommercePage() {
       </ChartCard>
 
       {/* Kategori + Cihaz */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <ChartCard
           title={t("ecom.by_category_card_title")}
           hint={t("ecom.by_category_hint")}
           icon={Tag}
+          className="h-full self-stretch"
         >
           <ChartErrorBoundary>
             <DonutChart
@@ -173,6 +391,7 @@ export default function EcommercePage() {
           title={t("ecom.by_device_card_title")}
           hint={t("ecom.by_device_hint")}
           icon={Smartphone}
+          className="h-full self-stretch"
         >
           <ChartErrorBoundary>
             <DonutChart
@@ -195,12 +414,12 @@ export default function EcommercePage() {
       </div>
 
       {/* Sehir + Odeme */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         <ChartCard
           title={t("ecom.by_city_card_title")}
           hint={t("ecom.by_city_hint")}
           icon={MapPin}
-          className="lg:col-span-2"
+          className="h-full self-stretch lg:col-span-2"
         >
           <ChartErrorBoundary>
             <BarChart
@@ -222,6 +441,7 @@ export default function EcommercePage() {
           title={t("ecom.by_payment_card_title")}
           hint={t("ecom.by_payment_hint")}
           icon={CreditCard}
+          className="h-full self-stretch"
         >
           <ChartErrorBoundary>
             <DonutChart
@@ -323,44 +543,40 @@ export default function EcommercePage() {
         hint={t("ecom.top_products_hint")}
         icon={Package}
         contentClassName="p-0"
+        action={
+          <div className="flex items-center gap-2">
+            <ExportMenu
+              rows={topProducts}
+              columns={productExportColumns}
+              fileBase="ecom-top-products"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("ecom.top_products_card_title")}
+            />
+            <ColumnSettingsMenu manager={productColumns} ns="dashboard" />
+          </div>
+        }
       >
         <div className="overflow-x-auto">
           <Table className="table-fixed">
             <colgroup>
-              <col className="w-[52px]" />
-              <col className="w-[132px]" />
-              <col />
-              <col className="w-[150px]" />
-              <col className="w-[100px]" />
-              <col className="w-[200px]" />
+              {productColumns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width || undefined} />
+              ))}
             </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  #
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_sku")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_product")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_brand")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_units")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_revenue")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ManagedColumnHeader
+              manager={productColumns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6} className="px-4 py-3.5">
+                    <TableCell
+                      colSpan={productColumns.visibleColumns.length}
+                      className="px-4 py-3.5"
+                    >
                       <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                     </TableCell>
                   </TableRow>
@@ -368,72 +584,28 @@ export default function EcommercePage() {
               ) : topProducts.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={6}
+                    colSpan={productColumns.visibleColumns.length}
                     className="py-12 text-center text-sm text-text-muted"
                   >
                     {t("ecom.top_products_empty")}
                   </TableCell>
                 </TableRow>
               ) : (
-                topProducts.map((p, idx) => {
-                  const rev = toNumber(p.revenue) ?? 0;
-                  const barPct = (rev / maxProductRevenue) * 100;
-                  return (
-                    <TableRow
-                      key={p.sku}
-                      className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
-                    >
-                      <TableCell className="px-3 py-3.5">
-                        <span
-                          className={cn(
-                            "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                            idx < 3
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-text-muted",
-                          )}
-                        >
-                          {idx + 1}
-                        </span>
+                topProducts.map((p, idx) => (
+                  <TableRow
+                    key={p.sku}
+                    className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
+                  >
+                    {productColumns.visibleColumns.map((col) => (
+                      <TableCell
+                        key={col.id}
+                        className={cn("px-3 py-3.5", col.numeric && "text-right")}
+                      >
+                        {col.cell(p, { index: idx, maxRevenue: maxProductRevenue })}
                       </TableCell>
-                      <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
-                        {p.sku}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        <span
-                          className="block truncate font-medium text-foreground"
-                          title={p.product_name ?? ""}
-                        >
-                          {p.product_name ?? "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        {p.brand ? (
-                          <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
-                            {p.brand}
-                          </span>
-                        ) : (
-                          <span className="text-text-dim">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                        {formatCount(p.units_sold)}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
-                            <div
-                              className="h-full rounded-full bg-primary/70"
-                              style={{ width: `${Math.max(barPct, 3)}%` }}
-                            />
-                          </div>
-                          <span className="tabular-nums text-sm font-semibold text-foreground">
-                            {formatCurrency(rev)}
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                    ))}
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -447,53 +619,47 @@ export default function EcommercePage() {
         icon={ShoppingCart}
         contentClassName="p-0"
         action={
-          data ? (
-            <span className="text-xs text-text-muted">
-              {t("ecom.showing_n_of_total", {
-                shown: data.orders_list.length,
-                total: data.orders_total,
-              })}
-            </span>
-          ) : undefined
+          <div className="flex items-center gap-3">
+            {data && (
+              <span className="text-xs text-text-muted">
+                {t("ecom.showing_n_of_total", {
+                  shown: data.orders_list.length,
+                  total: data.orders_total,
+                })}
+              </span>
+            )}
+            <ExportMenu
+              rows={ordersList}
+              columns={orderExportColumns}
+              fileBase="orders"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("ecom.orders_card_title")}
+            />
+            <ColumnSettingsMenu manager={orderColumns} ns="dashboard" />
+          </div>
         }
       >
         <div className="overflow-x-auto">
           <Table className="table-fixed">
             <colgroup>
-              <col className="w-[120px]" />
-              <col className="w-[110px]" />
-              <col />
-              <col className="w-[120px]" />
-              <col className="w-[120px]" />
-              <col className="w-[140px]" />
+              {orderColumns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width || undefined} />
+              ))}
             </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_order_id")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_date")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_customer")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_amount")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_status")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("ecom.col_payment")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ManagedColumnHeader
+              manager={orderColumns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6} className="px-4 py-3.5">
+                    <TableCell
+                      colSpan={orderColumns.visibleColumns.length}
+                      className="px-4 py-3.5"
+                    >
                       <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                     </TableCell>
                   </TableRow>
@@ -501,7 +667,7 @@ export default function EcommercePage() {
               ) : ordersList.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={6}
+                    colSpan={orderColumns.visibleColumns.length}
                     className="py-12 text-center text-sm text-text-muted"
                   >
                     {t("ecom.orders_empty")}
@@ -517,35 +683,14 @@ export default function EcommercePage() {
                     }
                     className="cursor-pointer border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
                   >
-                    <TableCell className="px-4 py-3.5 font-mono text-xs text-text-muted">
-                      {o.order_id}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-xs tabular-nums text-text-muted">
-                      {dayjs(o.order_date).format("DD.MM.YYYY")}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-sm">
-                      <span
-                        className="block truncate"
-                        title={o.customer_name ?? o.customer_id}
+                    {orderColumns.visibleColumns.map((col) => (
+                      <TableCell
+                        key={col.id}
+                        className={cn("px-3 py-3.5", col.numeric && "text-right")}
                       >
-                        {o.customer_name ?? (
-                          <span className="font-mono text-xs text-text-muted">
-                            {o.customer_id}
-                          </span>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-right text-sm font-semibold tabular-nums text-foreground">
-                      {formatCurrency(o.net_revenue)}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-xs">
-                      <StatusPill status={o.order_status} />
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-xs text-text-muted">
-                      {t(`ecom.payment_${o.payment_method}`, {
-                        defaultValue: o.payment_method,
-                      })}
-                    </TableCell>
+                        {col.cell(o, t)}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               )}

@@ -18,6 +18,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { SourceConnections } from "@/components/feature/SourceConnections";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -211,19 +212,22 @@ export default function ImportPage() {
       )}
 
       {step === "select" && (
-        <SelectStep
-          dataType={dataType}
-          setDataType={setDataType}
-          file={file}
-          setSelectedFile={setSelectedFile}
-          fileInputRef={fileInputRef}
-          handleFileChange={handleFileChange}
-          dataTypes={dataTypesQuery.data ?? []}
-          dataTypesLoading={dataTypesQuery.isPending}
-          dataTypesError={dataTypesQuery.isError}
-          onPreview={handlePreviewClick}
-          previewLoading={previewMutation.isPending}
-        />
+        <>
+          <SelectStep
+            dataType={dataType}
+            setDataType={setDataType}
+            file={file}
+            setSelectedFile={setSelectedFile}
+            fileInputRef={fileInputRef}
+            handleFileChange={handleFileChange}
+            dataTypes={dataTypesQuery.data ?? []}
+            dataTypesLoading={dataTypesQuery.isPending}
+            dataTypesError={dataTypesQuery.isError}
+            onPreview={handlePreviewClick}
+            previewLoading={previewMutation.isPending}
+          />
+          <SourceConnections />
+        </>
       )}
 
       {step === "preview" && previewResp && (

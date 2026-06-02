@@ -1,9 +1,9 @@
-"""Notifications router — `/api/v1/notifications/*`.
+"""Notifications router: `/api/v1/notifications/*`.
 
 5 endpoint, hepsi sadece auth gerektirir (kullanıcı kendi bildirimleri
 için izin gerekmez; her oturum açan kullanıcının kendi merkezi).
 
-Bkz: docs/overview/05-rbac-security.md "Kişisel Sayfalar" — kullanıcı
+Bkz: docs/overview/05-rbac-security.md "Kişisel Sayfalar"; kullanıcı
 kendi profilini, bildirim merkezini izin matrisi dışında görür.
 """
 
@@ -30,7 +30,10 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 @router.get(
     "",
     response_model=PaginatedEnvelope[NotificationItem],
-    summary="Kullanıcının bildirimleri — sayfalı (en yeni → eski)",
+    summary="Bildirimleri listele",
+    description=(
+        "Oturum açan kullanıcının bildirimlerini en yeniden eskiye doğru sayfalı olarak döner."
+    ),
 )
 async def list_notifications(
     page: int = Query(1, ge=1),
@@ -50,7 +53,11 @@ async def list_notifications(
 @router.get(
     "/unread-count",
     response_model=SuccessEnvelope[UnreadCountResponse],
-    summary="Okunmamış bildirim sayısı — TopBar rozeti için",
+    summary="Okunmamış bildirim sayısını getir",
+    description=(
+        "Oturum açan kullanıcının okunmamış bildirim sayısını döner. Üst "
+        "bardaki bildirim rozeti bu değeri gösterir."
+    ),
 )
 async def get_unread_count(
     current: User = Depends(get_current_user),
@@ -63,7 +70,11 @@ async def get_unread_count(
 @router.patch(
     "/{notification_id}/read",
     response_model=SuccessEnvelope[NotificationItem],
-    summary="Tek bildirimi okundu işaretle",
+    summary="Bir bildirimi okundu işaretle",
+    description=(
+        "Belirtilen bildirimi okundu olarak işaretler ve güncel halini döner. "
+        "Yalnızca kullanıcının kendi bildirimi üzerinde çalışır."
+    ),
 )
 async def mark_notification_read(
     notification_id: int = Path(..., ge=1),
@@ -80,6 +91,10 @@ async def mark_notification_read(
     "/mark-all-read",
     response_model=SuccessEnvelope[MarkAllReadResponse],
     summary="Tüm bildirimleri okundu işaretle",
+    description=(
+        "Kullanıcının okunmamış tüm bildirimlerini okundu olarak işaretler ve "
+        "güncellenen kayıt sayısını döner."
+    ),
 )
 async def mark_all_notifications_read(
     current: User = Depends(get_current_user),
@@ -93,6 +108,9 @@ async def mark_all_notifications_read(
     "/{notification_id}",
     response_model=SuccessEnvelope[dict],
     summary="Bildirimi sil",
+    description=(
+        "Belirtilen bildirimi siler. Yalnızca kullanıcının kendi bildirimi üzerinde çalışır."
+    ),
 )
 async def delete_notification(
     notification_id: int = Path(..., ge=1),

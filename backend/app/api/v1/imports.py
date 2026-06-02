@@ -1,15 +1,15 @@
-"""Imports router — `/api/v1/imports/*`.
+"""Imports router: `/api/v1/imports/*`.
 
 Faz 1 (sync) endpoint'leri:
-- POST /imports          → multipart upload + işlem (cevap geldiğinde tamamlanmış)
-- GET  /imports          → son N import (history table)
-- GET  /imports/{id}     → tek import detayı + örnek hatalar
-- DELETE /imports/{id}   → import kaydını + raw satırları cascade sil
+- POST /imports          -> multipart upload + işlem (cevap geldiğinde tamamlanmış)
+- GET  /imports          -> son N import (history table)
+- GET  /imports/{id}     -> tek import detayı + örnek hatalar
+- DELETE /imports/{id}   -> import kaydını + raw satırları cascade sil
 
 İzin kontrolleri:
-- POST → IMPORTS_CREATE
-- GET  → IMPORTS_VIEW
-- DELETE → IMPORTS_DELETE
+- POST -> IMPORTS_CREATE
+- GET  -> IMPORTS_VIEW
+- DELETE -> IMPORTS_DELETE
 """
 
 from __future__ import annotations
@@ -50,15 +50,20 @@ def _client_ip(request: Request) -> str | None:
 @router.get(
     "/data-types",
     response_model=SuccessEnvelope[list[DataTypeMeta]],
-    summary="Desteklenen veri kaynakları + CSV başlık beklentileri",
+    summary="Desteklenen veri kaynaklarını listele",
+    description=(
+        "İçe aktarılabilen veri kaynaklarını ve her birinin beklediği CSV "
+        "başlıklarını döner. Yükleme sihirbazının kaynak seçimi ve başlık "
+        "doğrulama adımları bu listeyi kullanır."
+    ),
 )
 async def list_data_types(
     _current_user: User = Depends(require_permission(Permission.IMPORTS_VIEW)),
 ) -> SuccessEnvelope[list[DataTypeMeta]]:
     """Wizard 1. adım dropdown'ı ve 2. adım header doğrulaması için meta.
 
-    DB sorgusu yok — parser registry'den okur, ayrıca yetki gerektirmeyen bir
-    endpoint olabilirdi ama RBAC bütünlüğü için `IMPORTS_VIEW` istiyoruz.
+    DB sorgusu yok; parser registry'den okur. Yetki gerektirmeyen bir endpoint
+    olabilirdi ama RBAC bütünlüğü için `IMPORTS_VIEW` istiyoruz.
     """
     items = import_service.get_data_types_meta()
     return SuccessEnvelope(
@@ -79,7 +84,12 @@ async def list_data_types(
 @router.post(
     "/preview",
     response_model=SuccessEnvelope[ImportPreviewResponse],
-    summary="Dosyayı DB'ye yazmadan parse et — wizard 2. adım önizleme",
+    summary="Yüklemeden önce dosyayı ön izle",
+    description=(
+        "Yüklenen CSV dosyasını veritabanına yazmadan ayrıştırır. Tespit "
+        "edilen başlıkları, eksik veya tanınmayan sütunları, örnek satırları "
+        "ve örnek hataları döner. Sihirbazın doğrulama adımında kullanılır."
+    ),
 )
 async def preview_import(
     file: UploadFile = File(..., description="CSV dosyası (max 50 MB)"),
@@ -109,7 +119,12 @@ async def preview_import(
 @router.post(
     "",
     response_model=SuccessEnvelope[ImportRunResult],
-    summary="CSV dosyası yükle ve işle (sync)",
+    summary="CSV dosyası yükle ve işle",
+    description=(
+        "CSV dosyasını yükler ve eşzamanlı olarak işler; yanıt döndüğünde işlem "
+        "tamamlanmıştır. Toplam, geçerli, geçersiz, atlanan ve eklenen satır "
+        "sayıları ile ilk birkaç örnek hatayı döner. En fazla 50 MB."
+    ),
 )
 async def upload_import(
     request: Request,
@@ -153,7 +168,12 @@ async def upload_import(
 @router.get(
     "",
     response_model=PaginatedEnvelope[ImportListItem],
-    summary="Import işlemleri — sayfalı (en yeni → eski)",
+    summary="İçe aktarma geçmişini listele",
+    description=(
+        "Geçmiş içe aktarma işlemlerini en yeniden eskiye doğru sayfalı olarak "
+        "döner. Her kayıt dosya adı, veri tipi, durum ve satır istatistiklerini "
+        "içerir."
+    ),
 )
 async def list_imports(
     page: int = Query(1, ge=1),
@@ -190,7 +210,12 @@ async def list_imports(
 @router.get(
     "/{import_id}",
     response_model=SuccessEnvelope[ImportDetailResponse],
-    summary="Import detayı + örnek hatalar",
+    summary="İçe aktarma detayını getir",
+    description=(
+        "Tek bir içe aktarma işleminin detayını döner: durum, satır "
+        "istatistikleri, süre ve örnek hata kayıtları. Kayıt bulunamazsa 404 "
+        "döner."
+    ),
 )
 async def get_import(
     import_id: int = Path(..., ge=1),
@@ -225,7 +250,12 @@ async def get_import(
 @router.get(
     "/{import_id}/errors.csv",
     response_class=StreamingResponse,
-    summary="Import hatalarını CSV olarak indir",
+    summary="İçe aktarma hatalarını CSV olarak indir",
+    description=(
+        "Bir içe aktarma işlemindeki tüm hatalı satırları CSV dosyası olarak "
+        "indirir. Dosya, Excel'in Türkçe karakterleri doğru göstermesi için "
+        "UTF-8 BOM ile başlar."
+    ),
 )
 async def download_import_errors(
     import_id: int = Path(..., ge=1),
@@ -235,8 +265,8 @@ async def download_import_errors(
     """`import_errors` tablosundaki tüm hatalı satırları CSV olarak indirir.
 
     Frontend wizard'ı 4. (sonuç) adımında "Hataları indir" butonu bu endpoint'i
-    çağırır. UTF-8 BOM ile başlar — Excel'in TR karakterleri doğru göstermesi
-    için.
+    çağırır. UTF-8 BOM ile başlar (Excel'in TR karakterleri doğru göstermesi
+    için).
     """
     it = await import_service.get_import(db, import_id)
     if it is None:
@@ -274,7 +304,12 @@ async def download_import_errors(
 @router.delete(
     "/{import_id}",
     response_model=SuccessEnvelope[dict],
-    summary="Import kaydını ve yazdığı raw satırları sil (rollback)",
+    summary="İçe aktarmayı geri al ve sil",
+    description=(
+        "İçe aktarma kaydını ve bu işlemle eklenen ham veri satırlarını cascade "
+        "olarak siler (rollback). Geri alınamaz; ilgili KPI önbellekleri "
+        "tazelenir."
+    ),
 )
 async def delete_import(
     request: Request,

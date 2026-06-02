@@ -54,9 +54,9 @@ export default function MetaAdsPage() {
       <DashboardHeader title={t("meta_ads.title")} range={range} onChangeRange={setRange} />
 
       {/* Reklam KPI'lari */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-5">
         {isLoading || !data
-          ? Array.from({ length: 8 }).map((_, i) => <KPICardSkeleton key={i} compact />)
+          ? Array.from({ length: 10 }).map((_, i) => <KPICardSkeleton key={i} compact />)
           : (
               <>
                 <KPICard kpi={data.ad_spend} compact />
@@ -64,7 +64,9 @@ export default function MetaAdsPage() {
                 <KPICard kpi={data.clicks} compact />
                 <KPICard kpi={data.ctr} compact />
                 <KPICard kpi={data.cpc} compact />
+                <KPICard kpi={data.cpm} compact />
                 <KPICard kpi={data.ad_conversions} compact />
+                <KPICard kpi={data.cost_per_conversion} compact />
                 <KPICard kpi={data.roas} compact />
                 <KPICard kpi={data.frequency} compact />
               </>

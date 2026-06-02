@@ -18,7 +18,14 @@ import { adminApi } from "@/lib/api/admin";
 import { cn } from "@/lib/utils";
 import { useFiltersStore, type RangeFilter } from "@/stores/useFiltersStore";
 
-export type FilterField = "channels" | "devices" | "cities";
+export type FilterField =
+  | "channels"
+  | "devices"
+  | "cities"
+  | "categories"
+  | "brands"
+  | "statuses"
+  | "payment_methods";
 
 const RANGE_KEYS = ["revenue", "orders", "roas", "conversion"] as const;
 type RangeKey = (typeof RANGE_KEYS)[number];
@@ -39,6 +46,10 @@ interface Draft {
   channels: string[];
   devices: string[];
   cities: string[];
+  categories: string[];
+  brands: string[];
+  statuses: string[];
+  payment_methods: string[];
   ranges: Record<RangeKey, RangeFilter>;
 }
 
@@ -49,7 +60,7 @@ interface Draft {
  * sayfaya göre yapılandırılır.
  */
 export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheetProps) {
-  const { t } = useTranslation(["filters", "common"]);
+  const { t } = useTranslation(["filters", "dashboard", "common"]);
   const store = useFiltersStore();
   const [open, setOpen] = useState(false);
 
@@ -71,11 +82,42 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     staleTime: 30 * 60 * 1000,
     enabled: open && fields.includes("cities"),
   });
+  const categoriesQ = useQuery({
+    queryKey: ["filters", "categories"],
+    queryFn: () => adminApi.filterCategories(),
+    staleTime: 30 * 60 * 1000,
+    enabled: open && fields.includes("categories"),
+  });
+  const brandsQ = useQuery({
+    queryKey: ["filters", "brands"],
+    queryFn: () => adminApi.filterBrands(),
+    staleTime: 30 * 60 * 1000,
+    enabled: open && fields.includes("brands"),
+  });
+  const statusesQ = useQuery({
+    queryKey: ["filters", "order-statuses"],
+    queryFn: () => adminApi.filterOrderStatuses(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("statuses"),
+  });
+  const paymentMethodsQ = useQuery({
+    queryKey: ["filters", "payment-methods"],
+    queryFn: () => adminApi.filterPaymentMethods(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("payment_methods"),
+  });
+
+  const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
+  const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
 
   const snapshot = (): Draft => ({
     channels: store.selected_channels,
     devices: store.selected_devices,
     cities: store.selected_cities,
+    categories: store.selected_categories,
+    brands: store.selected_brands,
+    statuses: store.selected_statuses,
+    payment_methods: store.selected_payment_methods,
     ranges: {
       revenue: { ...store.revenue_range },
       orders: { ...store.orders_range },
@@ -102,6 +144,10 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     (draft.channels.length ? 1 : 0) +
     (draft.devices.length ? 1 : 0) +
     (draft.cities.length ? 1 : 0) +
+    (draft.categories.length ? 1 : 0) +
+    (draft.brands.length ? 1 : 0) +
+    (draft.statuses.length ? 1 : 0) +
+    (draft.payment_methods.length ? 1 : 0) +
     (showRanges
       ? RANGE_KEYS.filter((k) => draft.ranges[k].min !== null || draft.ranges[k].max !== null).length
       : 0);
@@ -111,6 +157,10 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       selected_channels: draft.channels,
       selected_devices: draft.devices,
       selected_cities: draft.cities,
+      selected_categories: draft.categories,
+      selected_brands: draft.brands,
+      selected_statuses: draft.statuses,
+      selected_payment_methods: draft.payment_methods,
       ...(showRanges
         ? {
             revenue_range: draft.ranges.revenue,
@@ -128,6 +178,10 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       channels: [],
       devices: [],
       cities: [],
+      categories: [],
+      brands: [],
+      statuses: [],
+      payment_methods: [],
       ranges: {
         revenue: { min: null, max: null },
         orders: { min: null, max: null },
@@ -189,6 +243,50 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
                   loading={citiesQ.isPending}
                   searchable
                   onChange={(v) => setDraft((d) => ({ ...d, cities: v }))}
+                />
+              )}
+              {fields.includes("categories") && (
+                <FilterMultiSelect
+                  label={t("filters:category")}
+                  className="w-full"
+                  options={categoriesQ.data ?? []}
+                  selected={draft.categories}
+                  loading={categoriesQ.isPending}
+                  searchable
+                  onChange={(v) => setDraft((d) => ({ ...d, categories: v }))}
+                />
+              )}
+              {fields.includes("brands") && (
+                <FilterMultiSelect
+                  label={t("filters:brand")}
+                  className="w-full"
+                  options={brandsQ.data ?? []}
+                  selected={draft.brands}
+                  loading={brandsQ.isPending}
+                  searchable
+                  onChange={(v) => setDraft((d) => ({ ...d, brands: v }))}
+                />
+              )}
+              {fields.includes("statuses") && (
+                <FilterMultiSelect
+                  label={t("filters:status")}
+                  className="w-full"
+                  options={statusesQ.data ?? []}
+                  selected={draft.statuses}
+                  loading={statusesQ.isPending}
+                  renderOption={renderStatus}
+                  onChange={(v) => setDraft((d) => ({ ...d, statuses: v }))}
+                />
+              )}
+              {fields.includes("payment_methods") && (
+                <FilterMultiSelect
+                  label={t("filters:payment_method")}
+                  className="w-full"
+                  options={paymentMethodsQ.data ?? []}
+                  selected={draft.payment_methods}
+                  loading={paymentMethodsQ.isPending}
+                  renderOption={renderPayment}
+                  onChange={(v) => setDraft((d) => ({ ...d, payment_methods: v }))}
                 />
               )}
             </div>

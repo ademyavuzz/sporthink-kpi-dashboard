@@ -33,12 +33,6 @@ import { cn } from "@/lib/utils";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
-const GENDER_LABEL: Record<string, string> = {
-  male: "Erkek",
-  female: "Kadın",
-  unknown: "Bilinmiyor",
-};
-
 /**
  * Musteriler sayfasi. 6 musteri KPI'si, yeni musteri trendi, cinsiyet/yas/
  * sehir/frekans kirilimleri, newsletter karsilastirmasi ve top musteri tablosu.
@@ -60,11 +54,14 @@ export default function CustomersPage() {
   const data = q.data;
   const loading = q.isPending;
 
+  const genderLabel = (g: string | null) =>
+    t(`customers.gender_${g ?? "unknown"}`, {
+      defaultValue: g ?? t("customers.gender_unknown"),
+    });
+
   const genderLabels = useMemo(
-    () =>
-      data?.by_gender.map(
-        (b) => GENDER_LABEL[b.label ?? "unknown"] ?? b.label ?? "Bilinmiyor",
-      ) ?? [],
+    () => data?.by_gender.map((b) => genderLabel(b.label)) ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data],
   );
   const genderValues = useMemo(
@@ -105,7 +102,7 @@ export default function CustomersPage() {
       />
 
       {/* Musteri KPI'lari */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-6">
         {loading || !data ? (
           Array.from({ length: 6 }).map((_, i) => <KPICardSkeleton key={i} compact />)
         ) : (
@@ -149,11 +146,12 @@ export default function CustomersPage() {
       </ChartCard>
 
       {/* Cinsiyet + Yas */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <ChartCard
           title={t("customers.by_gender")}
           hint={t("customers.by_gender_hint")}
           icon={VenetianMask}
+          className="h-full self-stretch"
         >
           <DonutChart
             labels={genderLabels}
@@ -169,6 +167,7 @@ export default function CustomersPage() {
           title={t("customers.by_age_group")}
           hint={t("customers.by_age_group_hint")}
           icon={Users}
+          className="h-full self-stretch"
         >
           <BarChart
             categories={ageLabels}
@@ -181,11 +180,12 @@ export default function CustomersPage() {
       </div>
 
       {/* Sehir + Siparis frekansi */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <ChartCard
           title={t("customers.by_city")}
           hint={t("customers.by_city_hint")}
           icon={MapPin}
+          className="h-full self-stretch"
         >
           <BarChart
             categories={cityLabels}
@@ -201,6 +201,7 @@ export default function CustomersPage() {
           title={t("customers.order_frequency")}
           hint={t("customers.order_frequency_hint")}
           icon={Repeat}
+          className="h-full self-stretch"
         >
           <BarChart
             categories={freqLabels}
@@ -327,10 +328,7 @@ export default function CustomersPage() {
                       {c.city ?? <span className="text-text-dim">-</span>}
                     </TableCell>
                     <TableCell className="px-3 py-3.5 text-xs text-text-muted">
-                      {[
-                        c.gender ? (GENDER_LABEL[c.gender] ?? c.gender) : null,
-                        c.age_group,
-                      ]
+                      {[c.gender ? genderLabel(c.gender) : null, c.age_group]
                         .filter(Boolean)
                         .join(" · ") || "-"}
                     </TableCell>

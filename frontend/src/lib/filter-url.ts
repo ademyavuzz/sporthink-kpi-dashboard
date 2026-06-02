@@ -24,12 +24,20 @@ const MULTI_KEYS: Array<{
     | "selected_devices"
     | "selected_cities"
     | "selected_campaigns"
+    | "selected_categories"
+    | "selected_brands"
+    | "selected_statuses"
+    | "selected_payment_methods"
   >;
 }> = [
   { url: "channels", store: "selected_channels" },
   { url: "devices", store: "selected_devices" },
   { url: "cities", store: "selected_cities" },
   { url: "campaigns", store: "selected_campaigns" },
+  { url: "categories", store: "selected_categories" },
+  { url: "brands", store: "selected_brands" },
+  { url: "statuses", store: "selected_statuses" },
+  { url: "payment_methods", store: "selected_payment_methods" },
 ];
 
 const RANGE_KEYS: Array<{

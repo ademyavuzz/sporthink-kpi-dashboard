@@ -87,6 +87,31 @@
     "result_no_errors": "Hata yok"
   },
 
+  "sources": {
+    "section_title": "Kaynak Bağlantıları",
+    "section_subtitle": "Pazarlama ve e-ticaret kaynaklarınızı bağlayarak verileri otomatik çekin. Bu entegrasyonlar yakında aktif olacak.",
+    "badge_coming_soon": "Yakında",
+    "btn_connect": "Bağlan",
+    "coming_soon_title": "{{source}} entegrasyonu",
+    "coming_soon_body": "Bu entegrasyon henüz aktif değil; çok yakında bağlanabilir olacak. Şimdilik verilerinizi CSV dosyası yükleyerek aktarabilirsiniz.",
+    "meta_ads": {
+      "title": "Meta Ads",
+      "description": "Facebook ve Instagram reklam kampanyalarını otomatik içe aktarın."
+    },
+    "google_ads": {
+      "title": "Google Ads",
+      "description": "Google Ads kampanya ve performans verilerini bağlayın."
+    },
+    "ga4": {
+      "title": "Google Analytics 4",
+      "description": "GA4 trafik ve etkileşim metriklerini doğrudan senkronize edin."
+    },
+    "database": {
+      "title": "Veritabanı API",
+      "description": "Harici bir veritabanına bağlanarak e-ticaret verilerini çekin."
+    }
+  },
+
   "history": {
     "title": "Geçmiş İmport'lar",
     "subtitle": "Önceki CSV import işlemlerinin durumu, satır sayıları ve süreleri.",

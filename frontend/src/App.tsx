@@ -25,6 +25,7 @@ const ImportHistoryPage = lazy(() => import("@/pages/import/ImportHistoryPage"))
 const ReportsPage = lazy(() => import("@/pages/reports/ReportsPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
+const ChannelMappingPage = lazy(() => import("@/pages/admin/ChannelMappingPage"));
 const NotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
 const SettingsLayout = lazy(() => import("@/pages/settings/SettingsLayout"));
 const ProfilePage = lazy(() => import("@/pages/settings/ProfilePage"));
@@ -190,6 +191,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/channel-mappings"
+          element={
+            <ProtectedRoute permission="mappings.view">
+              <ChannelMappingPage />
+            </ProtectedRoute>
+          }
+        />
         {/*
           Bildirimler ve Ayarlar (profil/güvenlik) izinsizdir — kişisel
           sayfalar her oturum açan kullanıcıya açıktır. Sistem ayarları
@@ -234,6 +243,7 @@ export default function App() {
               "reports",
               "user_management",
               "audit_logs",
+              "channel_mapping",
               "notifications",
               "settings",
             ].includes(n.id),

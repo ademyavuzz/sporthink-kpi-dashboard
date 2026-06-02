@@ -87,6 +87,31 @@
     "result_no_errors": "No errors"
   },
 
+  "sources": {
+    "section_title": "Source Connections",
+    "section_subtitle": "Connect your marketing and e-commerce sources to pull data automatically. These integrations are coming soon.",
+    "badge_coming_soon": "Coming soon",
+    "btn_connect": "Connect",
+    "coming_soon_title": "{{source}} integration",
+    "coming_soon_body": "This integration is not active yet; it will be connectable very soon. For now you can ingest your data by uploading a CSV file.",
+    "meta_ads": {
+      "title": "Meta Ads",
+      "description": "Automatically import Facebook and Instagram ad campaigns."
+    },
+    "google_ads": {
+      "title": "Google Ads",
+      "description": "Connect Google Ads campaign and performance data."
+    },
+    "ga4": {
+      "title": "Google Analytics 4",
+      "description": "Sync GA4 traffic and engagement metrics directly."
+    },
+    "database": {
+      "title": "Database API",
+      "description": "Connect to an external database to pull e-commerce data."
+    }
+  },
+
   "history": {
     "title": "Import History",
     "subtitle": "Status, row counts, and duration of previous CSV import jobs.",

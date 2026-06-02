@@ -19,7 +19,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    ConflictError,
+    EmailAlreadyExistsError,
     LastSuperAdminError,
     ResourceNotFoundError,
     SelfDestructiveActionError,
@@ -155,21 +155,45 @@ async def create_user(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> User:
-    """Yeni kullanıcı + davet maili.
+    """Yeni kullanıcı + davet maili (idempotent re-invite destekli).
 
     Akış: placeholder şifre ile user yaratılır → audit log → davet token + mail.
     Frontend'e dönen response'ta şifre yok; sadece `invitation_sent: true`.
+
+    Email çakışması:
+    - Aynı email'e sahip **aktif** (soft-delete edilmemiş) kayıt varsa
+      `EmailAlreadyExistsError` (409) raise edilir.
+    - Aynı email'e sahip kayıt **soft-deleted** ise yeni satır insert etmek
+      yerine o kullanıcı reaktive edilir (deleted_at=NULL, yeni rol/ad,
+      yeni placeholder şifre, login sayaçları sıfır) ve yeni davet token'ı
+      üretilir — temiz, idempotent davranış. `users.email` üzerindeki plain
+      UNIQUE constraint (soft-delete için partial-unique uygulanmamış)
+      gereği yeni insert zaten 1062 Duplicate entry'ye düşerdi.
     """
     email = email.strip().lower()
-
-    # Duplicate kontrolü
-    existing = await db.execute(select(User).where(User.email == email))
-    if existing.scalar_one_or_none() is not None:
-        raise ConflictError("EMAIL_ALREADY_EXISTS", params={"email": email})
 
     role = await db.get(Role, role_id)
     if role is None:
         raise ValidationError("Invalid role", field="role_id", params={"role_id": role_id})
+
+    existing = await user_repo.get_any_by_email(db, email)
+    if existing is not None and existing.deleted_at is None:
+        # Gerçek aktif çakışma — davet edilemez.
+        raise EmailAlreadyExistsError(field="email", params={"email": email})
+
+    if existing is not None:
+        # Soft-deleted kaydı reaktive et (yeni satır insert ETME — UNIQUE çakışır).
+        return await _reactivate_invited_user(
+            db,
+            user=existing,
+            first_name=first_name,
+            last_name=last_name,
+            role=role,
+            actor=actor,
+            lang=lang,
+            ip=ip,
+            user_agent=user_agent,
+        )
 
     user = User(
         email=email,
@@ -199,6 +223,62 @@ async def create_user(
     await db.refresh(user, attribute_names=["created_at", "updated_at"])
 
     # Davet token + mail (Celery task'a delegate edilir, db.commit içeride).
+    await password_reset_service.create_invitation(
+        db,
+        user=user,
+        inviter=actor,
+        role_name=role.name,
+        lang=lang,
+        ip=ip,
+    )
+    return user
+
+
+async def _reactivate_invited_user(
+    db: AsyncSession,
+    *,
+    user: User,
+    first_name: str,
+    last_name: str,
+    role: Role,
+    actor: User,
+    lang: str,
+    ip: str | None,
+    user_agent: str | None,
+) -> User:
+    """Soft-deleted bir kullanıcıyı yeniden davet et (idempotent re-invite).
+
+    `create_user` içinden, aynı email'e sahip soft-deleted kayıt bulununca
+    çağrılır. Mevcut satır reaktive edilir; yeni satır insert edilmez (email
+    UNIQUE çakışmasını önler). Login imkânsız kalır — kullanıcı yeni davet
+    linkinden kendi şifresini kurana kadar (placeholder hash yenilenir).
+    """
+    user.deleted_at = None
+    user.is_active = True
+    user.first_name = first_name
+    user.last_name = last_name
+    user.role_id = role.id
+    user.password_hash = hash_password(_generate_placeholder_password())
+    # Önceki yaşam döngüsünden kalan kilit/sayaç durumunu temizle.
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    await db.flush()
+
+    await audit_log_repository.add(
+        db,
+        action="user.reactivated",
+        user_id=actor.id,
+        user_email=actor.email,
+        resource_type="user",
+        resource_id=str(user.id),
+        ip_address=ip,
+        user_agent=user_agent,
+        details={"email": user.email, "role_id": role.id},
+    )
+    await db.refresh(user, attribute_names=["created_at", "updated_at"])
+
+    # Yeni davet token + mail (önceki aktif davet/sıfırlama tokenları
+    # `create_invitation` içindeki `_create_token` ile revoke edilir).
     await password_reset_service.create_invitation(
         db,
         user=user,

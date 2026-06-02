@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, MonitorSmartphone, Radio, SlidersHorizontal, X } from "lucide-react";
+import {
+  CreditCard,
+  ListChecks,
+  MapPin,
+  MonitorSmartphone,
+  Radio,
+  ShoppingBag,
+  SlidersHorizontal,
+  Tag,
+  X,
+} from "lucide-react";
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -36,7 +46,7 @@ export function GlobalFilterBar({
   showRanges = false,
   trailing,
 }: GlobalFilterBarProps) {
-  const { t } = useTranslation(["filters", "common"]);
+  const { t } = useTranslation(["filters", "dashboard", "common"]);
   const store = useFiltersStore();
 
   const channelsQ = useQuery({
@@ -57,6 +67,33 @@ export function GlobalFilterBar({
     staleTime: 30 * 60 * 1000,
     enabled: fields.includes("cities"),
   });
+  const categoriesQ = useQuery({
+    queryKey: ["filters", "categories"],
+    queryFn: () => adminApi.filterCategories(),
+    staleTime: 30 * 60 * 1000,
+    enabled: fields.includes("categories"),
+  });
+  const brandsQ = useQuery({
+    queryKey: ["filters", "brands"],
+    queryFn: () => adminApi.filterBrands(),
+    staleTime: 30 * 60 * 1000,
+    enabled: fields.includes("brands"),
+  });
+  const statusesQ = useQuery({
+    queryKey: ["filters", "order-statuses"],
+    queryFn: () => adminApi.filterOrderStatuses(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("statuses"),
+  });
+  const paymentMethodsQ = useQuery({
+    queryKey: ["filters", "payment-methods"],
+    queryFn: () => adminApi.filterPaymentMethods(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("payment_methods"),
+  });
+
+  const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
+  const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
 
   const total = countActiveFilters(store);
 
@@ -112,6 +149,50 @@ export function GlobalFilterBar({
           loading={citiesQ.isPending}
           searchable
           onChange={store.setSelectedCities}
+        />
+      )}
+      {fields.includes("categories") && (
+        <FilterMultiSelect
+          label={t("filters:category")}
+          icon={Tag}
+          options={categoriesQ.data ?? []}
+          selected={store.selected_categories}
+          loading={categoriesQ.isPending}
+          searchable
+          onChange={store.setSelectedCategories}
+        />
+      )}
+      {fields.includes("brands") && (
+        <FilterMultiSelect
+          label={t("filters:brand")}
+          icon={ShoppingBag}
+          options={brandsQ.data ?? []}
+          selected={store.selected_brands}
+          loading={brandsQ.isPending}
+          searchable
+          onChange={store.setSelectedBrands}
+        />
+      )}
+      {fields.includes("statuses") && (
+        <FilterMultiSelect
+          label={t("filters:status")}
+          icon={ListChecks}
+          options={statusesQ.data ?? []}
+          selected={store.selected_statuses}
+          loading={statusesQ.isPending}
+          renderOption={renderStatus}
+          onChange={store.setSelectedStatuses}
+        />
+      )}
+      {fields.includes("payment_methods") && (
+        <FilterMultiSelect
+          label={t("filters:payment_method")}
+          icon={CreditCard}
+          options={paymentMethodsQ.data ?? []}
+          selected={store.selected_payment_methods}
+          loading={paymentMethodsQ.isPending}
+          renderOption={renderPayment}
+          onChange={store.setSelectedPaymentMethods}
         />
       )}
 

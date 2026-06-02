@@ -1,7 +1,9 @@
 """Admin endpoint'leri: users, audit logs, channel mapping, aggregations rebuild,
 saved views, filters, export.
 
-Bu router büyük; pratik için tek dosyada — Sprint 10'da modüler ayrılabilir.
+Bu router büyük; pratik için tek dosyada (Sprint 10'da modüler ayrılabilir).
+OpenAPI'de okunabilirlik için endpoint'ler işlevlerine göre ayrı tag'lere
+bölünmüştür (filters, admin, roles, users, saved-views).
 """
 
 from __future__ import annotations
@@ -50,7 +52,7 @@ from app.services import (
 )
 from app.services.cache_service import cache
 
-router = APIRouter(tags=["admin"])
+router = APIRouter()
 
 
 def _client_ip(request: Request) -> str | None:
@@ -58,14 +60,16 @@ def _client_ip(request: Request) -> str | None:
 
 
 # ---------------------------------------------------------------------- #
-# /filters/* — multi-select dropdown sources
+# /filters/* (multi-select dropdown sources)
 # ---------------------------------------------------------------------- #
 
 
 @router.get(
     "/filters/channels",
     response_model=SuccessEnvelope[list[str]],
-    summary="Distinct kanal listesi",
+    tags=["filters"],
+    summary="Kanal listesini getir",
+    description="Filtrelerde kullanılan benzersiz pazarlama kanallarının listesini döner.",
 )
 async def get_filter_channels(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -82,7 +86,9 @@ async def get_filter_channels(
 @router.get(
     "/filters/devices",
     response_model=SuccessEnvelope[list[str]],
-    summary="Distinct cihaz listesi",
+    tags=["filters"],
+    summary="Cihaz listesini getir",
+    description="Filtrelerde kullanılan benzersiz cihaz türlerinin listesini döner.",
 )
 async def get_filter_devices(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -99,7 +105,9 @@ async def get_filter_devices(
 @router.get(
     "/filters/cities",
     response_model=SuccessEnvelope[list[str]],
-    summary="Distinct şehir listesi (top 100)",
+    tags=["filters"],
+    summary="Şehir listesini getir",
+    description="Filtrelerde kullanılan benzersiz şehirlerin listesini döner (en sık ilk 100).",
 )
 async def get_filter_cities(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -116,7 +124,9 @@ async def get_filter_cities(
 @router.get(
     "/filters/categories",
     response_model=SuccessEnvelope[list[str]],
-    summary="Distinct ürün kategorisi listesi",
+    tags=["filters"],
+    summary="Kategori listesini getir",
+    description="Filtrelerde kullanılan benzersiz ürün kategorilerinin listesini döner.",
 )
 async def get_filter_categories(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -133,7 +143,9 @@ async def get_filter_categories(
 @router.get(
     "/filters/brands",
     response_model=SuccessEnvelope[list[str]],
-    summary="Distinct marka listesi",
+    tags=["filters"],
+    summary="Marka listesini getir",
+    description="Filtrelerde kullanılan benzersiz markaların listesini döner.",
 )
 async def get_filter_brands(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -150,7 +162,9 @@ async def get_filter_brands(
 @router.get(
     "/filters/payment-methods",
     response_model=SuccessEnvelope[list[str]],
-    summary="Sipariş ödeme yöntemi enum listesi",
+    tags=["filters"],
+    summary="Ödeme yöntemi listesini getir",
+    description="Filtrelerde kullanılan sipariş ödeme yöntemlerinin listesini döner.",
 )
 async def get_filter_payment_methods(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -161,7 +175,9 @@ async def get_filter_payment_methods(
 @router.get(
     "/filters/order-statuses",
     response_model=SuccessEnvelope[list[str]],
-    summary="Sipariş durumu enum listesi",
+    tags=["filters"],
+    summary="Sipariş durumu listesini getir",
+    description="Filtrelerde kullanılan sipariş durumlarının listesini döner.",
 )
 async def get_filter_order_statuses(
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
@@ -177,7 +193,13 @@ async def get_filter_order_statuses(
 @router.post(
     "/admin/aggregations/rebuild",
     response_model=SuccessEnvelope[dict],
-    summary="Aggregation tablolarını manuel yeniden hesapla",
+    tags=["admin"],
+    summary="Aggregation tablolarını yeniden hesapla",
+    description=(
+        "Verilen tarih aralığı için KPI aggregation (özet) tablolarını yeniden "
+        "hesaplar. İşlem sonrası ilgili KPI önbellekleri temizlenir. Veri "
+        "tutarsızlığı şüphesinde manuel olarak çalıştırılır."
+    ),
 )
 async def rebuild_aggregations(
     date_from: date_type = Body(..., embed=True),
@@ -199,7 +221,12 @@ async def rebuild_aggregations(
 @router.get(
     "/admin/audit-logs",
     response_model=PaginatedEnvelope[AuditLogItem],
-    summary="Audit log listesi — sayfalı (en yeni → eski)",
+    tags=["admin"],
+    summary="Denetim kayıtlarını listele",
+    description=(
+        "Sistemdeki denetim (audit) kayıtlarını en yeniden eskiye doğru sayfalı "
+        "olarak döner. İsteğe bağlı eylem (action) ön eki ile filtrelenebilir."
+    ),
 )
 async def list_audit_logs(
     page: int = Query(1, ge=1, description="Sayfa numarası (1-bazlı)"),
@@ -218,14 +245,19 @@ async def list_audit_logs(
 
 
 # ---------------------------------------------------------------------- #
-# /admin/channel-mappings — CRUD
+# /admin/channel-mappings (CRUD)
 # ---------------------------------------------------------------------- #
 
 
 @router.get(
     "/admin/channel-mappings",
     response_model=PaginatedEnvelope[ChannelMappingItem],
-    summary="Channel mapping kayıtları — sayfalı",
+    tags=["admin"],
+    summary="Kanal eşleştirmelerini listele",
+    description=(
+        "Kaynak/medium değerlerini standart kanal gruplarına bağlayan kanal "
+        "eşleştirme kayıtlarını sayfalı olarak döner."
+    ),
 )
 async def list_channel_mappings(
     page: int = Query(1, ge=1),
@@ -245,7 +277,9 @@ async def list_channel_mappings(
 @router.get(
     "/admin/channel-mappings/{mapping_id}",
     response_model=SuccessEnvelope[ChannelMappingItem],
-    summary="Tek channel mapping detayı",
+    tags=["admin"],
+    summary="Kanal eşleştirmesi detayını getir",
+    description="Tek bir kanal eşleştirme kaydının detayını döner.",
 )
 async def get_channel_mapping(
     mapping_id: int = Path(..., ge=1),
@@ -259,7 +293,12 @@ async def get_channel_mapping(
 @router.post(
     "/admin/channel-mappings",
     response_model=SuccessEnvelope[ChannelMappingItem],
-    summary="Yeni channel mapping ekle",
+    tags=["admin"],
+    summary="Yeni kanal eşleştirmesi ekle",
+    description=(
+        "Bir kaynak/medium kombinasyonunu belirli bir kanal grubuna bağlayan "
+        "yeni eşleştirme kaydı oluşturur."
+    ),
 )
 async def create_channel_mapping(
     payload: ChannelMappingCreate,
@@ -280,6 +319,9 @@ async def create_channel_mapping(
 @router.patch(
     "/admin/channel-mappings/{mapping_id}",
     response_model=SuccessEnvelope[ChannelMappingItem],
+    tags=["admin"],
+    summary="Kanal eşleştirmesini güncelle",
+    description="Bir kanal eşleştirme kaydının kanal grubunu ve notunu günceller.",
 )
 async def update_channel_mapping(
     payload: ChannelMappingUpdate,
@@ -300,6 +342,9 @@ async def update_channel_mapping(
 @router.delete(
     "/admin/channel-mappings/{mapping_id}",
     response_model=SuccessEnvelope[dict],
+    tags=["admin"],
+    summary="Kanal eşleştirmesini sil",
+    description="Bir kanal eşleştirme kaydını yumuşak siler (soft delete).",
 )
 async def delete_channel_mapping(
     mapping_id: int = Path(..., ge=1),
@@ -311,14 +356,19 @@ async def delete_channel_mapping(
 
 
 # ---------------------------------------------------------------------- #
-# /roles + /permissions — RBAC yönetimi
+# /roles + /permissions (RBAC yönetimi)
 # ---------------------------------------------------------------------- #
 
 
 @router.get(
     "/roles",
     response_model=PaginatedEnvelope[RoleListItem],
-    summary="Rolleri listele — sayfalı (kullanıcı + izin sayısı ile)",
+    tags=["roles"],
+    summary="Rolleri listele",
+    description=(
+        "Tanımlı rolleri sayfalı olarak döner. Her kayıt rolün kullanıcı ve "
+        "izin sayısını da içerir."
+    ),
 )
 async def list_roles_endpoint(
     page: int = Query(1, ge=1),
@@ -336,7 +386,9 @@ async def list_roles_endpoint(
 @router.get(
     "/roles/{role_id}",
     response_model=SuccessEnvelope[RoleDetail],
-    summary="Rol detayı + atanmış izin kodları",
+    tags=["roles"],
+    summary="Rol detayını getir",
+    description="Tek bir rolün detayını ve atanmış izin kodlarını döner.",
 )
 async def get_role_endpoint(
     role_id: int = Path(..., ge=1),
@@ -350,7 +402,9 @@ async def get_role_endpoint(
 @router.post(
     "/roles",
     response_model=SuccessEnvelope[RoleDetail],
-    summary="Yeni rol oluştur + izinleri ata",
+    tags=["roles"],
+    summary="Yeni rol oluştur",
+    description="Yeni bir rol oluşturur ve belirtilen izin kodlarını ona atar.",
 )
 async def create_role_endpoint(
     payload: RoleCreate,
@@ -375,7 +429,12 @@ async def create_role_endpoint(
 @router.patch(
     "/roles/{role_id}",
     response_model=SuccessEnvelope[RoleDetail],
-    summary="Rol güncelle (ad, açıklama, izinler)",
+    tags=["roles"],
+    summary="Rolü güncelle",
+    description=(
+        "Rolün adını, açıklamasını, görünüm özelliklerini (renk, ikon) ve "
+        "atanmış izinlerini günceller."
+    ),
 )
 async def update_role_endpoint(
     payload: RoleUpdate,
@@ -402,7 +461,13 @@ async def update_role_endpoint(
 @router.delete(
     "/roles/{role_id}",
     response_model=SuccessEnvelope[dict],
-    summary="Rol sil (cascade: kullanıcılar pasifleşir, refresh tokens revoke)",
+    tags=["roles"],
+    summary="Rolü sil",
+    description=(
+        "Rolü siler. Bu role bağlı kullanıcılar pasifleştirilir ve aktif "
+        "refresh token'ları iptal edilir (cascade). Pasifleştirilen kullanıcı "
+        "sayısı yanıtta döner. Sistem rolleri silinemez."
+    ),
 )
 async def delete_role_endpoint(
     request: Request,
@@ -425,7 +490,12 @@ async def delete_role_endpoint(
 @router.get(
     "/permissions",
     response_model=SuccessEnvelope[dict[str, list[PermissionItem]]],
-    summary="43 izni 4 kategori altında listele (rol oluşturma UI'ı için)",
+    tags=["roles"],
+    summary="İzinleri listele",
+    description=(
+        "Sistemdeki 43 izni 4 kategori altında gruplanmış olarak döner. Rol "
+        "oluşturma ve düzenleme ekranındaki izin seçimi bu listeyi kullanır."
+    ),
 )
 async def list_permissions_endpoint(
     _user: User = Depends(require_permission(Permission.ROLES_VIEW)),
@@ -436,7 +506,7 @@ async def list_permissions_endpoint(
 
 
 # ---------------------------------------------------------------------- #
-# /users — CRUD + invite + admin password reset
+# /users (CRUD + invite + admin password reset)
 # ---------------------------------------------------------------------- #
 
 
@@ -459,7 +529,12 @@ def _user_to_item(u: User, role: Role | None = None) -> UserListItem:
 @router.get(
     "/users",
     response_model=PaginatedEnvelope[UserListItem],
-    summary="Kullanıcı listesi — sayfalı",
+    tags=["users"],
+    summary="Kullanıcıları listele",
+    description=(
+        "Kullanıcıları sayfalı olarak döner. `include_deleted` ile silinmiş "
+        "kullanıcılar da listeye dahil edilebilir."
+    ),
 )
 async def list_users(
     page: int = Query(1, ge=1),
@@ -481,7 +556,13 @@ async def list_users(
 @router.get(
     "/users/super-admins/count",
     response_model=SuccessEnvelope[dict],
-    summary="Aktif Süper Admin sayısı — frontend son admin guard'ı için",
+    tags=["users"],
+    summary="Aktif Süper Admin sayısını getir",
+    description=(
+        "Aktif Süper Admin sayısını döner. Frontend, sayı 1 iken son Süper "
+        "Admin'in silinmesini veya rolünün düşürülmesini engellemek için "
+        "kullanır."
+    ),
 )
 async def get_super_admin_count(
     _user: User = Depends(require_permission(Permission.USERS_VIEW)),
@@ -497,7 +578,9 @@ async def get_super_admin_count(
 @router.get(
     "/users/{user_id}",
     response_model=SuccessEnvelope[UserListItem],
-    summary="Tek kullanıcı detayı",
+    tags=["users"],
+    summary="Kullanıcı detayını getir",
+    description="Tek bir kullanıcının detayını ve atanmış rolünü döner.",
 )
 async def get_user_endpoint(
     user_id: int = Path(..., ge=1),
@@ -512,7 +595,14 @@ async def get_user_endpoint(
 @router.post(
     "/users",
     response_model=SuccessEnvelope[UserCreateResponse],
-    summary="Yeni kullanıcı davet et — kullanıcı kendi şifresini belirler",
+    tags=["users"],
+    summary="Yeni kullanıcı davet et",
+    description=(
+        "Yeni bir kullanıcı oluşturur ve e-posta ile davet bağlantısı gönderir. "
+        "Geçici şifre üretilmez; kullanıcı maildeki link ile kendi şifresini "
+        "belirler. Davet bağlantısının geçerlilik süresi yapılandırmaya bağlıdır "
+        "(varsayılan 7 gün)."
+    ),
 )
 async def create_user(
     payload: UserCreate,
@@ -547,6 +637,12 @@ async def create_user(
 @router.patch(
     "/users/{user_id}",
     response_model=SuccessEnvelope[UserListItem],
+    tags=["users"],
+    summary="Kullanıcıyı güncelle",
+    description=(
+        "Kullanıcının adını, soyadını, rolünü ve aktiflik durumunu günceller. "
+        "Son aktif Süper Admin'in rolü düşürülemez veya pasifleştirilemez."
+    ),
 )
 async def update_user(
     payload: UserUpdate,
@@ -573,6 +669,9 @@ async def update_user(
 @router.delete(
     "/users/{user_id}",
     response_model=SuccessEnvelope[dict],
+    tags=["users"],
+    summary="Kullanıcıyı sil",
+    description="Kullanıcıyı yumuşak siler (soft delete). Son aktif Süper Admin silinemez.",
 )
 async def delete_user(
     request: Request,
@@ -593,7 +692,13 @@ async def delete_user(
 @router.post(
     "/users/{user_id}/reset-password",
     response_model=SuccessEnvelope[AdminPasswordResetResponse],
-    summary="Admin: kullanıcının emailine şifre sıfırlama linki gönderir",
+    tags=["users"],
+    summary="Kullanıcıya şifre sıfırlama linki gönder",
+    description=(
+        "Yönetici, hedef kullanıcının e-posta adresine şifre sıfırlama "
+        "bağlantısı gönderir. Geçici şifre üretilmez. Kullanıcı yeni şifresini "
+        "belirleyince aktif refresh token'ları iptal edilir."
+    ),
 )
 async def admin_reset_password(
     request: Request,
@@ -601,7 +706,7 @@ async def admin_reset_password(
     current: User = Depends(require_permission(Permission.USERS_RESET_PASSWORD)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[AdminPasswordResetResponse]:
-    """Süper Admin başkasının şifresini sıfırlar — kullanıcının emailine
+    """Süper Admin başkasının şifresini sıfırlar; kullanıcının emailine
     reset linki gider. Geçici şifre üretilmez. Yeni şifre belirleyince
     aktif refresh tokenları revoke edilir.
     """
@@ -622,20 +727,26 @@ async def admin_reset_password(
 
 
 # ---------------------------------------------------------------------- #
-# /saved-views — CRUD
+# /saved-views (CRUD)
 # ---------------------------------------------------------------------- #
 
 
 @router.get(
     "/saved-views",
     response_model=PaginatedEnvelope[SavedViewItem],
+    tags=["saved-views"],
+    summary="Kayıtlı görünümleri listele",
+    description=(
+        "Oturum açan kullanıcının kayıtlı görünümlerini sayfalı olarak döner. "
+        "`page_name` ile belirli bir dashboard sayfasına göre filtrelenebilir."
+    ),
 )
 async def list_saved_views(
     page_filter: str | None = Query(
         None,
         alias="page_name",
         description="Sayfa adı filtresi (örn: overview, traffic). "
-        "Eskiden `page` adında idi — pagination `page` ile karışmasın diye yeniden adlandı.",
+        "Eskiden `page` adında idi; pagination `page` ile karışmasın diye yeniden adlandı.",
     ),
     page: int = Query(1, ge=1, description="Sayfa numarası"),
     page_size: int = Query(50, ge=1, le=200),
@@ -658,7 +769,12 @@ async def list_saved_views(
 @router.get(
     "/saved-views/{view_id}",
     response_model=SuccessEnvelope[SavedViewItem],
-    summary="Tek saved view detayı (sadece kendi view'ı)",
+    tags=["saved-views"],
+    summary="Kayıtlı görünüm detayını getir",
+    description=(
+        "Tek bir kayıtlı görünümün detayını döner. Yalnızca kullanıcının kendi "
+        "görünümüne erişilebilir."
+    ),
 )
 async def get_saved_view(
     view_id: int = Path(..., ge=1),
@@ -672,6 +788,13 @@ async def get_saved_view(
 @router.post(
     "/saved-views",
     response_model=SuccessEnvelope[SavedViewItem],
+    tags=["saved-views"],
+    summary="Kayıtlı görünüm oluştur",
+    description=(
+        "Bir dashboard sayfasının filtre ve segment kombinasyonunu kullanıcıya "
+        "özel kayıtlı görünüm olarak saklar. Varsayılan görünüm olarak "
+        "işaretlenebilir."
+    ),
 )
 async def create_saved_view(
     payload: SavedViewCreate,
@@ -693,6 +816,12 @@ async def create_saved_view(
 @router.patch(
     "/saved-views/{view_id}",
     response_model=SuccessEnvelope[SavedViewItem],
+    tags=["saved-views"],
+    summary="Kayıtlı görünümü güncelle",
+    description=(
+        "Bir kayıtlı görünümün adını, açıklamasını, filtrelerini ve varsayılan "
+        "durumunu günceller. Yalnızca kullanıcının kendi görünümü güncellenir."
+    ),
 )
 async def update_saved_view(
     payload: SavedViewUpdate,
@@ -715,6 +844,12 @@ async def update_saved_view(
 @router.delete(
     "/saved-views/{view_id}",
     response_model=SuccessEnvelope[dict],
+    tags=["saved-views"],
+    summary="Kayıtlı görünümü sil",
+    description=(
+        "Bir kayıtlı görünümü yumuşak siler (soft delete). Yalnızca kullanıcının "
+        "kendi görünümü silinebilir."
+    ),
 )
 async def delete_saved_view(
     view_id: int = Path(..., ge=1),
@@ -726,13 +861,19 @@ async def delete_saved_view(
 
 
 # ---------------------------------------------------------------------- #
-# /export/{table} — CSV/JSON/XLSX
+# /export/{table} (CSV/JSON/XLSX)
 # ---------------------------------------------------------------------- #
 
 
 @router.get(
     "/export/{kind}",
-    summary="Veriyi CSV/JSON/XLSX olarak indir",
+    tags=["admin"],
+    summary="Veriyi dışa aktar",
+    description=(
+        "Seçilen veri kümesini (ürünler, müşteriler, siparişler, kampanyalar, "
+        "denetim kayıtları veya kanal eşleştirmeleri) CSV, JSON veya XLSX "
+        "biçiminde indirir. Satır sayısı `limit` ile sınırlandırılır."
+    ),
 )
 async def export_data(
     kind: Literal[
@@ -748,7 +889,7 @@ async def export_data(
     _user: User = Depends(require_permission(Permission.EXPORT_CSV)),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    # `audit_logs` özel — kaynak ve permission semantiği farklı (LOGS_VIEW_AUDIT
+    # `audit_logs` özel; kaynak ve permission semantiği farklı (LOGS_VIEW_AUDIT
     # de istense daha doğru olurdu; mevcut tasarımda EXPORT_CSV kapısı yeter
     # ama yine de listelemeyi user_management_service'ten alıyoruz).
     if kind == "audit_logs":

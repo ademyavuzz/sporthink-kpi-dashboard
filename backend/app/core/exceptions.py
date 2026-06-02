@@ -113,6 +113,14 @@ class ConflictError(SporthinkException):
     message = "Resource conflict"
 
 
+class EmailAlreadyExistsError(ConflictError):
+    # Aktif (soft-delete edilmemiş) bir kullanıcıda aynı email zaten varsa.
+    # Soft-deleted bir kayıt varsa servis layer onu reaktive eder; bu hata
+    # SADECE gerçekten aktif bir çakışma için raise edilir.
+    code = "EMAIL_ALREADY_EXISTS"
+    message = "This email is already registered"
+
+
 class RateLimitError(SporthinkException):
     code = "RATE_LIMIT_EXCEEDED"
     status_code = 429

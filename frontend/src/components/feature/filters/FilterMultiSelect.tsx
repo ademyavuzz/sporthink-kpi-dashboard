@@ -20,6 +20,8 @@ interface FilterMultiSelectProps {
   searchable?: boolean;
   /** Tetikleyici buton için ek sınıf (ör. panelde `w-full`). */
   className?: string;
+  /** Ham değeri görünür etikete çevirir (ör. sipariş durumu i18n). */
+  renderOption?: (value: string) => string;
   /** Yeni seçim listesi — store'a anında yazılır (instant-apply). */
   onChange: (next: string[]) => void;
 }
@@ -39,6 +41,7 @@ export function FilterMultiSelect({
   loading,
   searchable,
   className,
+  renderOption,
   onChange,
 }: FilterMultiSelectProps) {
   const { t } = useTranslation(["filters", "common"]);
@@ -48,8 +51,10 @@ export function FilterMultiSelect({
   const visible = useMemo(() => {
     if (!searchable || !query.trim()) return options;
     const q = query.trim().toLocaleLowerCase("tr-TR");
-    return options.filter((o) => o.toLocaleLowerCase("tr-TR").includes(q));
-  }, [options, query, searchable]);
+    return options.filter((o) =>
+      (renderOption ? renderOption(o) : o).toLocaleLowerCase("tr-TR").includes(q),
+    );
+  }, [options, query, searchable, renderOption]);
 
   const toggle = (value: string) => {
     onChange(
@@ -63,7 +68,9 @@ export function FilterMultiSelect({
   const summary = !active
     ? t("filters:all_option")
     : selected.length === 1
-      ? selected[0]
+      ? renderOption
+        ? renderOption(selected[0]!)
+        : selected[0]
       : t("filters:n_selected", { count: selected.length });
 
   return (
@@ -154,7 +161,9 @@ export function FilterMultiSelect({
                   >
                     {isOn && <Check className="size-3" />}
                   </span>
-                  <span className="truncate">{opt}</span>
+                  <span className="truncate">
+                    {renderOption ? renderOption(opt) : opt}
+                  </span>
                 </button>
               );
             })

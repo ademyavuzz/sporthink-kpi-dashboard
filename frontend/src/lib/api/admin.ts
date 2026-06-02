@@ -3,6 +3,9 @@ import type { ApiEnvelope, PaginatedApiEnvelope } from "@/types/api";
 import type {
   AdminPasswordResetResponse,
   AuditLogItem,
+  ChannelMappingCreate,
+  ChannelMappingItem,
+  ChannelMappingUpdate,
   PermissionsGrouped,
   RoleCreate,
   RoleDetail,
@@ -162,6 +165,36 @@ export const adminApi = {
     };
   },
 
+  // Channel mappings
+  async listChannelMappings(): Promise<ChannelMappingItem[]> {
+    const r = await apiClient.get<ApiEnvelope<ChannelMappingItem[]>>(
+      "/admin/channel-mappings?page=1&page_size=200",
+    );
+    return unwrap(r);
+  },
+  async createChannelMapping(p: ChannelMappingCreate): Promise<ChannelMappingItem> {
+    const r = await apiClient.post<ApiEnvelope<ChannelMappingItem>>(
+      "/admin/channel-mappings",
+      p,
+    );
+    return unwrap(r);
+  },
+  async updateChannelMapping(
+    id: number,
+    p: ChannelMappingUpdate,
+  ): Promise<ChannelMappingItem> {
+    const r = await apiClient.patch<ApiEnvelope<ChannelMappingItem>>(
+      `/admin/channel-mappings/${id}`,
+      p,
+    );
+    return unwrap(r);
+  },
+  async deleteChannelMapping(id: number): Promise<void> {
+    await apiClient.delete<ApiEnvelope<{ deleted: boolean }>>(
+      `/admin/channel-mappings/${id}`,
+    );
+  },
+
   // Aggregations rebuild
   async rebuildAggregations(date_from: string, date_to: string): Promise<unknown> {
     const r = await apiClient.post<ApiEnvelope<unknown>>(
@@ -196,7 +229,13 @@ export const adminApi = {
 
   // Export
   async download(
-    kind: "products" | "customers" | "orders" | "campaigns" | "audit_logs",
+    kind:
+      | "products"
+      | "customers"
+      | "orders"
+      | "campaigns"
+      | "audit_logs"
+      | "channel_mappings",
     fmt: "csv" | "json" | "xlsx" = "csv",
   ): Promise<Blob> {
     const r = await apiClient.get(`/export/${kind}?fmt=${fmt}`, {

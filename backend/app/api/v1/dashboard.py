@@ -1,4 +1,4 @@
-"""Dashboard endpoint'leri — 9 sayfa için tek noktada KPI + chart + tablo.
+"""Dashboard endpoint'leri: 9 sayfa için tek noktada KPI + chart + tablo.
 
 Tüm endpoint'ler:
 - GET şeklinde, query param ile date_from/date_to/comparison_mode alır
@@ -93,14 +93,20 @@ def _date_range_with_comparison(
 @router.get(
     "/overview",
     response_model=SuccessEnvelope[OverviewResponse],
-    summary="Genel Özet — 9 KPI + 5 chart bloğu",
+    summary="Genel özet sayfası",
+    description=(
+        "Genel özet sayfasının verisini döner: 9 ana KPI ile birlikte gelir "
+        "trendi, kanal dağılımı, yeni/dönen müşteri, dönüşüm hunisi, en çok "
+        "satan ürünler ve şehir bazlı gelir dağılımı blokları. Kanal ve cihaz "
+        "filtreleri çapraz filtre olarak uygulanır."
+    ),
 )
 async def get_overview(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
-    channels: list[str] | None = Query(None, description="Kanal filtresi (multi) — cross-filter"),
-    devices: list[str] | None = Query(None, description="Cihaz filtresi (multi) — cross-filter"),
+    channels: list[str] | None = Query(None, description="Kanal filtresi (çoklu, çapraz filtre)"),
+    devices: list[str] | None = Query(None, description="Cihaz filtresi (çoklu, çapraz filtre)"),
     _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[OverviewResponse]:
@@ -108,7 +114,7 @@ async def get_overview(
 
     ch = channels or None
     dv = devices or None
-    # Filtreler cache key'inin parçası — her filtre kombinasyonu ayrı entry.
+    # Filtreler cache key'inin parçası; her filtre kombinasyonu ayrı entry.
     extra: dict[str, Any] = {}
     if ch:
         extra["ch"] = sorted(ch)
@@ -132,7 +138,7 @@ async def get_overview(
         channels=ch,
         devices=dv,
     )
-    # Kanal donut'u cross-filter seçicisidir → her zaman tüm kanalları gösterir.
+    # Kanal donut'u cross-filter seçicisidir; her zaman tüm kanalları gösterir.
     channels_data = await kpi_service.revenue_by_channel(
         db, date_from=date_from, date_to=date_to, limit=10, devices=dv
     )
@@ -142,7 +148,7 @@ async def get_overview(
     geo = await kpi_service.revenue_by_city(
         db, date_from=date_from, date_to=date_to, channels=ch, devices=dv
     )
-    # Funnel / new-vs-returning / top-products kanal kırılımı taşımaz → tarih kapsamlı.
+    # Funnel / new-vs-returning / top-products kanal kırılımı taşımaz; tarih kapsamlı.
     nvr = await kpi_service.new_vs_returning_revenue(db, date_from=date_from, date_to=date_to)
     funnel = await kpi_service.funnel_steps(db, date_from=date_from, date_to=date_to)
     top_products = await kpi_service.top_products(
@@ -170,21 +176,28 @@ async def get_overview(
 @router.get(
     "/traffic",
     response_model=SuccessEnvelope[TrafficResponse],
-    summary="GA4 trafik sayfası — KPI + 4 chart + landing page tablosu",
+    summary="Trafik (GA4) sayfası",
+    description=(
+        "GA4 site trafiği sayfasının verisini döner: oturum, kullanıcı, yeni "
+        "kullanıcı, hemen çıkma oranı, oturum başına sayfa, ortalama oturum "
+        "süresi ve dönüşüm oranı KPI'ları; günlük seri, kanal/cihaz/şehir "
+        "kırılımları ve giriş sayfası tablosu. Kanal, cihaz ve şehir filtreleri "
+        "uygulanabilir."
+    ),
 )
 async def get_traffic(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
-    channels: list[str] | None = Query(None, description="Kanal filtresi (multi)"),
-    devices: list[str] | None = Query(None, description="Cihaz filtresi (multi)"),
-    cities: list[str] | None = Query(None, description="Şehir filtresi (multi)"),
+    channels: list[str] | None = Query(None, description="Kanal filtresi (çoklu)"),
+    devices: list[str] | None = Query(None, description="Cihaz filtresi (çoklu)"),
+    cities: list[str] | None = Query(None, description="Şehir filtresi (çoklu)"),
     _user: User = Depends(require_permission(Permission.TRAFFIC_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[TrafficResponse]:
     _validate_range(date_from, date_to)
 
-    # Filtreler cache key'inin parçası — filtre değişince ayrı entry.
+    # Filtreler cache key'inin parçası; filtre değişince ayrı entry.
     filter_key: dict[str, str | list[str]] = {"cmp": comparison_mode}
     if channels:
         filter_key["ch"] = sorted(channels)
@@ -301,6 +314,12 @@ async def get_traffic(
     "/meta",
     response_model=SuccessEnvelope[MetaAdsResponse],
     summary="Meta Ads sayfası",
+    description=(
+        "Meta Ads (Facebook/Instagram) reklam performansı sayfasının verisini "
+        "döner: harcama, gösterim, tıklama, CTR, CPC, CPM, dönüşüm, dönüşüm "
+        "başına maliyet, ROAS ve frekans KPI'ları; kampanya tablosu ve günlük "
+        "seri."
+    ),
 )
 async def get_meta(
     date_from: date = Query(...),
@@ -377,6 +396,12 @@ async def get_meta(
     "/google",
     response_model=SuccessEnvelope[GoogleAdsResponse],
     summary="Google Ads sayfası",
+    description=(
+        "Google Ads reklam performansı sayfasının verisini döner: harcama, "
+        "gösterim, tıklama, CTR, CPC, CPM, dönüşüm, dönüşüm başına maliyet ve "
+        "ROAS KPI'ları; kampanya tablosu, ROAS'a göre en iyi kampanyalar, kanal "
+        "türü kırılımı, en iyi anahtar kelimeler ve ürünler ile günlük seri."
+    ),
 )
 async def get_google(
     date_from: date = Query(...),
@@ -461,23 +486,31 @@ async def get_google(
 @router.get(
     "/ecom",
     response_model=SuccessEnvelope[EcommerceResponse],
-    summary="E-Ticaret sayfası — KPI + 6 chart + 2 tablo, filtreli",
+    summary="E-ticaret sayfası",
+    description=(
+        "E-ticaret performansı sayfasının verisini döner: gelir, sipariş, "
+        "ortalama sepet tutarı, satılan ürün, iade oranı, tekrar satın alma "
+        "oranı ve kullanıcı başına gelir KPI'ları; günlük seri, kanal/kategori/"
+        "cihaz/şehir/ödeme kırılımları, yeni/dönen müşteri, en iyi ürün ve "
+        "müşteri listeleri ile sipariş tablosu. Kategori, marka, sipariş durumu "
+        "ve ödeme yöntemi filtreleri uygulanabilir."
+    ),
 )
 async def get_ecom(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
-    categories: list[str] | None = Query(None, description="Ürün kategorisi filtresi (multi)"),
-    brands: list[str] | None = Query(None, description="Marka filtresi (multi)"),
-    statuses: list[str] | None = Query(None, description="Sipariş durumu filtresi (multi)"),
-    payment_methods: list[str] | None = Query(None, description="Ödeme yöntemi filtresi (multi)"),
+    categories: list[str] | None = Query(None, description="Ürün kategorisi filtresi (çoklu)"),
+    brands: list[str] | None = Query(None, description="Marka filtresi (çoklu)"),
+    statuses: list[str] | None = Query(None, description="Sipariş durumu filtresi (çoklu)"),
+    payment_methods: list[str] | None = Query(None, description="Ödeme yöntemi filtresi (çoklu)"),
     orders_limit: int = Query(50, ge=1, le=200, description="Sipariş listesi sayfa boyutu"),
     _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[EcommerceResponse]:
     _validate_range(date_from, date_to)
 
-    # Filtreler cache key'inin parçası — filtre değişince ayrı entry.
+    # Filtreler cache key'inin parçası; filtre değişince ayrı entry.
     filter_key: dict[str, Any] = {"cmp": comparison_mode}
     if categories:
         filter_key["cat"] = sorted(categories)
@@ -558,10 +591,14 @@ async def get_ecom(
 @router.get(
     "/ecom/order-detail",
     response_model=SuccessEnvelope[OrderDetailResponse],
-    summary="E-Ticaret sipariş detayı (modal için)",
+    summary="Sipariş detayını getir",
+    description=(
+        "Tek bir siparişin detayını döner (sipariş kalemleri ve özet bilgiler). "
+        "E-ticaret sayfasındaki sipariş detay penceresi için kullanılır."
+    ),
 )
 async def get_ecom_order_detail(
-    order_pk_id: int = Query(..., ge=1, description="orders.id PK"),
+    order_pk_id: int = Query(..., ge=1, description="Sipariş kaydının PK değeri (orders.id)"),
     _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[OrderDetailResponse]:
@@ -577,14 +614,19 @@ async def get_ecom_order_detail(
 @router.get(
     "/campaign",
     response_model=SuccessEnvelope[CampaignAnalysisResponse],
-    summary="Kampanya analizi (Meta + Google)",
+    summary="Kampanya analizi sayfası",
+    description=(
+        "Meta ve Google kampanyalarını birlikte analiz eder. Toplam harcama, "
+        "toplam reklam geliri ve genel ROAS KPI'ları ile kampanya performans "
+        "tablosunu döner. Platform parametresi ile tek platforma daraltılabilir."
+    ),
 )
 async def get_campaign(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
     platform: KPIPlatform | None = Query(
-        None, description="meta | google — boş bırakılırsa her iki platform"
+        None, description="Platform filtresi (meta veya google); boş ise her iki platform"
     ),
     _user: User = Depends(require_permission(Permission.CAMPAIGNS_VIEW)),
     db: AsyncSession = Depends(get_db),
@@ -666,14 +708,20 @@ async def get_campaign(
 @router.get(
     "/campaign-detail",
     response_model=SuccessEnvelope[CampaignDetailResponse],
-    summary="Tek kampanya detayı — ad + e-ticaret + top ürünler + günlük trend",
+    summary="Kampanya detayını getir",
+    description=(
+        "Tek bir kampanyanın detaylı verisini döner: reklam metrikleri, "
+        "e-ticaret katkısı, en çok satan ürünler ve günlük trend. Kampanya "
+        "`campaign_pk_id` veya `campaign_name` parametresi ile belirtilir; en "
+        "az biri zorunludur."
+    ),
 )
 async def get_campaign_detail(
     date_from: date = Query(...),
     date_to: date = Query(...),
-    campaign_pk_id: int | None = Query(None),
-    campaign_name: str | None = Query(None),
-    top_n: int = Query(10, ge=1, le=50),
+    campaign_pk_id: int | None = Query(None, description="Kampanya kaydının PK değeri"),
+    campaign_name: str | None = Query(None, description="Kampanya adı"),
+    top_n: int = Query(10, ge=1, le=50, description="Listelenecek en iyi ürün sayısı"),
     _user: User = Depends(require_permission(Permission.CAMPAIGNS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CampaignDetailResponse]:
@@ -716,7 +764,12 @@ async def get_campaign_detail(
 @router.get(
     "/funnel",
     response_model=SuccessEnvelope[FunnelResponse],
-    summary="E-ticaret funnel (View → Cart → Checkout → Purchase)",
+    summary="Dönüşüm hunisi sayfası",
+    description=(
+        "E-ticaret dönüşüm hunisini döner: Görüntüleme, Sepet, Ödeme ve Satın "
+        "Alma adımları. Adım bazlı sayılar, toplam oturum, cihaz ve kanal "
+        "kırılımları ile günlük terk (drop-off) serisini içerir."
+    ),
 )
 async def get_funnel(
     date_from: date = Query(...),
@@ -757,7 +810,12 @@ async def get_funnel(
 @router.get(
     "/cohort",
     response_model=SuccessEnvelope[CohortResponse],
-    summary="Cohort retention heatmap",
+    summary="Kohort analizi sayfası",
+    description=(
+        "Müşteri elde tutma kohort analizini ısı haritası (heatmap) verisi "
+        "olarak döner. Her hücre, bir başlangıç kohortunun sonraki dönemlerdeki "
+        "geri dönüş oranını gösterir."
+    ),
 )
 async def get_cohort(
     date_from: date = Query(...),
@@ -788,7 +846,11 @@ async def get_cohort(
 @router.get(
     "/products",
     response_model=SuccessEnvelope[ProductsResponse],
-    summary="Ürün performans sayfası",
+    summary="Ürün performansı sayfası",
+    description=(
+        "Ürün performansı sayfasının verisini döner: satılan ürün KPI'ı, en çok "
+        "satan ürünler tablosu ile kategori ve marka bazlı gelir dağılımları."
+    ),
 )
 async def get_products(
     date_from: date = Query(...),
@@ -839,7 +901,13 @@ async def get_products(
 @router.get(
     "/customers",
     response_model=SuccessEnvelope[CustomersResponse],
-    summary="Müşteri analizi — KPI + cinsiyet/yaş/şehir/frekans + top liste",
+    summary="Müşteri analizi sayfası",
+    description=(
+        "Müşteri analizi sayfasının verisini döner: müşteri KPI'ları ile "
+        "cinsiyet, yaş, şehir ve satın alma frekansı dağılımları ve en değerli "
+        "müşteri listesi. Yeni müşteri metrikleri seçili tarih aralığına göre, "
+        "toplam ve dağılım metrikleri tüm aktif müşteri tabanına göre hesaplanır."
+    ),
 )
 async def get_customers(
     date_from: date = Query(...),
@@ -885,7 +953,14 @@ async def get_customers(
 @router.get(
     "/channel-analysis",
     response_model=SuccessEnvelope[ChannelAnalysisResponse],
-    summary="Kanal Analizi — KPI + ROAS/dönüşüm karşılaştırması + tablo",
+    summary="Kanal analizi sayfası",
+    description=(
+        "Pazarlama kanallarını karşılaştıran analiz sayfasının verisini döner: "
+        "kanal KPI'ları ile ROAS ve dönüşüm karşılaştırmaları ve kanal "
+        "performans tablosu. Kanal ve cihaz filtreleri kaynak veriye uygulanır; "
+        "gelir, sipariş, ROAS ve dönüşüm aralığı filtreleri sonuç satırlarını "
+        "süzer."
+    ),
 )
 async def get_channel_analysis(
     date_from: date = Query(...),
@@ -903,7 +978,7 @@ async def get_channel_analysis(
     _user: User = Depends(require_permission(Permission.CHANNEL_ANALYSIS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[ChannelAnalysisResponse]:
-    """Kanal performans sayfası — doc 6. bölüm "Kanal Analizi" karşılığı.
+    """Kanal performans sayfası (doc 6. bölüm "Kanal Analizi" karşılığı).
 
     `channels` / `devices` source data'ya pre-aggregation uygulanır.
     Range filtreler (revenue/orders/roas/conversion) sonuç satırlarını
