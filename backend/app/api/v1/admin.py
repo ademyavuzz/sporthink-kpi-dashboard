@@ -185,6 +185,32 @@ async def get_filter_order_statuses(
     return SuccessEnvelope(data=filter_service.order_statuses())
 
 
+@router.get(
+    "/filters/genders",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Müşteri cinsiyet listesini getir",
+    description="Müşteri segment filtrelerinde kullanılan cinsiyet seçeneklerini döner.",
+)
+async def get_filter_genders(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.customer_genders())
+
+
+@router.get(
+    "/filters/age-groups",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Müşteri yaş grubu listesini getir",
+    description="Müşteri segment filtrelerinde kullanılan yaş grubu seçeneklerini döner.",
+)
+async def get_filter_age_groups(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.customer_age_groups())
+
+
 # ---------------------------------------------------------------------- #
 # /admin/aggregations/rebuild
 # ---------------------------------------------------------------------- #

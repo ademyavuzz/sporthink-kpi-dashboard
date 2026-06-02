@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import GA4Traffic, KPIDailyAggregate, Order, Product
+from app.models.customer import CustomerAgeGroup, CustomerGender
 from app.models.order import OrderPaymentMethod, OrderStatus
 
 
@@ -72,3 +73,13 @@ def order_payment_methods() -> list[str]:
 def order_statuses() -> list[str]:
     """Sabit enum — DB'ye sormaya gerek yok."""
     return [s.value for s in OrderStatus]
+
+
+def customer_genders() -> list[str]:
+    """Sabit enum — müşteri cinsiyet seçenekleri."""
+    return [g.value for g in CustomerGender]
+
+
+def customer_age_groups() -> list[str]:
+    """Sabit enum — müşteri yaş grubu seçenekleri (artan)."""
+    return [a.value for a in CustomerAgeGroup]
