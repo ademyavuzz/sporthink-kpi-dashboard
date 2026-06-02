@@ -6,9 +6,11 @@ import { ChartCard } from "@/components/feature/ChartCard";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import { formatAxisNumber, toNumber } from "@/lib/format";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
@@ -19,12 +21,18 @@ import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 export default function TrafficPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
+  const channels = useFiltersStore((s) => s.selected_channels);
+  const devices = useFiltersStore((s) => s.selected_devices);
+  const cities = useFiltersStore((s) => s.selected_cities);
   const q = useQuery({
-    queryKey: ["dashboard", "traffic", range.date_from, range.date_to],
+    queryKey: ["dashboard", "traffic", range.date_from, range.date_to, channels, devices, cities],
     queryFn: () =>
       dashboardApi.traffic({
         date_from: range.date_from,
         date_to: range.date_to,
+        channels: channels.length ? channels : undefined,
+        devices: devices.length ? devices : undefined,
+        cities: cities.length ? cities : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   });
@@ -37,7 +45,10 @@ export default function TrafficPage() {
 
   return (
     <PageShell>
-      <DashboardHeader title={t("traffic.title")} range={range} onChangeRange={setRange} />
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+        <DashboardHeader title={t("traffic.title")} range={range} onChangeRange={setRange} />
+        <GlobalFilterBar fields={["channels", "devices", "cities"]} />
+      </div>
 
       {/* Trafik KPI'lari */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">

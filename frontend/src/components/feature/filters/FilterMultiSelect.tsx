@@ -18,6 +18,8 @@ interface FilterMultiSelectProps {
   selected: string[];
   loading?: boolean;
   searchable?: boolean;
+  /** Tetikleyici buton için ek sınıf (ör. panelde `w-full`). */
+  className?: string;
   /** Yeni seçim listesi — store'a anında yazılır (instant-apply). */
   onChange: (next: string[]) => void;
 }
@@ -36,6 +38,7 @@ export function FilterMultiSelect({
   selected,
   loading,
   searchable,
+  className,
   onChange,
 }: FilterMultiSelectProps) {
   const { t } = useTranslation(["filters", "common"]);
@@ -75,6 +78,7 @@ export function FilterMultiSelect({
               ? "border-primary/50 bg-primary/10 text-foreground"
               : "border-border bg-surface text-text-muted hover:bg-muted hover:text-foreground",
             loading && "cursor-not-allowed opacity-60",
+            className,
           )}
         >
           {Icon && (
@@ -93,7 +97,7 @@ export function FilterMultiSelect({
           )}
           <ChevronDown
             className={cn(
-              "size-3.5 shrink-0 opacity-60 transition-transform",
+              "ml-auto size-3.5 shrink-0 opacity-60 transition-transform",
               open && "rotate-180",
             )}
           />
