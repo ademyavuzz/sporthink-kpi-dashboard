@@ -69,7 +69,10 @@
     "button": "Columns",
     "menu_label": "Manage columns",
     "reset": "Reset to default",
-    "drag_hint": "Drag column headers to reorder"
+    "drag_hint": "Drag column headers to reorder",
+    "sort_asc": "Sort {{column}} ascending",
+    "sort_desc": "Sort {{column}} descending",
+    "sort_none": "Clear sorting on {{column}}"
   },
   "pagination": {
     "previous": "Previous",

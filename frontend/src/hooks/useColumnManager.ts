@@ -16,10 +16,17 @@ export interface ColumnDef {
   required?: boolean;
 }
 
+/** Aktif siralama yonu. `null` = siralama kapali (dogal sira). */
+export type SortDirection = "asc" | "desc" | null;
+
 /** localStorage'da saklanan kullanici tercihi sekli. */
 interface StoredPreference {
   order: string[];
   hidden: string[];
+  /** Aktif siralama kolonu (yoksa alan bulunmaz — eski tercihlerle uyumlu). */
+  sortColumnId?: string | null;
+  /** Aktif siralama yonu. */
+  sortDir?: SortDirection;
 }
 
 export interface ColumnManager<TCol extends ColumnDef = ColumnDef> {
@@ -33,10 +40,20 @@ export interface ColumnManager<TCol extends ColumnDef = ColumnDef> {
   toggleVisibility: (id: string) => void;
   /** `fromId` kolonunu `toId` kolonunun bulundugu konuma tasi. */
   reorder: (fromId: string, toId: string) => void;
-  /** Tum tercihleri varsayilana dondur. */
+  /** Tum tercihleri (sira + gizlilik + siralama) varsayilana dondur. */
   reset: () => void;
   /** Varsayilandan sapma var mi? (reset butonunu gosterip gizlemek icin) */
   isCustomized: boolean;
+  /** Su an hangi kolona gore siralaniyor? (`null` = siralama yok). */
+  sortColumnId: string | null;
+  /** Aktif siralama yonu (`null` = siralama yok). */
+  sortDir: SortDirection;
+  /**
+   * `columnId` icin siralamayi ilerlet. Ayni kolona art arda tiklayinca dongu:
+   * asc -> desc -> none (kapali) -> asc. Farkli bir kolona tiklayinca o kolon
+   * `asc` ile baslar.
+   */
+  toggleSort: (columnId: string) => void;
 }
 
 const STORAGE_PREFIX = "table-columns:";
@@ -114,6 +131,21 @@ export function useColumnManager<TCol extends ColumnDef>(
     const pref = readPreference(storageKey);
     return new Set(pref?.hidden ?? []);
   });
+  const [sortColumnId, setSortColumnId] = useState<string | null>(() => {
+    const pref = readPreference(storageKey);
+    // Saklanan kolon hala mevcutsa ve bir yon varsa geri yukle; aksi halde kapali.
+    if (pref?.sortColumnId && pref.sortDir && columns.some((c) => c.id === pref.sortColumnId)) {
+      return pref.sortColumnId;
+    }
+    return null;
+  });
+  const [sortDir, setSortDir] = useState<SortDirection>(() => {
+    const pref = readPreference(storageKey);
+    if (pref?.sortColumnId && pref.sortDir && columns.some((c) => c.id === pref.sortColumnId)) {
+      return pref.sortDir;
+    }
+    return null;
+  });
 
   // Kolon tanimi degisirse (orn: dil/sayfa degisimi) gecerli id'lere sterilize et.
   useEffect(() => {
@@ -128,14 +160,20 @@ export function useColumnManager<TCol extends ColumnDef>(
       const next = new Set([...prev].filter((id) => validIds.has(id)));
       return next.size === prev.size ? prev : next;
     });
-  }, [columns, defaultOrder]);
+    // Siralama kolonu artik yoksa siralamayi kapat.
+    setSortColumnId((prev) => (prev !== null && !validIds.has(prev) ? null : prev));
+    setSortDir((prevDir) =>
+      sortColumnId !== null && !validIds.has(sortColumnId) ? null : prevDir,
+    );
+  }, [columns, defaultOrder, sortColumnId]);
 
   // Tercihi her degisiklikte sakla (varsayilansa anahtari temizle).
   useEffect(() => {
     const isDefaultOrder =
       order.length === defaultOrder.length &&
       order.every((id, i) => id === defaultOrder[i]);
-    if (isDefaultOrder && hidden.size === 0) {
+    const hasSort = sortColumnId !== null && sortDir !== null;
+    if (isDefaultOrder && hidden.size === 0 && !hasSort) {
       try {
         window.localStorage.removeItem(STORAGE_PREFIX + storageKey);
       } catch {
@@ -143,8 +181,13 @@ export function useColumnManager<TCol extends ColumnDef>(
       }
       return;
     }
-    writePreference(storageKey, { order, hidden: [...hidden] });
-  }, [storageKey, order, hidden, defaultOrder]);
+    writePreference(storageKey, {
+      order,
+      hidden: [...hidden],
+      sortColumnId,
+      sortDir,
+    });
+  }, [storageKey, order, hidden, defaultOrder, sortColumnId, sortDir]);
 
   const orderedColumns = useMemo(() => applyOrder(columns, order), [columns, order]);
 
@@ -189,17 +232,39 @@ export function useColumnManager<TCol extends ColumnDef>(
     [columns],
   );
 
+  const toggleSort = useCallback(
+    (columnId: string) => {
+      // Hedef kolonun simdiki yonunu oku, sonraki yonu hesapla ve ikisini
+      // birlikte (atomik) ayarla. Boylece kolon/yon hicbir ara render'da
+      // tutarsiz kalmaz.
+      const currentDir = sortColumnId === columnId ? sortDir : null;
+      // Farkli kolon -> asc; ayni kolon: asc -> desc -> none -> asc.
+      const nextDir: SortDirection =
+        currentDir === "asc" ? "desc" : currentDir === "desc" ? null : "asc";
+      if (nextDir === null) {
+        setSortColumnId(null);
+        setSortDir(null);
+      } else {
+        setSortColumnId(columnId);
+        setSortDir(nextDir);
+      }
+    },
+    [sortColumnId, sortDir],
+  );
+
   const reset = useCallback(() => {
     setOrder(defaultOrder);
     setHidden(new Set());
+    setSortColumnId(null);
+    setSortDir(null);
   }, [defaultOrder]);
 
   const isCustomized = useMemo(() => {
     const isDefaultOrder =
       order.length === defaultOrder.length &&
       order.every((id, i) => id === defaultOrder[i]);
-    return !isDefaultOrder || hidden.size > 0;
-  }, [order, hidden, defaultOrder]);
+    return !isDefaultOrder || hidden.size > 0 || sortColumnId !== null;
+  }, [order, hidden, defaultOrder, sortColumnId]);
 
   return {
     visibleColumns,
@@ -209,5 +274,8 @@ export function useColumnManager<TCol extends ColumnDef>(
     reorder,
     reset,
     isCustomized,
+    sortColumnId,
+    sortDir,
+    toggleSort,
   };
 }

@@ -69,7 +69,10 @@
     "button": "Kolonlar",
     "menu_label": "Kolonları yönet",
     "reset": "Varsayılana dön",
-    "drag_hint": "Sütun başlıklarını sürükleyerek yeniden sıralayın"
+    "drag_hint": "Sütun başlıklarını sürükleyerek yeniden sıralayın",
+    "sort_asc": "{{column}} sütununu artan sırada sırala",
+    "sort_desc": "{{column}} sütununu azalan sırada sırala",
+    "sort_none": "{{column}} sütunundaki sıralamayı kaldır"
   },
   "pagination": {
     "previous": "Önceki",

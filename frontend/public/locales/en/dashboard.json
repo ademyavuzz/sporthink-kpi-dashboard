@@ -1,4 +1,12 @@
 {
+  "table_sort": {
+    "asc": "Ascending",
+    "desc": "Descending",
+    "none": "No sorting",
+    "aria_asc": "Sort {{column}} ascending",
+    "aria_desc": "Sort {{column}} descending",
+    "aria_none": "Clear sorting on {{column}}"
+  },
   "chart_metrics": {
     "aria_label": "Metrics to show on chart",
     "keep_one": "At least one metric must stay selected"

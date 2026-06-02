@@ -1,4 +1,12 @@
 {
+  "table_sort": {
+    "asc": "Artan",
+    "desc": "Azalan",
+    "none": "Sıralama yok",
+    "aria_asc": "{{column}} sütununu artan sırada sırala",
+    "aria_desc": "{{column}} sütununu azalan sırada sırala",
+    "aria_none": "{{column}} sütunundaki sıralamayı kaldır"
+  },
   "chart_metrics": {
     "aria_label": "Grafikte gösterilecek metrikler",
     "keep_one": "En az bir metrik seçili kalmalı"
