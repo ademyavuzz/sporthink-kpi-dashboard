@@ -55,6 +55,10 @@
     "completed": "Hazır",
     "failed": "Başarısız"
   },
+  "lang_badge": {
+    "tr": "TR",
+    "en": "EN"
+  },
   "section": {
     "overview": "Genel Özet",
     "ga4": "GA4 Trafik",

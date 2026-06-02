@@ -1,6 +1,11 @@
-/* Sporthink rapor PDF — sade, dijital pazarlama raporu görünümü.
- * Kapak sayfası running header'sız temiz; içerik sayfalarında üstte logo
- * + tarih aralığı, altta brand/zaman + sayfa numarası. */
+/* Sporthink rapor PDF - sade, profesyonel dijital pazarlama raporu gorunumu.
+ * Kapak sayfasi running header'siz temiz; icerik sayfalarinda ustte logo
+ * + tarih araligi, altta brand/zaman + sayfa numarasi.
+ * Print-uyumlu: A4, sayfa kirilimi korunur, satir/blok kesilmesi engellenir. */
+
+/* --------------------------------------------------------------------- */
+/* Page geometry                                                         */
+/* --------------------------------------------------------------------- */
 
 @page {
   size: A4;
@@ -14,7 +19,7 @@
     width: 100%;
   }
   @bottom-right {
-    content: counter(page);
+    content: counter(page) " / " counter(pages);
     font-family: "DejaVu Sans", sans-serif;
     font-size: 8pt;
     color: #9ca3af;
@@ -22,9 +27,9 @@
   }
 }
 
-/* Kapak sayfasında running header/footer/page-no gösterme. */
+/* Kapak sayfasinda running header/footer/page-no gosterme. */
 @page :first {
-  margin: 18mm 16mm 18mm 16mm;
+  margin: 18mm 16mm 20mm 16mm;
   @top-left { content: none; }
   @bottom-center { content: none; }
   @bottom-right { content: none; }
@@ -39,9 +44,15 @@ html, body {
   font-size: 10pt;
   color: #1f2937;
   line-height: 1.5;
+  -weasy-hyphens: none;
 }
 
-/* ----- Running header / footer ----- */
+p { orphans: 2; widows: 2; }
+
+/* --------------------------------------------------------------------- */
+/* Running header / footer                                               */
+/* --------------------------------------------------------------------- */
+
 .page-header {
   position: running(report-header);
   display: flex;
@@ -55,7 +66,7 @@ html, body {
 }
 
 .header-logo {
-  height: 16pt;
+  height: 15pt;
   width: auto;
 }
 
@@ -79,48 +90,82 @@ html, body {
 
 .footer-sep { opacity: 0.5; }
 
-/* ----- Cover page ----- */
+/* --------------------------------------------------------------------- */
+/* Cover page                                                            */
+/* --------------------------------------------------------------------- */
+
 .cover {
   page-break-after: always;
-  min-height: 250mm;
+  min-height: 252mm;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   padding: 0 4mm;
 }
 
+.cover-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.6pt solid #e5e7eb;
+  padding-bottom: 16pt;
+}
+
 .cover-logo {
-  height: 28pt;
+  height: 26pt;
   width: auto;
-  margin-bottom: 28pt;
+}
+
+.cover-top-tag {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1pt;
+  color: #9ca3af;
+}
+
+.cover-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cover-eyebrow {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2pt;
+  color: #be123c;
+  margin-bottom: 12pt;
 }
 
 .cover-title {
   font-size: 30pt;
   font-weight: 800;
   color: #111827;
-  margin: 0 0 6pt 0;
-  line-height: 1.15;
+  margin: 0 0 8pt 0;
+  line-height: 1.12;
   letter-spacing: -0.5pt;
 }
 
 .cover-subtitle {
   font-size: 11.5pt;
   color: #6b7280;
-  margin: 0 0 18pt 0;
+  margin: 0 0 22pt 0;
   font-weight: 400;
+  max-width: 130mm;
 }
 
 .cover-pill {
   align-self: flex-start;
-  padding: 5pt 14pt;
+  padding: 6pt 16pt;
   border-radius: 999px;
   background: #fff1f2;
   color: #be123c;
-  font-weight: 600;
-  font-size: 10.5pt;
-  margin-bottom: 28pt;
+  font-weight: 700;
+  font-size: 11pt;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2pt;
 }
 
 .cover-meta {
@@ -128,9 +173,9 @@ html, body {
   color: #374151;
   display: flex;
   flex-direction: column;
-  gap: 8pt;
+  gap: 9pt;
   border-top: 0.6pt solid #e5e7eb;
-  padding-top: 14pt;
+  padding-top: 16pt;
 }
 
 .cover-meta-row {
@@ -141,11 +186,11 @@ html, body {
 
 .cover-meta-label {
   color: #9ca3af;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   font-size: 8pt;
   letter-spacing: 0.5pt;
-  min-width: 90pt;
+  min-width: 96pt;
   display: inline-block;
 }
 
@@ -160,42 +205,57 @@ html, body {
   font-weight: 700;
 }
 
-/* ----- Section ----- */
+/* --------------------------------------------------------------------- */
+/* Section                                                               */
+/* --------------------------------------------------------------------- */
+
 .report-section {
   page-break-before: always;
   page-break-inside: auto;
   padding-top: 4pt;
 }
 
-/* Yönetici Özeti kapakla aynı sayfada olmasın diye page-break-before aktif. */
+/* Yonetici Ozeti kapakla ayni sayfada olmasin diye page-break-before aktif. */
 .section-exec {
   page-break-before: always;
+}
+
+.section-head {
+  margin: 0 0 16pt 0;
+  page-break-after: avoid;
 }
 
 .section-title {
   font-size: 18pt;
   font-weight: 800;
-  margin: 0 0 4pt 0;
+  margin: 0;
+  padding-left: 10pt;
+  border-left: 3.5pt solid #be123c;
   color: #111827;
   letter-spacing: -0.3pt;
+  line-height: 1.2;
 }
 
 .section-desc {
   font-size: 9.5pt;
   color: #6b7280;
-  margin: 0 0 16pt 0;
+  margin: 5pt 0 0 13.5pt;
 }
 
 .subsection-title {
   font-size: 10.5pt;
   font-weight: 700;
   color: #374151;
-  margin: 18pt 0 6pt 0;
+  margin: 20pt 0 6pt 0;
   text-transform: uppercase;
   letter-spacing: 0.5pt;
+  page-break-after: avoid;
 }
 
-/* ----- Executive Summary ----- */
+/* --------------------------------------------------------------------- */
+/* Executive Summary                                                     */
+/* --------------------------------------------------------------------- */
+
 .exec-narrative {
   font-size: 10.5pt;
   color: #1f2937;
@@ -205,6 +265,7 @@ html, body {
   border-left: 3pt solid #be123c;
   border-radius: 2pt;
   line-height: 1.6;
+  page-break-inside: avoid;
 }
 
 .exec-twocol {
@@ -219,6 +280,7 @@ html, body {
   border-radius: 6pt;
   padding: 12pt 14pt;
   background: #ffffff;
+  page-break-inside: avoid;
 }
 
 .exec-col-title {
@@ -279,7 +341,10 @@ html, body {
   border-color: #e5e7eb;
 }
 
-/* ----- KPI grid ----- */
+/* --------------------------------------------------------------------- */
+/* KPI grid                                                              */
+/* --------------------------------------------------------------------- */
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -293,6 +358,7 @@ html, body {
   border-radius: 6pt;
   padding: 10pt 11pt;
   background: #ffffff;
+  page-break-inside: avoid;
 }
 
 .kpi-label {
@@ -300,7 +366,7 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 0.4pt;
   color: #9ca3af;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 4pt;
 }
 
@@ -323,13 +389,20 @@ html, body {
 .kpi-change-negative { color: #dc2626; }
 .kpi-change-flat     { color: #9ca3af; }
 
-/* ----- Tables ----- */
+/* --------------------------------------------------------------------- */
+/* Tables                                                                */
+/* --------------------------------------------------------------------- */
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 9pt;
   margin-top: 4pt;
 }
+
+/* Sayfa kiriliminda tablo basligi her sayfada tekrar et. */
+.data-table thead { display: table-header-group; }
+.data-table tr { page-break-inside: avoid; }
 
 .data-table thead th {
   background: #f9fafb;
@@ -348,6 +421,10 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+.data-table tbody tr:nth-child(even) td {
+  background: #fcfcfc;
+}
+
 .data-table tbody td.t-left {
   font-variant-numeric: normal;
 }
@@ -359,13 +436,17 @@ html, body {
 .t-center { text-align: center; }
 .muted    { color: #9ca3af; font-style: italic; font-variant-numeric: normal; }
 
-/* ----- Charts (inline SVG) ----- */
+/* --------------------------------------------------------------------- */
+/* Charts (inline SVG)                                                   */
+/* --------------------------------------------------------------------- */
+
 .chart-block {
   margin-top: 14pt;
   border: 0.6pt solid #e5e7eb;
   border-radius: 6pt;
   padding: 12pt;
   background: #ffffff;
+  page-break-inside: avoid;
 }
 
 .chart-block-tight {

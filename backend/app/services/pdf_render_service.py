@@ -19,6 +19,10 @@ from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
 
+# Veri olmayan hücreler için yer tutucu. Em-dash yerine en-dash kullanılır
+# (rapor metninde uzun çizgi tercih edilmez).
+EMPTY = "–"
+
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "reports"
 
 _env = Environment(
@@ -38,6 +42,8 @@ _LABELS: dict[str, dict[str, str]] = {
         "report_title": "Pazarlama ve E-Ticaret Raporu",
         "subtitle": "Sporthink dashboard verileriyle hazırlanmıştır.",
         "footer": "Sporthink · Pazarlama ve E-Ticaret Raporu",
+        "brand_tag": "Sporthink Dashboard",
+        "cover_eyebrow": "Dönemsel Performans Raporu",
         "prepared_by": "Hazırlayan",
         "generated_at": "Üretim Zamanı",
         "sections": "Bölümler",
@@ -86,6 +92,8 @@ _LABELS: dict[str, dict[str, str]] = {
         "report_title": "Marketing & E-commerce Report",
         "subtitle": "Compiled from the Sporthink dashboard.",
         "footer": "Sporthink · Marketing & E-commerce Report",
+        "brand_tag": "Sporthink Dashboard",
+        "cover_eyebrow": "Periodic Performance Report",
         "prepared_by": "Prepared by",
         "generated_at": "Generated at",
         "sections": "Sections",
@@ -160,7 +168,7 @@ _SECTION_LABELS: dict[str, dict[str, str]] = {
 
 def _fmt_currency(value: Decimal | None, lang: str) -> str:
     if value is None:
-        return "—"
+        return EMPTY
     n = Decimal(value)
     sign = "-" if n < 0 else ""
     n = abs(n)
@@ -178,7 +186,7 @@ def _fmt_currency(value: Decimal | None, lang: str) -> str:
 
 def _fmt_int(value: int | Decimal | None, lang: str) -> str:
     if value is None:
-        return "—"
+        return EMPTY
     n = int(value)
     sign = "-" if n < 0 else ""
     s = str(abs(n))
@@ -191,14 +199,14 @@ def _fmt_int(value: int | Decimal | None, lang: str) -> str:
 
 def _fmt_percent(value: Decimal | None, lang: str) -> str:
     if value is None:
-        return "—"
+        return EMPTY
     sign = "%" if lang == "tr" else "%"
     return f"%{value:.2f}".replace(".", ",") if lang == "tr" else f"{value:.2f}{sign}"
 
 
 def _fmt_multiplier(value: Decimal | None) -> str:
     if value is None:
-        return "—"
+        return EMPTY
     return f"{value:.2f}x"
 
 
@@ -531,7 +539,7 @@ def _build_new_returning_svg(
 def _format_kpi_value(kpi: Any, lang: str) -> str:
     """Tek KPI'yı birim'e göre formatla (label/aciklama içine inline yazılabilir)."""
     if kpi is None or kpi.value is None:
-        return "—"
+        return EMPTY
     unit = kpi.unit
     if unit == "currency":
         return _fmt_currency(kpi.value, lang)
@@ -544,7 +552,7 @@ def _format_kpi_value(kpi: Any, lang: str) -> str:
 
 def _format_delta_signed(pct: Decimal | None, lang: str) -> str:
     if pct is None:
-        return "—"
+        return EMPTY
     sign = "+" if pct >= 0 else ""
     if lang == "tr":
         return f"{sign}{pct:.1f}".replace(".", ",") + "%"
@@ -766,7 +774,7 @@ def render_report_html(
         generated_at_str=generated_at.strftime("%d.%m.%Y %H:%M")
         if lang == "tr"
         else generated_at.strftime("%Y-%m-%d %H:%M"),
-        created_by_name=created_by_name or "—",
+        created_by_name=created_by_name or EMPTY,
         overview_kpis=overview_kpis,
         overview_chart_svg=overview_chart_svg,
         channel_rows=channel_rows,

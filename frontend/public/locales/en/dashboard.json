@@ -1,4 +1,8 @@
 {
+  "chart_metrics": {
+    "aria_label": "Metrics to show on chart",
+    "keep_one": "At least one metric must stay selected"
+  },
   "overview": {
     "title": "Overview",
     "nvr_card_title": "New vs Returning Customers",

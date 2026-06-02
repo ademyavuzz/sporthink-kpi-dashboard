@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { KeyRound, Layers, Megaphone, ShoppingBag, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,10 @@ import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import {
+  MetricToggles,
+  type MetricOption,
+} from "@/components/feature/charts/MetricToggles";
 import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
@@ -369,6 +373,44 @@ export default function GoogleAdsPage() {
   const keywords = useMemo(() => data?.keywords ?? [], [data]);
   const products = useMemo(() => data?.products ?? [], [data]);
 
+  const [trendMetrics, setTrendMetrics] = useState<string[]>([
+    "ad_revenue",
+    "ad_spend",
+  ]);
+  const trendAllSeries = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        id: "ad_revenue",
+        name: t("google_ads.series_ad_revenue"),
+        color: "#10b981",
+        data: data.daily_series.map((p) => ({
+          x: dayjs(p.date).valueOf(),
+          y: toNumber(p.revenue) ?? 0,
+        })),
+        formatter: formatCurrency,
+      },
+      {
+        id: "ad_spend",
+        name: t("google_ads.series_ad_spend"),
+        color: "#7a5af8",
+        data: data.daily_series.map((p) => ({
+          x: dayjs(p.date).valueOf(),
+          y: toNumber(p.spend) ?? 0,
+        })),
+        formatter: formatCurrency,
+      },
+    ];
+  }, [data, t]);
+  const trendOptions = useMemo<MetricOption[]>(
+    () => trendAllSeries.map((s) => ({ id: s.id, label: s.name, color: s.color })),
+    [trendAllSeries],
+  );
+  const trendSeries = useMemo(
+    () => trendAllSeries.filter((s) => trendMetrics.includes(s.id)),
+    [trendAllSeries, trendMetrics],
+  );
+
   const channelTypeLabel = (type: string | null) =>
     t(`google_ads.channel_type_${type ?? "unknown"}`, {
       defaultValue: type ?? t("google_ads.channel_type_unknown"),
@@ -447,6 +489,15 @@ export default function GoogleAdsPage() {
           hint={t("google_ads.trend_hint")}
           icon={TrendingUp}
           className="h-full self-stretch lg:col-span-2"
+          action={
+            data && data.daily_series.length > 0 ? (
+              <MetricToggles
+                options={trendOptions}
+                selected={trendMetrics}
+                onChange={setTrendMetrics}
+              />
+            ) : undefined
+          }
         >
           {isLoading ? (
             <ChartLoading height={300} />
@@ -456,26 +507,7 @@ export default function GoogleAdsPage() {
             <LineChart
               height={300}
               multiAxis
-              series={[
-                {
-                  name: t("google_ads.series_ad_revenue"),
-                  color: "#10b981",
-                  data: data.daily_series.map((p) => ({
-                    x: dayjs(p.date).valueOf(),
-                    y: toNumber(p.revenue) ?? 0,
-                  })),
-                  formatter: formatCurrency,
-                },
-                {
-                  name: t("google_ads.series_ad_spend"),
-                  color: "#7a5af8",
-                  data: data.daily_series.map((p) => ({
-                    x: dayjs(p.date).valueOf(),
-                    y: toNumber(p.spend) ?? 0,
-                  })),
-                  formatter: formatCurrency,
-                },
-              ]}
+              series={trendSeries}
               yFormatter={formatAxisCurrency}
             />
           )}

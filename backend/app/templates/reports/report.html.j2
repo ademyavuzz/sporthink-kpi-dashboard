@@ -9,7 +9,7 @@
 
 <header class="page-header">
   <img class="header-logo" src="sporthink-logo.png" alt="Sporthink" />
-  <span class="header-range">{{ date_from_str }} — {{ date_to_str }}</span>
+  <span class="header-range">{{ date_from_str }} – {{ date_to_str }}</span>
 </header>
 
 <footer class="page-footer">
@@ -20,10 +20,18 @@
 
 <!-- ============================== COVER ============================== -->
 <section class="cover">
-  <img class="cover-logo" src="sporthink-logo.png" alt="Sporthink" />
-  <h1 class="cover-title">{{ report_title }}</h1>
-  <p class="cover-subtitle">{{ subtitle }}</p>
-  <div class="cover-pill">{{ date_from_str }} — {{ date_to_str }}</div>
+  <div class="cover-top">
+    <img class="cover-logo" src="sporthink-logo.png" alt="Sporthink" />
+    <span class="cover-top-tag">{{ labels.brand_tag }}</span>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-eyebrow">{{ labels.cover_eyebrow }}</div>
+    <h1 class="cover-title">{{ report_title }}</h1>
+    <p class="cover-subtitle">{{ subtitle }}</p>
+    <div class="cover-pill">{{ date_from_str }} – {{ date_to_str }}</div>
+  </div>
+
   <div class="cover-meta">
     <div class="cover-meta-row">
       <span class="cover-meta-label">{{ labels.prepared_by }}</span>
@@ -45,8 +53,10 @@
 
 <!-- ============================== EXECUTIVE SUMMARY ============================== -->
 <section class="report-section section-exec">
-  <h2 class="section-title">{{ labels.executive_summary }}</h2>
-  <p class="section-desc">{{ labels.executive_summary_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.executive_summary }}</h2>
+    <p class="section-desc">{{ labels.executive_summary_desc }}</p>
+  </div>
 
   {% if exec_summary.headline_kpis %}
   <div class="kpi-grid">
@@ -104,8 +114,10 @@
 
 {% if "overview" in sections %}
 <section class="report-section section-overview">
-  <h2 class="section-title">{{ labels.overview }}</h2>
-  <p class="section-desc">{{ labels.overview_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.overview }}</h2>
+    <p class="section-desc">{{ labels.overview_desc }}</p>
+  </div>
 
   <div class="kpi-grid">
     {% for k in overview_kpis %}
@@ -130,8 +142,10 @@
 
 {% if "ga4" in sections %}
 <section class="report-section section-ga4">
-  <h2 class="section-title">{{ labels.ga4 }}</h2>
-  <p class="section-desc">{{ labels.ga4_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.ga4 }}</h2>
+    <p class="section-desc">{{ labels.ga4_desc }}</p>
+  </div>
 
   {% if channel_bar_svg %}
   <div class="chart-block">
@@ -170,8 +184,10 @@
 
 {% if "ads" in sections %}
 <section class="report-section section-ads">
-  <h2 class="section-title">{{ labels.ads }}</h2>
-  <p class="section-desc">{{ labels.ads_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.ads }}</h2>
+    <p class="section-desc">{{ labels.ads_desc }}</p>
+  </div>
 
   <div class="kpi-grid">
     {% for k in ads_kpis %}
@@ -189,8 +205,10 @@
 
 {% if "ecommerce" in sections %}
 <section class="report-section section-ecom">
-  <h2 class="section-title">{{ labels.ecommerce }}</h2>
-  <p class="section-desc">{{ labels.ecommerce_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.ecommerce }}</h2>
+    <p class="section-desc">{{ labels.ecommerce_desc }}</p>
+  </div>
 
   <div class="kpi-grid kpi-grid-3">
     {% for k in ecom_kpis %}
@@ -216,14 +234,37 @@
 
 {% if "funnel" in sections %}
 <section class="report-section section-funnel">
-  <h2 class="section-title">{{ labels.funnel }}</h2>
-  <p class="section-desc">{{ labels.funnel_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.funnel }}</h2>
+    <p class="section-desc">{{ labels.funnel_desc }}</p>
+  </div>
 
   {% if funnel_chart_svg %}
   <div class="chart-block">
     {{ funnel_chart_svg | safe }}
   </div>
-  {% else %}
+  {% endif %}
+
+  {% if funnel_steps %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.step }}</th>
+        <th class="t-right">{{ labels.count }}</th>
+        <th class="t-right">{{ labels.drop }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in funnel_steps %}
+      <tr>
+        <td class="t-left">{{ s.label }}</td>
+        <td class="t-right">{{ s.count }}</td>
+        <td class="t-right">{{ s.drop }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif not funnel_chart_svg %}
   <p class="muted">{{ labels.no_data }}</p>
   {% endif %}
 </section>
@@ -231,8 +272,10 @@
 
 {% if "top" in sections %}
 <section class="report-section section-top">
-  <h2 class="section-title">{{ labels.top }}</h2>
-  <p class="section-desc">{{ labels.top_desc }}</p>
+  <div class="section-head">
+    <h2 class="section-title">{{ labels.top }}</h2>
+    <p class="section-desc">{{ labels.top_desc }}</p>
+  </div>
 
   <h3 class="subsection-title">{{ labels.top_products }}</h3>
   <table class="data-table">

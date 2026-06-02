@@ -1,4 +1,8 @@
 {
+  "chart_metrics": {
+    "aria_label": "Grafikte gösterilecek metrikler",
+    "keep_one": "En az bir metrik seçili kalmalı"
+  },
   "overview": {
     "title": "Genel Özet",
     "subtitle_vs_prev": "Önceki eşit uzunluktaki döneme göre değişimle",

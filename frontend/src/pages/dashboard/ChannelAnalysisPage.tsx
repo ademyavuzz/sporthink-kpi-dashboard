@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { LineChart as LineChartIcon, PieChart, Table2, Target } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -14,8 +14,13 @@ import { BarChart } from "@/components/feature/charts/BarChart";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import {
+  MetricToggles,
+  type MetricOption,
+} from "@/components/feature/charts/MetricToggles";
 import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { CHART_PALETTE } from "@/hooks/useChartTheme";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
@@ -230,7 +235,9 @@ export default function ChannelAnalysisPage() {
     [data],
   );
 
-  const trendSeries = useMemo(() => {
+  // Kanal bazli trend serileri. Her kanal kendi serisi; renk index'e gore
+  // sabit atanir ki secim degisse de noktalar grafikle eslesir.
+  const trendAllSeries = useMemo(() => {
     if (!data) return [];
     const byChannel = new Map<string, { x: number; y: number }[]>();
     for (const p of data.daily_revenue_trend) {
@@ -238,12 +245,33 @@ export default function ChannelAnalysisPage() {
       arr.push({ x: dayjs(p.date).valueOf(), y: Number(toNumber(p.revenue) ?? 0) });
       byChannel.set(p.channel, arr);
     }
-    return Array.from(byChannel.entries()).map(([name, points]) => ({
+    return Array.from(byChannel.entries()).map(([name, points], i) => ({
+      id: name,
       name,
+      color: CHART_PALETTE[i % CHART_PALETTE.length],
       data: points,
       formatter: formatCurrency,
     }));
   }, [data]);
+
+  // Kullanici hangi kanallari gormek istedigini secer; varsayilan: hepsi.
+  // Kanal kumesi degisince (filtre/tarih) secim otomatik hepsine sifirlanir.
+  const trendChannelKey = useMemo(
+    () => trendAllSeries.map((s) => s.id).join("|"),
+    [trendAllSeries],
+  );
+  const [trendMetrics, setTrendMetrics] = useState<string[]>([]);
+  useEffect(() => {
+    setTrendMetrics(trendAllSeries.map((s) => s.id));
+  }, [trendChannelKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const trendOptions = useMemo<MetricOption[]>(
+    () => trendAllSeries.map((s) => ({ id: s.id, label: s.name, color: s.color })),
+    [trendAllSeries],
+  );
+  const trendSeries = useMemo(
+    () => trendAllSeries.filter((s) => trendMetrics.includes(s.id)),
+    [trendAllSeries, trendMetrics],
+  );
 
   return (
     <PageShell>
@@ -277,10 +305,19 @@ export default function ChannelAnalysisPage() {
           hint={t("channel_analysis.trend_hint")}
           icon={LineChartIcon}
           className="h-full self-stretch lg:col-span-2"
+          action={
+            trendAllSeries.length > 0 ? (
+              <MetricToggles
+                options={trendOptions}
+                selected={trendMetrics}
+                onChange={setTrendMetrics}
+              />
+            ) : undefined
+          }
         >
           {loading ? (
             <ChartLoading height={300} />
-          ) : trendSeries.length === 0 ? (
+          ) : trendAllSeries.length === 0 ? (
             <ChartEmpty height={300} />
           ) : (
             <LineChart height={300} series={trendSeries} yFormatter={formatAxisCurrency} />

@@ -559,8 +559,15 @@ export default function ReportsPage() {
                     return (
                       <TableRow key={r.id} className="border-b border-border">
                         <TableCell className="px-4 py-3">
-                          <div className="font-medium text-foreground">
-                            {r.name}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">
+                              {r.name}
+                            </span>
+                            <span className="inline-flex items-center rounded border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-text-dim">
+                              {t(
+                                `reports:lang_badge.${r.language === "en" ? "en" : "tr"}`,
+                              )}
+                            </span>
                           </div>
                           {r.error_message && r.status === "failed" && (
                             <div className="mt-0.5 text-xs text-error-600 dark:text-error-500">

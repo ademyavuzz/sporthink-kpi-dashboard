@@ -201,7 +201,7 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
         # --- Created-by name ---
         from sqlalchemy import select
 
-        user_name = "—"
+        user_name = pdf_render_service.EMPTY
         if report.user_id:
             user = (
                 await db.execute(select(User).where(User.id == report.user_id))
@@ -392,7 +392,7 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                 drop_str = (
                     pdf_render_service.fmt_percent(s.drop_from_previous_pct, lang)
                     if s.drop_from_previous_pct is not None
-                    else "—"
+                    else pdf_render_service.EMPTY
                 )
                 step_label = s.label_tr if lang == "tr" else label_map_en[s.step]
                 funnel_view.append(
@@ -428,7 +428,7 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                 top_products_view.append(
                     {
                         "sku": p.sku,
-                        "name": p.product_name or "—",
+                        "name": p.product_name or pdf_render_service.EMPTY,
                         "units": pdf_render_service.fmt_int(p.units_sold, lang),
                         "revenue": pdf_render_service.fmt_currency(p.revenue, lang),
                     }
@@ -439,7 +439,7 @@ async def generate_report_pdf(db: AsyncSession, report_id: int) -> None:
                 top_customers_view.append(
                     {
                         "name": c.customer_name or c.customer_id,
-                        "city": c.city or "—",
+                        "city": c.city or pdf_render_service.EMPTY,
                         "orders": pdf_render_service.fmt_int(c.total_orders, lang),
                         "revenue": pdf_render_service.fmt_currency(c.total_revenue, lang),
                     }

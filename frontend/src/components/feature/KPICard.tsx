@@ -1,19 +1,27 @@
 import {
   ArrowDown,
   ArrowUp,
+  Banknote,
   BarChart3,
+  Clock,
+  Coins,
+  CreditCard,
   Eye,
+  FileText,
   Info,
+  Mail,
+  Megaphone,
   Minus,
   MousePointerClick,
+  Network,
   Package,
   Percent,
+  Receipt,
+  Repeat,
   ShoppingBag,
   ShoppingCart,
-  Sparkles,
   Target,
   TrendingDown,
-  TrendingUp,
   UserPlus,
   Users,
   Wallet,
@@ -35,44 +43,56 @@ type IconCmp = React.ComponentType<{
   strokeWidth?: number | string;
 }>;
 
-/** kpi_id → semantic ikon mapping. */
+/** kpi_id → semantic ikon mapping.
+ *
+ * Domain ikonografisi (tutarlilik icin):
+ * - Para girisi / ciro → Banknote
+ * - Sipariş / dönüşüm hacmi → ShoppingBag
+ * - Maliyet / harcama / birim fiyat → Wallet / Megaphone / CreditCard
+ * - Reklam geliri → Coins
+ * - Oran / yüzde → Percent
+ * - Getiri / hedef → Target
+ * - Kullanıcı → Users / UserPlus
+ * - Görüntülenme → Eye, tıklama → MousePointerClick
+ */
 const ICON_REGISTRY: Record<string, IconCmp> = {
   // E-ticaret
-  revenue: Wallet,
+  revenue: Banknote,
   orders: ShoppingBag,
   items_sold: Package,
   aov: ShoppingCart,
-  revenue_per_user: Sparkles,
+  revenue_per_user: Receipt,
   // GA4 / trafik
-  sessions: Eye,
+  sessions: MousePointerClick,
   users: Users,
   new_users: UserPlus,
   bounce_rate: TrendingDown,
-  pages_per_session: BarChart3,
-  avg_session_duration: BarChart3,
+  pages_per_session: FileText,
+  avg_session_duration: Clock,
   conversion_rate: Percent,
   // Reklam
-  ad_spend: Wallet,
+  ad_spend: Megaphone,
+  ad_revenue: Coins,
   impressions: Eye,
   clicks: MousePointerClick,
   ctr: Percent,
   cpc: Wallet,
-  cpm: Wallet,
+  cpm: CreditCard,
   ad_conversions: ShoppingBag,
   cost_per_conversion: Wallet,
-  roas: TrendingUp,
-  frequency: BarChart3,
+  roas: Target,
+  frequency: Repeat,
   // Müşteri
   total_customers: Users,
   new_customers: UserPlus,
-  repeat_rate: Sparkles,
-  avg_customer_value: Wallet,
+  repeat_rate: Repeat,
+  avg_customer_value: Banknote,
   avg_orders_per_customer: ShoppingBag,
-  newsletter_subscription_rate: Percent,
+  newsletter_subscription_rate: Mail,
   // Kanal
-  active_channels: Target,
-  top_channel_revenue: Wallet,
-  avg_roas: TrendingUp,
+  active_channels: Network,
+  top_channel_revenue: Banknote,
+  avg_roas: Target,
   avg_conversion_rate: Percent,
 };
 

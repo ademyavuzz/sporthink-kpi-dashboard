@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileText, MapPin, Radio, Smartphone, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,6 +9,10 @@ import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import {
+  MetricToggles,
+  type MetricOption,
+} from "@/components/feature/charts/MetricToggles";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -183,6 +187,58 @@ export default function TrafficPage() {
   const fmtSessions = (v: number) =>
     `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`;
 
+  const [trendMetrics, setTrendMetrics] = useState<string[]>([
+    "sessions",
+    "users",
+    "new_users",
+  ]);
+  const trendAllSeries = useMemo(
+    () =>
+      data
+        ? [
+            {
+              id: "sessions",
+              name: sessionsLabel,
+              color: "#2563eb",
+              data: data.daily_series.map((p) => ({
+                x: dayjs(p.date).valueOf(),
+                y: p.sessions,
+              })),
+              formatter: formatCount,
+            },
+            {
+              id: "users",
+              name: t("traffic.series_users"),
+              color: "#10b981",
+              data: data.daily_series.map((p) => ({
+                x: dayjs(p.date).valueOf(),
+                y: p.users,
+              })),
+              formatter: formatCount,
+            },
+            {
+              id: "new_users",
+              name: t("traffic.series_new_users"),
+              color: "#7a5af8",
+              data: data.daily_series.map((p) => ({
+                x: dayjs(p.date).valueOf(),
+                y: p.new_users,
+              })),
+              formatter: formatCount,
+            },
+          ]
+        : [],
+    [data, sessionsLabel, t],
+  );
+  const trendOptions = useMemo<MetricOption[]>(
+    () => trendAllSeries.map((s) => ({ id: s.id, label: s.name, color: s.color })),
+    [trendAllSeries],
+  );
+  const trendVisibleSeries = useMemo(
+    () => trendAllSeries.filter((s) => trendMetrics.includes(s.id)),
+    [trendAllSeries, trendMetrics],
+  );
+
   const landingRows = useMemo(() => data?.landing_pages ?? [], [data]);
   const maxSessions = useMemo(
     () => Math.max(...landingRows.map((r) => r.sessions), 1),
@@ -226,43 +282,20 @@ export default function TrafficPage() {
         title={t("traffic.trend_card_title")}
         hint={t("traffic.trend_hint")}
         icon={TrendingUp}
+        action={
+          data ? (
+            <MetricToggles
+              options={trendOptions}
+              selected={trendMetrics}
+              onChange={setTrendMetrics}
+            />
+          ) : undefined
+        }
       >
         <LineChart
           loading={isLoading}
           height={320}
-          series={
-            data
-              ? [
-                  {
-                    name: sessionsLabel,
-                    color: "#2563eb",
-                    data: data.daily_series.map((p) => ({
-                      x: dayjs(p.date).valueOf(),
-                      y: p.sessions,
-                    })),
-                    formatter: formatCount,
-                  },
-                  {
-                    name: t("traffic.series_users"),
-                    color: "#10b981",
-                    data: data.daily_series.map((p) => ({
-                      x: dayjs(p.date).valueOf(),
-                      y: p.users,
-                    })),
-                    formatter: formatCount,
-                  },
-                  {
-                    name: t("traffic.series_new_users"),
-                    color: "#7a5af8",
-                    data: data.daily_series.map((p) => ({
-                      x: dayjs(p.date).valueOf(),
-                      y: p.new_users,
-                    })),
-                    formatter: formatCount,
-                  },
-                ]
-              : []
-          }
+          series={trendVisibleSeries}
           yFormatter={formatAxisNumber}
         />
       </ChartCard>

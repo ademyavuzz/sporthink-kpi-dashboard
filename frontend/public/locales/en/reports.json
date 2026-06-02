@@ -55,6 +55,10 @@
     "completed": "Ready",
     "failed": "Failed"
   },
+  "lang_badge": {
+    "tr": "TR",
+    "en": "EN"
+  },
   "section": {
     "overview": "Overview",
     "ga4": "GA4 Traffic",

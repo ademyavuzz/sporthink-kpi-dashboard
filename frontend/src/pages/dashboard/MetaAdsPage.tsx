@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Megaphone, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,10 @@ import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import {
+  MetricToggles,
+  type MetricOption,
+} from "@/components/feature/charts/MetricToggles";
 import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
@@ -216,10 +220,15 @@ export default function MetaAdsPage() {
     [topSpendCampaigns],
   );
 
-  const trendSeries = useMemo(() => {
+  const [trendMetrics, setTrendMetrics] = useState<string[]>([
+    "ad_revenue",
+    "ad_spend",
+  ]);
+  const trendAllSeries = useMemo(() => {
     if (!data) return [];
     return [
       {
+        id: "ad_revenue",
         name: t("meta_ads.series_ad_revenue"),
         color: "#10b981",
         data: data.daily_series.map((p) => ({
@@ -229,6 +238,7 @@ export default function MetaAdsPage() {
         formatter: formatCurrency,
       },
       {
+        id: "ad_spend",
         name: t("meta_ads.series_ad_spend"),
         color: "#7a5af8",
         data: data.daily_series.map((p) => ({
@@ -239,6 +249,14 @@ export default function MetaAdsPage() {
       },
     ];
   }, [data, t]);
+  const trendOptions = useMemo<MetricOption[]>(
+    () => trendAllSeries.map((s) => ({ id: s.id, label: s.name, color: s.color })),
+    [trendAllSeries],
+  );
+  const trendSeries = useMemo(
+    () => trendAllSeries.filter((s) => trendMetrics.includes(s.id)),
+    [trendAllSeries, trendMetrics],
+  );
 
   const hasTrendData = useMemo(
     () =>
@@ -285,6 +303,15 @@ export default function MetaAdsPage() {
           hint={t("meta_ads.trend_hint")}
           icon={TrendingUp}
           className="h-full self-stretch lg:col-span-2"
+          action={
+            data ? (
+              <MetricToggles
+                options={trendOptions}
+                selected={trendMetrics}
+                onChange={setTrendMetrics}
+              />
+            ) : undefined
+          }
         >
           {isLoading ? (
             <ChartLoading height={320} />

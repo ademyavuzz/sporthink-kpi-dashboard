@@ -13,6 +13,10 @@ import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
+import {
+  MetricToggles,
+  type MetricOption,
+} from "@/components/feature/charts/MetricToggles";
 import { TurkeyMap } from "@/components/feature/charts/TurkeyMap";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
@@ -164,6 +168,10 @@ export default function OverviewPage() {
     date_to: "2025-03-31",
   }));
   const [comparison, setComparison] = useState<ComparisonMode>("sequential");
+  const [trendMetrics, setTrendMetrics] = useState<string[]>([
+    "revenue",
+    "orders",
+  ]);
 
   const channels = useFiltersStore((s) => s.selected_channels);
   const devices = useFiltersStore((s) => s.selected_devices);
@@ -215,6 +223,45 @@ export default function OverviewPage() {
       })) ?? [],
     [data],
   );
+  // Trend metrikleri — id'li seri tanimi. Kullanici MetricToggles ile
+  // hangilerini gorecegini secer; en az 1 metrik secili kalir.
+  const trendAllSeries = useMemo(
+    () =>
+      data
+        ? [
+            {
+              id: "revenue",
+              name: t("overview.series_revenue"),
+              color: "#e94560",
+              data: data.daily_series.map((p) => ({
+                x: dayjs(p.date).valueOf(),
+                y: toNumber(p.revenue) ?? 0,
+              })),
+              formatter: formatCurrency,
+            },
+            {
+              id: "orders",
+              name: t("overview.series_orders"),
+              color: "#2563eb",
+              data: data.daily_series.map((p) => ({
+                x: dayjs(p.date).valueOf(),
+                y: p.orders,
+              })),
+              formatter: formatCount,
+            },
+          ]
+        : [],
+    [data, t],
+  );
+  const trendOptions = useMemo<MetricOption[]>(
+    () => trendAllSeries.map((s) => ({ id: s.id, label: s.name, color: s.color })),
+    [trendAllSeries],
+  );
+  const trendVisibleSeries = useMemo(
+    () => trendAllSeries.filter((s) => trendMetrics.includes(s.id)),
+    [trendAllSeries, trendMetrics],
+  );
+
   // En çok satan ürünlerin adet payı — donut için. Adet bazlı: ciro
   // (line_total) toplam ciroyla bire bir örtüşmediği için satış adedi
   // kullanılır. Sıfır satışlılar dışlanır; küçük dilimleri DonutChart gruplar.
@@ -362,34 +409,23 @@ export default function OverviewPage() {
       </div>
 
       {/* ─── Ciro & Sipariş trendi ────────────────────────────────── */}
-      <ChartCard title={t("overview.trend_card_title")} icon={TrendingUp}>
+      <ChartCard
+        title={t("overview.trend_card_title")}
+        icon={TrendingUp}
+        action={
+          data ? (
+            <MetricToggles
+              options={trendOptions}
+              selected={trendMetrics}
+              onChange={setTrendMetrics}
+            />
+          ) : undefined
+        }
+      >
         <LineChart
           loading={isLoading}
           multiAxis
-          series={
-            data
-              ? [
-                  {
-                    name: t("overview.series_revenue"),
-                    color: "#e94560",
-                    data: data.daily_series.map((p) => ({
-                      x: dayjs(p.date).valueOf(),
-                      y: toNumber(p.revenue) ?? 0,
-                    })),
-                    formatter: formatCurrency,
-                  },
-                  {
-                    name: t("overview.series_orders"),
-                    color: "#2563eb",
-                    data: data.daily_series.map((p) => ({
-                      x: dayjs(p.date).valueOf(),
-                      y: p.orders,
-                    })),
-                    formatter: formatCount,
-                  },
-                ]
-              : []
-          }
+          series={trendVisibleSeries}
           yFormatter={formatAxisCurrency}
         />
       </ChartCard>
