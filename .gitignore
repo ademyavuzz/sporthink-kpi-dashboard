@@ -54,3 +54,4 @@ nginx/certs/
 
 # Otomatik MySQL yedekleri (mysql_backup container -> ./backups). DB dump'i commit edilmez.
 backups/
+frontend/tests/_nvr.png
