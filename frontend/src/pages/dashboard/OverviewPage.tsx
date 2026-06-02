@@ -201,8 +201,8 @@ export default function OverviewPage() {
         />
       </ChartCard>
 
-      {/* ─── Kanal + Yeni vs Tekrarlayan + Funnel ─────────────────── */}
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+      {/* ─── Analiz: Kanal · Ürün payı · Funnel · Yeni-Tekrarlayan ── */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <ChartCard
           title={t("overview.channel_card_title")}
           hint={t("overview.channel_card_hint")}
@@ -240,10 +240,9 @@ export default function OverviewPage() {
         >
           <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
         </ChartCard>
-      </div>
 
-      {/* ─── Yeni vs Tekrarlayan müşteri ──────────────────────────── */}
-      <NewVsReturningCard data={data?.new_vs_returning ?? []} loading={isLoading} />
+        <NewVsReturningCard data={data?.new_vs_returning ?? []} loading={isLoading} />
+      </div>
 
       {/* ─── Ciro & Sipariş trendi ────────────────────────────────── */}
       <ChartCard title={t("overview.trend_card_title")} icon={TrendingUp}>
@@ -572,7 +571,7 @@ interface NvrRow {
   orders: number;
 }
 
-/** Yeni vs Tekrarlayan müşteri — ciro/sipariş dağılımı (oransal bar + bloklar). */
+/** Yeni vs Tekrarlayan müşteri — ciro dağılımı (pasta/donut grafiği). */
 function NewVsReturningCard({
   data,
   loading,
@@ -585,81 +584,22 @@ function NewVsReturningCard({
   const retRow = data.find((d) => d.customer_type === "returning");
   const newRev = toNumber(newRow?.revenue ?? null) ?? 0;
   const retRev = toNumber(retRow?.revenue ?? null) ?? 0;
-  const total = newRev + retRev;
-  const newPct = total > 0 ? (newRev / total) * 100 : 0;
-  const retPct = total > 0 ? (retRev / total) * 100 : 0;
-
-  const items = [
-    {
-      key: "new",
-      color: "bg-primary",
-      label: t("overview.nvr_new"),
-      revenue: newRev,
-      orders: newRow?.orders ?? 0,
-      pct: newPct,
-    },
-    {
-      key: "returning",
-      color: "bg-sky-500",
-      label: t("overview.nvr_returning"),
-      revenue: retRev,
-      orders: retRow?.orders ?? 0,
-      pct: retPct,
-    },
-  ];
 
   return (
     <ChartCard
       title={t("overview.nvr_card_title")}
       hint={t("overview.nvr_card_hint")}
       icon={Users}
+      className="h-full self-stretch"
     >
-      {loading ? (
-        <div className="space-y-4">
-          <div className="h-4 w-full animate-pulse rounded-full bg-muted/40" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="h-24 animate-pulse rounded-lg bg-muted/40" />
-            <div className="h-24 animate-pulse rounded-lg bg-muted/40" />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted/40">
-            <div
-              className="bg-primary transition-all duration-500"
-              style={{ width: `${newPct}%` }}
-            />
-            <div
-              className="bg-sky-500 transition-all duration-500"
-              style={{ width: `${retPct}%` }}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {items.map((it) => (
-              <div
-                key={it.key}
-                className="rounded-lg border border-border/60 bg-surface-2/40 p-4"
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <span className={cn("size-2.5 rounded-full", it.color)} />
-                    {it.label}
-                  </span>
-                  <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-muted">
-                    %{it.pct.toFixed(1).replace(".", ",")}
-                  </span>
-                </div>
-                <div className="text-xl font-bold tabular-nums text-foreground">
-                  {formatCurrency(it.revenue)}
-                </div>
-                <div className="mt-0.5 text-xs tabular-nums text-text-muted">
-                  {formatCount(it.orders)} {t("overview.nvr_orders")}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <DonutChart
+        loading={loading}
+        labels={[t("overview.nvr_new"), t("overview.nvr_returning")]}
+        values={[newRev, retRev]}
+        valueFormatter={formatCurrency}
+        totalLabel={t("overview.nvr_total")}
+        groupSmallSlices={false}
+      />
     </ChartCard>
   );
 }

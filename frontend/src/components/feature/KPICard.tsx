@@ -212,48 +212,41 @@ export function KPICard({
   return (
     <Card
       className={cn(
-        "relative gap-0 overflow-hidden py-0 transition-colors duration-150",
-        "hover:border-gray-300 dark:hover:border-gray-700",
+        "group relative gap-0 overflow-hidden py-0 transition-all duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:border-border hover:shadow-lg hover:shadow-black/[0.04] dark:hover:shadow-black/30",
       )}
     >
-      {/* Sol accent şeridi — KPI tonuna göre. Hero'da biraz kalın. */}
+      {/* Sol accent şeridi — KPI tonuna göre. */}
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-0 left-0",
+          "absolute inset-y-2 left-0 rounded-r-full transition-all duration-200 group-hover:inset-y-1",
           hero ? "w-1" : "w-[3px]",
           tone.stripe,
         )}
       />
       <CardContent
-        className={cn(
-          hero
-            ? "p-5 pl-6"
-            : compact
-              ? "p-3.5 pl-4"
-              : "p-4 pl-[18px]",
-        )}
+        className={cn(hero ? "p-5 pl-6" : compact ? "p-4 pl-[18px]" : "p-4 pl-5")}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-start gap-2.5">
           <div
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-md",
+              "inline-flex shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.06] transition-transform duration-200 group-hover:scale-105",
               tone.bg,
-              hero ? "size-10" : compact ? "size-7" : "size-8",
+              hero ? "size-10" : "size-9",
             )}
           >
             <Icon
-              className={cn(
-                tone.fg,
-                hero ? "size-5" : compact ? "size-3.5" : "size-4",
-              )}
+              className={cn(tone.fg, hero ? "size-5" : "size-[18px]")}
               strokeWidth={2.2}
             />
           </div>
           <p
             className={cn(
-              "min-w-0 flex-1 truncate font-medium text-text-muted",
-              hero ? "text-[13px]" : "text-[12px]",
+              "min-w-0 flex-1 font-medium text-text-muted",
+              hero
+                ? "truncate text-[13px] leading-tight"
+                : "line-clamp-2 text-[12px] leading-[1.25]",
             )}
             title={label}
           >
@@ -267,7 +260,7 @@ export function KPICard({
                   aria-label={t("common:info_about", {
                     defaultValue: "Hakkında",
                   })}
-                  className="shrink-0 rounded-full p-0.5 text-text-muted/60 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  className="shrink-0 rounded-full p-0.5 text-text-muted/50 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 >
                   <Info className="size-3.5" strokeWidth={2.2} />
                 </button>
@@ -282,17 +275,17 @@ export function KPICard({
         <div
           className={cn(
             "flex items-baseline justify-between gap-2",
-            hero ? "mt-3.5" : "mt-2.5",
+            hero ? "mt-4" : "mt-3",
           )}
         >
           <p
             className={cn(
               "font-semibold tabular-nums leading-none tracking-tight text-foreground",
               hero
-                ? "text-[28px] md:text-[32px]"
+                ? "text-[30px] md:text-[34px]"
                 : compact
-                  ? "text-[20px]"
-                  : "text-[22px] md:text-[24px]",
+                  ? "text-[21px]"
+                  : "text-[24px]",
             )}
           >
             {value}
@@ -300,12 +293,12 @@ export function KPICard({
           {kpi.change_percentage !== null && (
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+                "inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
                 isFlat
-                  ? "bg-muted text-text-muted dark:bg-gray-800 dark:text-gray-400"
+                  ? "bg-muted text-text-muted ring-border dark:bg-gray-800 dark:text-gray-400"
                   : kpi.is_positive
-                    ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500"
-                    : "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-500",
+                    ? "bg-success-50 text-success-700 ring-success-500/20 dark:bg-success-500/10 dark:text-success-500"
+                    : "bg-error-50 text-error-700 ring-error-500/20 dark:bg-error-500/10 dark:text-error-500",
               )}
               title={t("kpi_change_tooltip", {
                 defaultValue: "Önceki döneme göre",
