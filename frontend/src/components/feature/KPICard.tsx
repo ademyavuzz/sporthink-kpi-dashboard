@@ -274,13 +274,15 @@ export function KPICard({
 
         <div
           className={cn(
-            "flex items-baseline justify-between gap-2",
-            hero ? "mt-4" : "mt-3",
+            "flex gap-2",
+            hero
+              ? "mt-4 items-baseline justify-between"
+              : "mt-3 flex-col items-start gap-1.5",
           )}
         >
           <p
             className={cn(
-              "font-semibold tabular-nums leading-none tracking-tight text-foreground",
+              "whitespace-nowrap font-semibold tabular-nums leading-none tracking-tight text-foreground",
               hero
                 ? "text-[30px] md:text-[34px]"
                 : compact

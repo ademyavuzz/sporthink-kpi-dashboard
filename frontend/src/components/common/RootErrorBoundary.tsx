@@ -8,6 +8,30 @@ interface State {
   error: Error | null;
 }
 
+/** Yeni deploy sonrasi eski chunk yuklenememesinden kaynaklanan hata mi? */
+function isChunkLoadError(error: Error): boolean {
+  const m = (error?.message ?? "").toLowerCase();
+  return (
+    m.includes("failed to fetch dynamically imported module") ||
+    m.includes("importing a module script failed") ||
+    m.includes("error loading dynamically imported module") ||
+    m.includes("unable to preload")
+  );
+}
+
+/** Sonsuz reload dongusunu engelle: 10 sn icinde ikinci kez tetiklenmesin. */
+function shouldAutoReload(): boolean {
+  try {
+    const KEY = "sporthink_chunk_reload_at";
+    const last = Number(sessionStorage.getItem(KEY) ?? "0");
+    if (Date.now() - last < 10_000) return false;
+    sessionStorage.setItem(KEY, String(Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // HMR'in class+function karışımıyla uğraşmasını önlemek için disable —
 // fallback UI sadece error state'inde mount olur, hot-reload'da etkisiz.
 // eslint-disable-next-line react-refresh/only-export-components
@@ -65,6 +89,13 @@ export class RootErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Yeni deploy sonrasi tarayicida eski index.html kalinca lazy-loaded chunk
+    // dosya adlari uymaz ("Failed to fetch dynamically imported module"). Bu
+    // durumda sayfayi bir kez otomatik yenile (sonsuz dongu guard'i ile).
+    if (isChunkLoadError(error) && shouldAutoReload()) {
+      location.reload();
+      return;
+    }
     // Vite prod build esbuild.drop ile production bundle'dan strip eder.
     console.error("Root error boundary caught:", error, info.componentStack);
   }
