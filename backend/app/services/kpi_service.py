@@ -1943,9 +1943,29 @@ async def funnel_dropoff_daily(
 
 
 async def top_products(
-    db: AsyncSession, *, date_from: date, date_to: date, limit: int = 20
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    limit: int = 20,
+    categories: list[str] | None = None,
+    brands: list[str] | None = None,
 ) -> list[TopProductRow]:
-    """En çok satan ürünler (§9.7.5) — order_items × products JOIN."""
+    """En çok satan ürünler (§9.7.5) — order_items × products JOIN.
+
+    `categories`/`brands` opsiyonel additive filtrelerdir: verilmediğinde
+    (None) sorgu eski davranışı korur, verildiğinde `Product` üzerinden
+    `IN (...)` daraltması eklenir.
+    """
+    clauses: list[Any] = [
+        func.date(Order.order_date) >= date_from,
+        func.date(Order.order_date) <= date_to,
+        Order.order_status.in_(("completed", "shipped", "refunded")),
+    ]
+    if categories:
+        clauses.append(Product.category.in_(categories))
+    if brands:
+        clauses.append(Product.brand.in_(brands))
     stmt = (
         select(
             Product.sku,
@@ -1956,13 +1976,7 @@ async def top_products(
         )
         .join(OrderItem, OrderItem.product_pk_id == Product.id)
         .join(Order, Order.id == OrderItem.order_pk_id)
-        .where(
-            and_(
-                func.date(Order.order_date) >= date_from,
-                func.date(Order.order_date) <= date_to,
-                Order.order_status.in_(("completed", "shipped", "refunded")),
-            )
-        )
+        .where(and_(*clauses))
         .group_by(Product.id, Product.sku, Product.product_name, Product.brand)
         .order_by(func.sum(OrderItem.line_total).desc())
         .limit(limit)
@@ -2409,9 +2423,24 @@ async def top_categories_brands(
     date_to: date,
     by: Literal["category", "brand"] = "category",
     limit: int = 10,
+    categories: list[str] | None = None,
+    brands: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Ürün kategorisi/markası bazında satış miktarı."""
+    """Ürün kategorisi/markası bazında satış miktarı.
+
+    `categories`/`brands` opsiyonel additive filtrelerdir: verilmediğinde
+    (None) sorgu eski davranışı korur, verildiğinde `Product` üzerinden
+    `IN (...)` daraltması eklenir.
+    """
     col = Product.category if by == "category" else Product.brand
+    clauses: list[Any] = [
+        func.date(Order.order_date) >= date_from,
+        func.date(Order.order_date) <= date_to,
+    ]
+    if categories:
+        clauses.append(Product.category.in_(categories))
+    if brands:
+        clauses.append(Product.brand.in_(brands))
     stmt = (
         select(
             col.label(by),
@@ -2419,12 +2448,7 @@ async def top_categories_brands(
         )
         .join(OrderItem, OrderItem.product_pk_id == Product.id)
         .join(Order, Order.id == OrderItem.order_pk_id)
-        .where(
-            and_(
-                func.date(Order.order_date) >= date_from,
-                func.date(Order.order_date) <= date_to,
-            )
-        )
+        .where(and_(*clauses))
         .group_by(col)
         .order_by(func.sum(OrderItem.line_total).desc())
         .limit(limit)
@@ -2434,7 +2458,13 @@ async def top_categories_brands(
 
 
 async def cohort_retention(
-    db: AsyncSession, *, date_from: date, date_to: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    genders: list[str] | None = None,
+    age_groups: list[str] | None = None,
+    cities: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """`docs/09` §9.7.2 — kayıt ayı × ay-N retention.
 
@@ -2446,50 +2476,84 @@ async def cohort_retention(
     olabilir (registration tarihinin sipariş tarihinden farklı tutulması
     gibi); bu durumda M0 < cohort_size çıkar ve %100 altında bir M0
     retention'ı bilgilendiricidir.
+
+    `genders`/`age_groups`/`cities` opsiyonel additive segment filtreleridir
+    (`customers` üzerinden). Verilmediğinde (None) hem cohort boyutu hem de
+    retention sorgusu eski davranışı korur; verildiğinde her iki sorgudaki
+    `customers` taraması aynı `IN (...)` daraltmasıyla süzülür (kohort tabanı
+    ve aktif sayım tutarlı kalır).
     """
+    from sqlalchemy import bindparam
     from sqlalchemy import text as sa_text
 
+    # Opsiyonel segment filtreleri — None iken hiçbir SQL parçası eklenmez,
+    # böylece filtresiz çıktı değişiklikten öncekiyle birebir aynı kalır.
+    params: dict[str, Any] = {"from": date_from, "to": date_to}
+    extra_sql = ""
+    expanding: list[str] = []
+    if genders:
+        extra_sql += " AND gender IN :genders"
+        params["genders"] = list(genders)
+        expanding.append("genders")
+    if age_groups:
+        extra_sql += " AND age_group IN :age_groups"
+        params["age_groups"] = list(age_groups)
+        expanding.append("age_groups")
+    if cities:
+        extra_sql += " AND city IN :cities"
+        params["cities"] = list(cities)
+        expanding.append("cities")
+
+    def _bind(stmt: Any) -> Any:
+        for name in expanding:
+            stmt = stmt.bindparams(bindparam(name, expanding=True))
+        return stmt
+
     # 1) Cohort boyutları — tabanı first_order_date'ten al, NOT offset=0.
-    size_stmt = sa_text(
-        """
-        SELECT
-            DATE(DATE_FORMAT(first_order_date, '%Y-%m-01')) AS cohort_month,
-            COUNT(*) AS size
-        FROM customers
-        WHERE first_order_date BETWEEN :from AND :to
-        GROUP BY cohort_month
-        """
+    size_stmt = _bind(
+        sa_text(
+            f"""
+            SELECT
+                DATE(DATE_FORMAT(first_order_date, '%Y-%m-01')) AS cohort_month,
+                COUNT(*) AS size
+            FROM customers
+            WHERE first_order_date BETWEEN :from AND :to{extra_sql}
+            GROUP BY cohort_month
+            """
+        )
     )
-    size_rows = (await db.execute(size_stmt, {"from": date_from, "to": date_to})).all()
+    size_rows = (await db.execute(size_stmt, params)).all()
     base: dict[date, int] = {cm: int(n) for cm, n in size_rows}
 
     # 2) Her (cohort, month_offset) için aktif müşteri sayısı
-    stmt = sa_text(
-        """
-        WITH cohort_users AS (
-            SELECT
-                DATE(DATE_FORMAT(first_order_date, '%Y-%m-01')) AS cohort_month,
-                id AS customer_pk_id
-            FROM customers
-            WHERE first_order_date BETWEEN :from AND :to
-        ),
-        user_orders AS (
-            SELECT
-                cu.cohort_month,
-                cu.customer_pk_id,
-                TIMESTAMPDIFF(MONTH, cu.cohort_month, DATE(o.order_date)) AS month_offset
-            FROM cohort_users cu
-            JOIN orders o ON cu.customer_pk_id = o.customer_pk_id
-                AND o.order_status IN ('completed', 'shipped', 'refunded')
+    stmt = _bind(
+        sa_text(
+            f"""
+            WITH cohort_users AS (
+                SELECT
+                    DATE(DATE_FORMAT(first_order_date, '%Y-%m-01')) AS cohort_month,
+                    id AS customer_pk_id
+                FROM customers
+                WHERE first_order_date BETWEEN :from AND :to{extra_sql}
+            ),
+            user_orders AS (
+                SELECT
+                    cu.cohort_month,
+                    cu.customer_pk_id,
+                    TIMESTAMPDIFF(MONTH, cu.cohort_month, DATE(o.order_date)) AS month_offset
+                FROM cohort_users cu
+                JOIN orders o ON cu.customer_pk_id = o.customer_pk_id
+                    AND o.order_status IN ('completed', 'shipped', 'refunded')
+            )
+            SELECT cohort_month, month_offset, COUNT(DISTINCT customer_pk_id) AS cnt
+            FROM user_orders
+            WHERE month_offset BETWEEN 0 AND 12
+            GROUP BY cohort_month, month_offset
+            ORDER BY cohort_month, month_offset
+            """
         )
-        SELECT cohort_month, month_offset, COUNT(DISTINCT customer_pk_id) AS cnt
-        FROM user_orders
-        WHERE month_offset BETWEEN 0 AND 12
-        GROUP BY cohort_month, month_offset
-        ORDER BY cohort_month, month_offset
-        """
     )
-    rows = (await db.execute(stmt, {"from": date_from, "to": date_to})).all()
+    rows = (await db.execute(stmt, params)).all()
     out: list[dict[str, Any]] = []
     for cohort_month, offset, cnt in rows:
         size = base.get(cohort_month, 0)

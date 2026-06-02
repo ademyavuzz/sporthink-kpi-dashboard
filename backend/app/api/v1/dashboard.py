@@ -504,6 +504,8 @@ async def get_ecom(
     brands: list[str] | None = Query(None, description="Marka filtresi (çoklu)"),
     statuses: list[str] | None = Query(None, description="Sipariş durumu filtresi (çoklu)"),
     payment_methods: list[str] | None = Query(None, description="Ödeme yöntemi filtresi (çoklu)"),
+    cities: list[str] | None = Query(None, description="Şehir filtresi (çoklu)"),
+    devices: list[str] | None = Query(None, description="Cihaz filtresi (çoklu)"),
     orders_limit: int = Query(50, ge=1, le=200, description="Sipariş listesi sayfa boyutu"),
     _user: User = Depends(require_permission(Permission.ECOMMERCE_VIEW)),
     db: AsyncSession = Depends(get_db),
@@ -520,6 +522,10 @@ async def get_ecom(
         filter_key["st"] = sorted(statuses)
     if payment_methods:
         filter_key["pm"] = sorted(payment_methods)
+    if cities:
+        filter_key["ct"] = sorted(cities)
+    if devices:
+        filter_key["dv"] = sorted(devices)
     if orders_limit != 50:
         filter_key["lim"] = orders_limit
 
@@ -540,6 +546,8 @@ async def get_ecom(
         brands=tuple(brands or ()),
         statuses=tuple(statuses or ()),
         payment_methods=tuple(payment_methods or ()),
+        cities=tuple(cities or ()),
+        devices=tuple(devices or ()),
     )
     prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     prev_filters = filters.with_period(prev_from, prev_to)
@@ -820,16 +828,41 @@ async def get_funnel(
 async def get_cohort(
     date_from: date = Query(...),
     date_to: date = Query(...),
+    genders: list[str] | None = Query(None, description="Cinsiyet filtresi (çoklu)"),
+    age_groups: list[str] | None = Query(None, description="Yaş grubu filtresi (çoklu)"),
+    cities: list[str] | None = Query(None, description="Şehir filtresi (çoklu)"),
     _user: User = Depends(require_permission(Permission.COHORT_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CohortResponse]:
     _validate_range(date_from, date_to)
-    key = cache_keys.kpi_dashboard("cohort", date_from=date_from, date_to=date_to)
+
+    # Filtreler cache key'inin parçası; filtre değişince ayrı entry.
+    filter_key: dict[str, Any] = {}
+    if genders:
+        filter_key["g"] = sorted(genders)
+    if age_groups:
+        filter_key["ag"] = sorted(age_groups)
+    if cities:
+        filter_key["ct"] = sorted(cities)
+
+    key = cache_keys.kpi_dashboard(
+        "cohort",
+        date_from=date_from,
+        date_to=date_to,
+        extra_filters=filter_key or None,
+    )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=CohortResponse.model_validate(hit))
 
-    cells = await kpi_service.cohort_retention(db, date_from=date_from, date_to=date_to)
+    cells = await kpi_service.cohort_retention(
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        genders=genders or None,
+        age_groups=age_groups or None,
+        cities=cities or None,
+    )
     response = CohortResponse(
         date_range=_date_range_with_comparison(date_from, date_to, "sequential"),
         cells=[CohortCell(**c) for c in cells],
@@ -856,15 +889,25 @@ async def get_products(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
+    categories: list[str] | None = Query(None, description="Ürün kategorisi filtresi (çoklu)"),
+    brands: list[str] | None = Query(None, description="Marka filtresi (çoklu)"),
     _user: User = Depends(require_permission(Permission.PRODUCTS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[ProductsResponse]:
     _validate_range(date_from, date_to)
+
+    # Filtreler cache key'inin parçası; filtre değişince ayrı entry.
+    filter_key: dict[str, Any] = {"cmp": comparison_mode}
+    if categories:
+        filter_key["cat"] = sorted(categories)
+    if brands:
+        filter_key["br"] = sorted(brands)
+
     key = cache_keys.kpi_dashboard(
         "products",
         date_from=date_from,
         date_to=date_to,
-        extra_filters={"cmp": comparison_mode},
+        extra_filters=filter_key,
     )
     hit = await cache.get_json(key)
     if hit is not None:
@@ -873,13 +916,30 @@ async def get_products(
     prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
     kw = {"prev_from": prev_from, "prev_to": prev_to}
 
+    cat = categories or None
+    br = brands or None
+
     items = await kpi_service.kpi_items_sold(db, date_from=date_from, date_to=date_to, **kw)
-    top = await kpi_service.top_products(db, date_from=date_from, date_to=date_to, limit=20)
+    top = await kpi_service.top_products(
+        db, date_from=date_from, date_to=date_to, limit=20, categories=cat, brands=br
+    )
     by_cat = await kpi_service.top_categories_brands(
-        db, date_from=date_from, date_to=date_to, by="category", limit=15
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        by="category",
+        limit=15,
+        categories=cat,
+        brands=br,
     )
     by_brand = await kpi_service.top_categories_brands(
-        db, date_from=date_from, date_to=date_to, by="brand", limit=15
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        by="brand",
+        limit=15,
+        categories=cat,
+        brands=br,
     )
 
     response = ProductsResponse(
@@ -912,6 +972,9 @@ async def get_products(
 async def get_customers(
     date_from: date = Query(...),
     date_to: date = Query(...),
+    genders: list[str] | None = Query(None, description="Cinsiyet filtresi (çoklu)"),
+    age_groups: list[str] | None = Query(None, description="Yaş grubu filtresi (çoklu)"),
+    cities: list[str] | None = Query(None, description="Şehir filtresi (çoklu)"),
     _user: User = Depends(require_permission(Permission.CUSTOMERS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[CustomersResponse]:
@@ -919,10 +982,26 @@ async def get_customers(
 
     Yeni müşteri trendi ve "yeni müşteri" KPI'ı `date_from`/`date_to`
     aralığına göredir; toplam/dağılım gibi statik metrikler tüm aktif
-    müşteri tabanını kapsar.
+    müşteri tabanını kapsar. Cinsiyet/yaş grubu/şehir filtreleri tüm müşteri
+    KPI'larına ve dağılımlarına çapraz filtre olarak uygulanır.
     """
     _validate_range(date_from, date_to)
-    key = cache_keys.kpi_dashboard("customers", date_from=date_from, date_to=date_to)
+
+    # Filtreler cache key'inin parçası; filtre değişince ayrı entry.
+    filter_key: dict[str, Any] = {}
+    if genders:
+        filter_key["g"] = sorted(genders)
+    if age_groups:
+        filter_key["ag"] = sorted(age_groups)
+    if cities:
+        filter_key["ct"] = sorted(cities)
+
+    key = cache_keys.kpi_dashboard(
+        "customers",
+        date_from=date_from,
+        date_to=date_to,
+        extra_filters=filter_key or None,
+    )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=CustomersResponse.model_validate(hit))
@@ -935,6 +1014,9 @@ async def get_customers(
         date_to=date_to,
         prev_from=prev_from,
         prev_to=prev_to,
+        genders=genders or None,
+        age_groups=age_groups or None,
+        cities=cities or None,
     )
 
     response = CustomersResponse(

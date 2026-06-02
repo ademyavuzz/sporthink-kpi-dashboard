@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from datetime import date as date_type
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,32 +77,64 @@ def _kpi(
 
 
 # ---------------------------------------------------------------------- #
+# Segment filtreleri (additive)
+# ---------------------------------------------------------------------- #
+
+
+def _segment_clauses(
+    *,
+    genders: list[str] | None = None,
+    age_groups: list[str] | None = None,
+    cities: list[str] | None = None,
+) -> list[Any]:
+    """Opsiyonel müşteri segment filtreleri için WHERE parçaları.
+
+    Hiçbiri verilmediğinde boş liste döner; bu sayede filtresiz çağrılar
+    (genders/age_groups/cities = None) değişiklikten öncekiyle birebir aynı
+    SQL'i üretir. Verildiğinde ilgili kolona `IN (...)` daraltması eklenir.
+    """
+    clauses: list[Any] = []
+    if genders:
+        clauses.append(Customer.gender.in_(genders))
+    if age_groups:
+        clauses.append(Customer.age_group.in_(age_groups))
+    if cities:
+        clauses.append(Customer.city.in_(cities))
+    return clauses
+
+
+# ---------------------------------------------------------------------- #
 # Top-level KPI'lar
 # ---------------------------------------------------------------------- #
 
 
-async def total_customers(db: AsyncSession) -> int:
-    stmt = select(func.count(Customer.id)).where(Customer.deleted_at.is_(None))
+async def total_customers(db: AsyncSession, *, segment: list[Any] | None = None) -> int:
+    stmt = select(func.count(Customer.id)).where(Customer.deleted_at.is_(None), *(segment or []))
     return int((await db.execute(stmt)).scalar() or 0)
 
 
 async def new_customers_in_range(
-    db: AsyncSession, *, date_from: date_type, date_to: date_type
+    db: AsyncSession,
+    *,
+    date_from: date_type,
+    date_to: date_type,
+    segment: list[Any] | None = None,
 ) -> int:
     stmt = select(func.count(Customer.id)).where(
         Customer.deleted_at.is_(None),
         Customer.first_order_date >= date_from,
         Customer.first_order_date <= date_to,
+        *(segment or []),
     )
     return int((await db.execute(stmt)).scalar() or 0)
 
 
-async def repeat_rate(db: AsyncSession) -> Decimal | None:
+async def repeat_rate(db: AsyncSession, *, segment: list[Any] | None = None) -> Decimal | None:
     """%(orders >= 2) / total. Aktif müşteri yoksa None."""
     stmt = select(
         func.sum(case((Customer.total_orders >= 2, 1), else_=0)),
         func.count(Customer.id),
-    ).where(Customer.deleted_at.is_(None))
+    ).where(Customer.deleted_at.is_(None), *(segment or []))
     row = (await db.execute(stmt)).one()
     repeat, total = int(row[0] or 0), int(row[1] or 0)
     if total == 0:
@@ -109,23 +142,33 @@ async def repeat_rate(db: AsyncSession) -> Decimal | None:
     return (Decimal(repeat) / Decimal(total) * 100).quantize(Decimal("0.01"))
 
 
-async def avg_customer_value(db: AsyncSession) -> Decimal | None:
-    stmt = select(func.avg(Customer.total_revenue)).where(Customer.deleted_at.is_(None))
+async def avg_customer_value(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> Decimal | None:
+    stmt = select(func.avg(Customer.total_revenue)).where(
+        Customer.deleted_at.is_(None), *(segment or [])
+    )
     val = (await db.execute(stmt)).scalar()
     return Decimal(val).quantize(Decimal("0.01")) if val is not None else None
 
 
-async def avg_orders_per_customer(db: AsyncSession) -> Decimal | None:
-    stmt = select(func.avg(Customer.total_orders)).where(Customer.deleted_at.is_(None))
+async def avg_orders_per_customer(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> Decimal | None:
+    stmt = select(func.avg(Customer.total_orders)).where(
+        Customer.deleted_at.is_(None), *(segment or [])
+    )
     val = (await db.execute(stmt)).scalar()
     return Decimal(val).quantize(Decimal("0.01")) if val is not None else None
 
 
-async def newsletter_subscription_rate(db: AsyncSession) -> Decimal | None:
+async def newsletter_subscription_rate(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> Decimal | None:
     stmt = select(
         func.sum(case((Customer.is_newsletter_subscriber.is_(True), 1), else_=0)),
         func.count(Customer.id),
-    ).where(Customer.deleted_at.is_(None))
+    ).where(Customer.deleted_at.is_(None), *(segment or []))
     row = (await db.execute(stmt)).one()
     sub, total = int(row[0] or 0), int(row[1] or 0)
     if total == 0:
@@ -138,11 +181,13 @@ async def newsletter_subscription_rate(db: AsyncSession) -> Decimal | None:
 # ---------------------------------------------------------------------- #
 
 
-async def by_gender(db: AsyncSession) -> list[DimensionBreakdown]:
+async def by_gender(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> list[DimensionBreakdown]:
     """Cinsiyet dağılımı (male/female/null = 'Bilinmiyor')."""
     stmt = (
         select(Customer.gender, func.count(Customer.id))
-        .where(Customer.deleted_at.is_(None))
+        .where(Customer.deleted_at.is_(None), *(segment or []))
         .group_by(Customer.gender)
     )
     rows = (await db.execute(stmt)).all()
@@ -155,11 +200,13 @@ async def by_gender(db: AsyncSession) -> list[DimensionBreakdown]:
     ]
 
 
-async def by_age_group(db: AsyncSession) -> list[DimensionBreakdown]:
+async def by_age_group(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> list[DimensionBreakdown]:
     """Yaş grubu dağılımı (boş enum = 'unknown')."""
     stmt = (
         select(Customer.age_group, func.count(Customer.id))
-        .where(Customer.deleted_at.is_(None))
+        .where(Customer.deleted_at.is_(None), *(segment or []))
         .group_by(Customer.age_group)
     )
     rows = (await db.execute(stmt)).all()
@@ -175,10 +222,12 @@ async def by_age_group(db: AsyncSession) -> list[DimensionBreakdown]:
     return out
 
 
-async def by_city(db: AsyncSession, limit: int = 10) -> list[DimensionBreakdown]:
+async def by_city(
+    db: AsyncSession, limit: int = 10, *, segment: list[Any] | None = None
+) -> list[DimensionBreakdown]:
     stmt = (
         select(Customer.city, func.count(Customer.id).label("c"))
-        .where(Customer.deleted_at.is_(None), Customer.city.is_not(None))
+        .where(Customer.deleted_at.is_(None), Customer.city.is_not(None), *(segment or []))
         .group_by(Customer.city)
         .order_by(func.count(Customer.id).desc())
         .limit(limit)
@@ -187,7 +236,9 @@ async def by_city(db: AsyncSession, limit: int = 10) -> list[DimensionBreakdown]
     return [DimensionBreakdown(label=city or "unknown", value=Decimal(c)) for city, c in rows]
 
 
-async def order_frequency_buckets(db: AsyncSession) -> list[CustomerFreqBucket]:
+async def order_frequency_buckets(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> list[CustomerFreqBucket]:
     """1, 2, 3, 4, 5-9, 10+ kovaları."""
     bucket_expr = case(
         (Customer.total_orders == 1, "1"),
@@ -200,7 +251,7 @@ async def order_frequency_buckets(db: AsyncSession) -> list[CustomerFreqBucket]:
     )
     stmt = (
         select(bucket_expr.label("bucket"), func.count(Customer.id))
-        .where(Customer.deleted_at.is_(None))
+        .where(Customer.deleted_at.is_(None), *(segment or []))
         .group_by(bucket_expr)
     )
     rows = (await db.execute(stmt)).all()
@@ -209,7 +260,9 @@ async def order_frequency_buckets(db: AsyncSession) -> list[CustomerFreqBucket]:
     return [CustomerFreqBucket(bucket=b, customer_count=items[b]) for b in order if b in items]
 
 
-async def newsletter_comparison(db: AsyncSession) -> list[NewsletterCompare]:
+async def newsletter_comparison(
+    db: AsyncSession, *, segment: list[Any] | None = None
+) -> list[NewsletterCompare]:
     stmt = (
         select(
             Customer.is_newsletter_subscriber,
@@ -217,7 +270,7 @@ async def newsletter_comparison(db: AsyncSession) -> list[NewsletterCompare]:
             func.avg(Customer.total_orders),
             func.avg(Customer.total_revenue),
         )
-        .where(Customer.deleted_at.is_(None))
+        .where(Customer.deleted_at.is_(None), *(segment or []))
         .group_by(Customer.is_newsletter_subscriber)
     )
     rows = (await db.execute(stmt)).all()
@@ -233,7 +286,11 @@ async def newsletter_comparison(db: AsyncSession) -> list[NewsletterCompare]:
 
 
 async def daily_new_customers(
-    db: AsyncSession, *, date_from: date_type, date_to: date_type
+    db: AsyncSession,
+    *,
+    date_from: date_type,
+    date_to: date_type,
+    segment: list[Any] | None = None,
 ) -> list[CustomerDailyPoint]:
     """Seçili aralıkta her gün için ilk-siparişi-bugün olan müşteri sayısı."""
     stmt = (
@@ -242,6 +299,7 @@ async def daily_new_customers(
             Customer.deleted_at.is_(None),
             Customer.first_order_date >= date_from,
             Customer.first_order_date <= date_to,
+            *(segment or []),
         )
         .group_by(Customer.first_order_date)
         .order_by(Customer.first_order_date)
@@ -250,10 +308,12 @@ async def daily_new_customers(
     return [CustomerDailyPoint(date=d, new_customers=int(c)) for d, c in rows]
 
 
-async def top_customers(db: AsyncSession, *, limit: int = 20) -> list[CustomerOverviewRow]:
+async def top_customers(
+    db: AsyncSession, *, limit: int = 20, segment: list[Any] | None = None
+) -> list[CustomerOverviewRow]:
     stmt = (
         select(Customer)
-        .where(Customer.deleted_at.is_(None))
+        .where(Customer.deleted_at.is_(None), *(segment or []))
         .order_by(Customer.total_revenue.desc())
         .limit(limit)
     )
@@ -285,27 +345,42 @@ async def calculate_customer_overview(
     date_to: date_type,
     prev_from: date_type,
     prev_to: date_type,
+    genders: list[str] | None = None,
+    age_groups: list[str] | None = None,
+    cities: list[str] | None = None,
 ) -> dict:
     """Endpoint için tek-noktada bütün payload.
 
     Sıralı sorgular — tek session, bcrypt-yoğun bir iş yok, latency düşük.
     Önemli sayıdaysa gelecekte `asyncio.gather` ile paralelleştirilebilir.
-    """
-    total = await total_customers(db)
-    new_now = await new_customers_in_range(db, date_from=date_from, date_to=date_to)
-    new_prev = await new_customers_in_range(db, date_from=prev_from, date_to=prev_to)
-    repeat = await repeat_rate(db)
-    acv = await avg_customer_value(db)
-    aopc = await avg_orders_per_customer(db)
-    nlr = await newsletter_subscription_rate(db)
 
-    gender = await by_gender(db)
-    age = await by_age_group(db)
-    cities = await by_city(db, limit=10)
-    freq = await order_frequency_buckets(db)
-    nl_compare = await newsletter_comparison(db)
-    daily = await daily_new_customers(db, date_from=date_from, date_to=date_to)
-    top = await top_customers(db, limit=20)
+    `genders`/`age_groups`/`cities` opsiyonel additive segment filtreleridir.
+    Hiçbiri verilmediğinde (None) `segment` boş listedir ve tüm KPI/dağılım
+    sorguları yalnızca `deleted_at IS NULL` ile çalışır — yani sonuçlar
+    değişiklikten öncekiyle birebir aynıdır. Verildiğinde aynı `IN (...)`
+    daraltması hem KPI'lara hem dağılım/liste bloklarına tutarlı uygulanır.
+    """
+    segment = _segment_clauses(genders=genders, age_groups=age_groups, cities=cities)
+
+    total = await total_customers(db, segment=segment)
+    new_now = await new_customers_in_range(
+        db, date_from=date_from, date_to=date_to, segment=segment
+    )
+    new_prev = await new_customers_in_range(
+        db, date_from=prev_from, date_to=prev_to, segment=segment
+    )
+    repeat = await repeat_rate(db, segment=segment)
+    acv = await avg_customer_value(db, segment=segment)
+    aopc = await avg_orders_per_customer(db, segment=segment)
+    nlr = await newsletter_subscription_rate(db, segment=segment)
+
+    gender = await by_gender(db, segment=segment)
+    age = await by_age_group(db, segment=segment)
+    cities_breakdown = await by_city(db, limit=10, segment=segment)
+    freq = await order_frequency_buckets(db, segment=segment)
+    nl_compare = await newsletter_comparison(db, segment=segment)
+    daily = await daily_new_customers(db, date_from=date_from, date_to=date_to, segment=segment)
+    top = await top_customers(db, limit=20, segment=segment)
 
     return {
         "total_customers": _kpi(
@@ -347,7 +422,7 @@ async def calculate_customer_overview(
         ),
         "by_gender": gender,
         "by_age_group": age,
-        "by_city": cities,
+        "by_city": cities_breakdown,
         "order_frequency": freq,
         "newsletter_comparison": nl_compare,
         "daily_new_customers": daily,

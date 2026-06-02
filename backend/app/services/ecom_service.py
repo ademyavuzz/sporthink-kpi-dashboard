@@ -60,6 +60,8 @@ class EcomFilters:
     brands: tuple[str, ...] = field(default_factory=tuple)
     statuses: tuple[str, ...] = field(default_factory=tuple)
     payment_methods: tuple[str, ...] = field(default_factory=tuple)
+    cities: tuple[str, ...] = field(default_factory=tuple)
+    devices: tuple[str, ...] = field(default_factory=tuple)
 
     def with_period(self, date_from: date, date_to: date) -> EcomFilters:
         """Karşılaştırma periyodu için aynı filtrelerle yeni instance döner."""
@@ -70,11 +72,13 @@ class EcomFilters:
             brands=self.brands,
             statuses=self.statuses,
             payment_methods=self.payment_methods,
+            cities=self.cities,
+            devices=self.devices,
         )
 
     def is_unfiltered(self) -> bool:
         """Sadece tarih aralığı set edilmişse True. GA4 trafiği sipariş-level
-        filtrelere (kategori/marka) join edilemez; bu yüzden filtre
+        filtrelere (kategori/marka/şehir/cihaz) join edilemez; bu yüzden filtre
         varken `sessions` 0 döndürülür ("veri uygulanamadı"). Filtre yokken
         ise GA4 toplamları olduğu gibi doldurulur."""
         return (
@@ -82,6 +86,8 @@ class EcomFilters:
             and not self.brands
             and not self.statuses
             and not self.payment_methods
+            and not self.cities
+            and not self.devices
         )
 
 
@@ -104,6 +110,12 @@ def _orders_filter(filters: EcomFilters, *, default_realized: bool = True) -> An
 
     if filters.payment_methods:
         clauses.append(Order.payment_method.in_(filters.payment_methods))
+
+    if filters.cities:
+        clauses.append(Order.city.in_(filters.cities))
+
+    if filters.devices:
+        clauses.append(Order.device.in_(filters.devices))
 
     if filters.categories or filters.brands:
         sub = (
