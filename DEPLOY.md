@@ -5,48 +5,74 @@
 
 ## Önkoşullar
 
-- Ubuntu 24.04 LTS VDS (min 4 vCPU, 8 GB RAM, 80 GB SSD)
+- Ubuntu 24.04 LTS VDS (min 2 vCPU, 4 GB RAM + swap, 40 GB SSD — daha fazlası önerilir)
 - Docker 27+ ve Docker Compose 2.30+
-- DNS A kaydı: `dashboard.sporthink.com.tr` → VDS IP
 - 80 ve 443 portları açık
+- (Faz 2 için) DNS A kaydı: `<domain>` → VDS IP
 
-## İlk Kurulum
+> **İki fazlı kurulum.** Domain henüz hazır değilse **Faz 1**'de servis IP üzerinden
+> HTTP olarak yayına alınır (`http://<VDS-IP>`). Domain hazır olunca **Faz 2**'de
+> Let's Encrypt ile HTTPS'e geçilir. Frontend same-origin (`/api/v1`) çalıştığı
+> için domain değişimi **frontend rebuild gerektirmez**, sadece config + restart.
+
+## Faz 1 — IP üzerinden HTTP yayını
 
 ```bash
-# 1. Sistem güncelle + Docker kur
+# 1. Sistem güncelle + swap + Docker kur
 sudo apt update && sudo apt upgrade -y
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && \
+  sudo mkswap /swapfile && sudo swapon /swapfile && \
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 
-# 2. Repo'yu klonla
+# 2. Repo'yu klonla (public repo → HTTPS ile auth gerekmez)
 sudo mkdir -p /opt/sporthink && sudo chown $USER /opt/sporthink
 cd /opt/sporthink
-git clone git@github.com:ademyavuzz/sporthink-kpi-dashboard.git .
+git clone https://github.com/ademyavuzz/sporthink-kpi-dashboard.git .
 
 # 3. Production env hazırla
 cp .env.production.example .env
-
 # Şu değerleri MUTLAKA doldur (`.env`):
 #   MYSQL_ROOT_PASSWORD=<openssl rand -hex 32>
 #   MYSQL_PASSWORD=<openssl rand -hex 32>
+#   DATABASE_URL=mysql+aiomysql://sporthink:<MYSQL_PASSWORD>@mysql:3306/sporthink_dashboard
 #   JWT_SECRET_KEY=<openssl rand -hex 32>
 #   SUPER_ADMIN_PASSWORD=<min 10 char strong>
-#   SENDGRID_API_KEY=<sendgrid key>
-#   FRONTEND_ORIGIN=https://dashboard.sporthink.com.tr
+#   SMTP_USER / SMTP_PASSWORD / MAIL_FROM  (Gmail app password vb.)
+#   FRONTEND_ORIGIN=http://<VDS-IP>          # Faz 2'de https://<domain> olur
+#   GUNICORN_WORKERS=2                        # 4 GB RAM için; büyük sunucuda 4
+#   NGINX_CONF=./nginx/app-http.conf          # Faz 1 default (HTTP)
 
-# 4. SSL sertifikası al (Let's Encrypt)
+# 4. Initial deployment (DB init + seed + start)
+./scripts/deploy.sh --init
+
+# 5. Doğrulama
+curl http://<VDS-IP>/health
+# {"status":"healthy","env":"production"}
+```
+
+> **Not (mevcut yayın):** Bu projede ilk yayın, yerel veritabanının birebir kopyası
+> sunucuya restore edilerek yapılmıştır (boş seed yerine). Adımlar: `mysql`+`redis`
+> başlat → `docker compose ... exec -T mysql mysql ... < dump.sql` ile restore →
+> `python -m app.seed` (idempotent) → tüm stack `up`.
+
+## Faz 2 — Domain + HTTPS (Let's Encrypt)
+
+```bash
+cd /opt/sporthink
+# 1. DNS A kaydı <domain> → VDS-IP yapıldığından emin ol (Faz 1 nginx HTTP'de
+#    ACME challenge'a hazır: /.well-known/acme-challenge/).
+# 2. nginx/sporthink.conf içindeki server_name ve cert path'lerini <domain>'e göre ayarla.
+# 3. Sertifikayı al:
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml \
   --profile letsencrypt run --rm certbot \
   certonly --webroot -w /var/www/certbot \
-  -d dashboard.sporthink.com.tr \
-  --email admin@sporthink.com.tr --agree-tos --no-eff-email
-
-# 5. Initial deployment (DB init + seed + start)
-./scripts/deploy.sh --init
-
-# 6. Doğrulama
-curl https://dashboard.sporthink.com.tr/health
-# {"status":"healthy","env":"production"}
+  -d <domain> --email <admin-email> --agree-tos --no-eff-email
+# 4. .env: NGINX_CONF=./nginx/sporthink.conf  ve  FRONTEND_ORIGIN=https://<domain>
+# 5. HTTPS config'e geç:
+docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d nginx backend
+curl https://<domain>/health
 ```
 
 ## Güncel Deploy
@@ -112,7 +138,7 @@ docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml logs -f --ta
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml logs -f celery_worker
 
 # DB slow query log
-docker compose exec mysql tail -f /var/log/mysql/slow.log
+docker compose exec mysql tail -f /var/lib/mysql/slow.log
 
 # Redis cache hit rate
 docker compose exec redis redis-cli -n 0 INFO stats | grep keyspace

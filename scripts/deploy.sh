@@ -33,11 +33,11 @@ log "1/6 Pulling latest code..."
 git fetch --all
 git pull --ff-only
 
-log "2/6 Building frontend..."
-docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml run --rm \
-    -v "$PROJECT_DIR/frontend:/app" -w /app frontend npm ci
-docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml run --rm \
-    -v "$PROJECT_DIR/frontend:/app" -w /app frontend npm run build
+log "2/6 Building frontend (Vite production)..."
+# Prod'da frontend servisi static nginx (build: null) oldugu icin Vite build'i
+# dogrudan node imajinda calistiriyoruz; dist/ host'taki frontend/dist'e cikar.
+docker run --rm -v "$PROJECT_DIR/frontend:/app" -w /app node:22-alpine \
+    sh -c "npm ci && npm run build"
 
 log "3/6 Building backend image..."
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml build backend celery_worker
@@ -45,7 +45,18 @@ docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml build backen
 if [[ "$MODE" == "--init" ]]; then
     log "4/6 Initial DB setup (init SQL + alembic stamp head + seed)..."
     docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d mysql redis
-    sleep 10
+    # MySQL ilk init'te baseline.sql + partition yuklemesi 10sn'den uzun surebilir;
+    # sabit sleep yerine healthy olana kadar bekle.
+    MYSQL_ROOT_PASSWORD="$(grep -E '^MYSQL_ROOT_PASSWORD=' .env | head -1 | cut -d= -f2-)"
+    log "Waiting for MySQL to accept connections..."
+    for i in $(seq 1 60); do
+        if docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml exec -T mysql \
+            mysqladmin ping -uroot -p"$MYSQL_ROOT_PASSWORD" --silent >/dev/null 2>&1; then
+            log "MySQL ready"; break
+        fi
+        if [[ "$i" -eq 60 ]]; then log "ERROR: MySQL did not become ready"; exit 1; fi
+        sleep 3
+    done
     docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml run --rm backend \
         sh -c "alembic stamp head && python -m app.seed"
 else
