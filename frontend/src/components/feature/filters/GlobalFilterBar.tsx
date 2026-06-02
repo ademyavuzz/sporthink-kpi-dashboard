@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, MonitorSmartphone, Radio, SlidersHorizontal, X } from "lucide-react";
+import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { FilterMultiSelect } from "@/components/feature/filters/FilterMultiSelect";
@@ -17,6 +18,8 @@ interface GlobalFilterBarProps {
   fields?: FilterField[];
   /** Gelişmiş aralık filtreleri (ciro/sipariş/ROAS/dönüşüm) — panelde. */
   showRanges?: boolean;
+  /** Çubuğun sağına yerleşen ek kontrol(ler) — ör. tarih aralığı + karşılaştırma. */
+  trailing?: ReactNode;
 }
 
 /**
@@ -31,6 +34,7 @@ interface GlobalFilterBarProps {
 export function GlobalFilterBar({
   fields = ["channels", "devices"],
   showRanges = false,
+  trailing,
 }: GlobalFilterBarProps) {
   const { t } = useTranslation(["filters", "common"]);
   const store = useFiltersStore();
@@ -111,8 +115,8 @@ export function GlobalFilterBar({
         />
       )}
 
-      <div className="ml-auto flex items-center gap-2">
-        {total > 0 ? (
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        {total > 0 && (
           <button
             type="button"
             onClick={() => store.resetFilters()}
@@ -121,10 +125,17 @@ export function GlobalFilterBar({
             <X className="size-3.5" />
             {t("filters:clear_all")}
           </button>
-        ) : (
+        )}
+        {total === 0 && !trailing && (
           <span className="hidden text-xs text-text-dim sm:inline">
             {t("filters:all_data")}
           </span>
+        )}
+        {trailing && (
+          <>
+            <div className="hidden h-5 w-px bg-border/70 sm:block" />
+            {trailing}
+          </>
         )}
       </div>
     </div>

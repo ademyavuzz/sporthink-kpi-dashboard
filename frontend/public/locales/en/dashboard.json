@@ -1,6 +1,11 @@
 {
   "overview": {
     "title": "Overview",
+    "nvr_card_title": "New vs Returning Customers",
+    "nvr_card_hint": "Revenue split by new and returning customers",
+    "nvr_new": "New Customers",
+    "nvr_returning": "Returning Customers",
+    "nvr_orders": "orders",
     "section_hero_title": "Headline metrics",
     "section_hero_subtitle": "Three numbers that matter most this period",
     "section_marketing_title": "Marketing",
