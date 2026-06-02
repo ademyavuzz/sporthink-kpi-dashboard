@@ -17,7 +17,7 @@ class DataTypeColumn(BaseModel):
 
     csv_header: str
     db_column: str
-    type: str  # ColumnSpec.coerce — 'str' | 'int' | 'decimal' | 'date_iso' | ...
+    type: str  # ColumnSpec.coerce - 'str' | 'int' | 'decimal' | 'date_iso' | ...
     required: bool
 
 
@@ -50,16 +50,16 @@ class ImportPreviewSummary(BaseModel):
 
 
 class ImportPreviewResponse(BaseModel):
-    """`POST /imports/preview` cevabı — dosya DB'ye yazılmadan önce inceleme."""
+    """`POST /imports/preview` cevabı - dosya DB'ye yazılmadan önce inceleme."""
 
     data_type: str
     file_name: str
     file_size_bytes: int
     # Dosyada bulunan tüm başlıklar (BOM temizlenmiş, sırasıyla)
     detected_headers: list[str]
-    # Parser zorunlu istiyor ama dosyada yok — dosya kabul edilemez
+    # Parser zorunlu istiyor ama dosyada yok - dosya kabul edilemez
     missing_required: list[str]
-    # Parser tanımıyor ama dosyada var — sessiz drop edilir, kullanıcıyı bilgilendir
+    # Parser tanımıyor ama dosyada var - sessiz drop edilir, kullanıcıyı bilgilendir
     unknown_headers: list[str]
     # İlk 10 başarıyla parse edilmiş satır (DB kolon adlarıyla)
     sample_rows: list[dict[str, Any]]
@@ -95,6 +95,6 @@ class ImportDetailResponse(ImportListItem):
 
 
 class ImportRunResult(ImportDetailResponse):
-    """`POST /imports` cevabı — tek seferlik upload sonucu."""
+    """`POST /imports` cevabı - tek seferlik upload sonucu."""
 
     pass

@@ -30,7 +30,7 @@ from app.schemas.kpi import (
 
 
 class OverviewResponse(BaseModel):
-    """`/dashboard/overview` — ana sayfa: 9 KPI + chart blokları + şehir geo.
+    """`/dashboard/overview` - ana sayfa: 9 KPI + chart blokları + şehir geo.
 
     `channels`/`devices` filtreleri tüm KPI'lara, trend'e ve geo'ya uygulanır
     (cross-filter). `funnel`/`new_vs_returning`/`top_products` tarih kapsamlıdır.
@@ -53,7 +53,7 @@ class DimensionBreakdown(BaseModel):
 
 
 class TrafficDailyPoint(BaseModel):
-    """Trafik trend chart için günlük nokta — sessions/users/new_users.
+    """Trafik trend chart için günlük nokta - sessions/users/new_users.
 
     Combo line chart için (`docs/07` §7.5.2), filtrelenmiş GA4Traffic verisi.
     """
@@ -80,7 +80,7 @@ class LandingPageRow(BaseModel):
 
 
 class TrafficResponse(BaseModel):
-    """`/dashboard/traffic` — GA4 trafik sayfası.
+    """`/dashboard/traffic` - GA4 trafik sayfası.
 
     Filtreler (`channels`, `devices`, `cities`) tüm chart/tablolarda uygulanır;
     KPI kartları da aynı filtre bağlamında hesaplanır. Filtre yokken tüm
@@ -103,7 +103,7 @@ class TrafficResponse(BaseModel):
 
 
 class MetaAdsResponse(BaseModel):
-    """`/dashboard/meta` — Meta Ads sayfası."""
+    """`/dashboard/meta` - Meta Ads sayfası."""
 
     date_range: DateRange
     ad_spend: KPIResult
@@ -121,7 +121,7 @@ class MetaAdsResponse(BaseModel):
 
 
 class GoogleCampaignMetric(CampaignMetric):
-    """Google'a özel kampanya satırı — `channel_type` ek alanı.
+    """Google'a özel kampanya satırı - `channel_type` ek alanı.
 
     Google Ads kampanya tipidir (search/shopping/performance_max/display/video).
     Frontend tab görünürlüğünü ve kanal-tipi filtresini bu alana göre yönetir.
@@ -172,7 +172,7 @@ class GoogleProductRow(BaseModel):
 
 
 class GoogleAdsResponse(BaseModel):
-    """`/dashboard/google` — Google Ads sayfası.
+    """`/dashboard/google` - Google Ads sayfası.
 
     Search/Shopping/PMax ayrımı kritik. `channel_breakdown` donut için,
     `keywords` Search kampanyaları için, `products` Shopping/PMax için
@@ -240,7 +240,7 @@ class OrderDetailCustomer(BaseModel):
 
 
 class OrderDetailResponse(BaseModel):
-    """`/dashboard/ecom/order-detail` — tek siparişin detayı."""
+    """`/dashboard/ecom/order-detail` - tek siparişin detayı."""
 
     order_pk_id: int
     order_id: str
@@ -264,7 +264,7 @@ class OrderDetailResponse(BaseModel):
 
 
 class EcommerceResponse(BaseModel):
-    """`/dashboard/ecom` — E-Ticaret sayfası.
+    """`/dashboard/ecom` - E-Ticaret sayfası.
 
     Filtreler (`categories`, `brands`, `statuses`, `payment_methods`)
     tüm KPI/chart/tablolarda uygulanır. Filtreler boşsa veri
@@ -293,7 +293,7 @@ class EcommerceResponse(BaseModel):
 
 
 class CampaignAnalysisResponse(BaseModel):
-    """`/dashboard/campaign` — Kampanya analizi."""
+    """`/dashboard/campaign` - Kampanya analizi."""
 
     date_range: DateRange
     total_spend: KPIResult
@@ -303,7 +303,7 @@ class CampaignAnalysisResponse(BaseModel):
 
 
 class FunnelResponse(BaseModel):
-    """`/dashboard/funnel` — E-ticaret funnel + cihaz/kanal kırılımı + trend."""
+    """`/dashboard/funnel` - E-ticaret funnel + cihaz/kanal kırılımı + trend."""
 
     date_range: DateRange
     steps: list[FunnelStep]
@@ -323,14 +323,14 @@ class CohortCell(BaseModel):
 
 
 class CohortResponse(BaseModel):
-    """`/dashboard/cohort` — Cohort heatmap."""
+    """`/dashboard/cohort` - Cohort heatmap."""
 
     date_range: DateRange
     cells: list[CohortCell]
 
 
 class ProductsResponse(BaseModel):
-    """`/dashboard/products` — Ürün performans sayfası."""
+    """`/dashboard/products` - Ürün performans sayfası."""
 
     date_range: DateRange
     items_sold: KPIResult
@@ -399,7 +399,7 @@ class ChannelDailyPoint(BaseModel):
 
 
 class ChannelAnalysisResponse(BaseModel):
-    """`/dashboard/channel-analysis` — kanal performans sayfası."""
+    """`/dashboard/channel-analysis` - kanal performans sayfası."""
 
     date_range: DateRange
     # Üst KPI'lar
@@ -417,7 +417,7 @@ class ChannelAnalysisResponse(BaseModel):
 
 
 class CustomersResponse(BaseModel):
-    """`/dashboard/customers` — Müşteri analizi sayfası.
+    """`/dashboard/customers` - Müşteri analizi sayfası.
 
     KPI'lar + breakdown'lar + trend + top tablosu tek payload.
     """

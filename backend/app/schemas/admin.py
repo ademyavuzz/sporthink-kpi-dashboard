@@ -106,7 +106,7 @@ class UserUpdate(BaseModel):
 class UserCreateResponse(UserListItem):
     """Yeni kullanıcı oluştuğunda dönen + davet maili durumu.
 
-    Geçici şifre artık üretilmiyor — kullanıcı maildeki linkle kendi
+    Geçici şifre artık üretilmiyor - kullanıcı maildeki linkle kendi
     şifresini belirler.
     """
 

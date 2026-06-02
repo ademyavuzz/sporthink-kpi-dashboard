@@ -55,7 +55,7 @@ class UserResponse(BaseModel):
 
 
 class MeResponse(BaseModel):
-    """`GET /api/v1/auth/me` — user + permission listesi.
+    """`GET /api/v1/auth/me` - user + permission listesi.
 
     Permission listesi süper admin için tüm izinleri içerir (frontend UX
     kontrolü için). Asıl güvenlik backend'de `require_permission` ile yapılır.

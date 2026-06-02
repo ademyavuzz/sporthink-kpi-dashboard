@@ -15,7 +15,7 @@ NotificationTypeLiteral = Literal["info", "success", "warning", "error"]
 
 
 class NotificationItem(BaseModel):
-    """Tek bildirim — frontend NotificationBell + NotificationsPage gösterir."""
+    """Tek bildirim - frontend NotificationBell + NotificationsPage gösterir."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,7 +30,7 @@ class NotificationItem(BaseModel):
 
 
 class UnreadCountResponse(BaseModel):
-    """`GET /notifications/unread-count` cevabı — TopBar bell rozeti."""
+    """`GET /notifications/unread-count` cevabı - TopBar bell rozeti."""
 
     count: int = Field(..., ge=0)
 

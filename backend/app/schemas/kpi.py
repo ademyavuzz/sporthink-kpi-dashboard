@@ -1,6 +1,6 @@
 """KPI ve dashboard endpoint'leri için API şemaları.
 
-`docs/overview/09-kpi-formulas.md` ile birebir uyumlu — KPIResult, trend
+`docs/overview/09-kpi-formulas.md` ile birebir uyumlu - KPIResult, trend
 yönü, birim, karşılaştırma yapısı.
 """
 
@@ -13,11 +13,11 @@ from typing import Literal
 from pydantic import BaseModel
 
 KPIUnit = Literal[
-    "currency",  # TL — Intl.NumberFormat tr-TR currency
+    "currency",  # TL - Intl.NumberFormat tr-TR currency
     "percent",  # 0-100 (örn 65.5 = %65.5)
-    "count",  # Adet — Intl.NumberFormat tr-TR
+    "count",  # Adet - Intl.NumberFormat tr-TR
     "multiplier",  # ROAS gibi (4.5x)
-    "duration_seconds",  # Saniye — UI "2dk 35sn"
+    "duration_seconds",  # Saniye - UI "2dk 35sn"
 ]
 
 
@@ -54,7 +54,7 @@ class DateRange(BaseModel):
 
 
 class KPISummary(BaseModel):
-    """`/dashboard/overview` cevabı — KPI card grid için ana özet."""
+    """`/dashboard/overview` cevabı - KPI card grid için ana özet."""
 
     date_range: DateRange
     revenue: KPIResult
@@ -79,7 +79,7 @@ class ChannelMetric(BaseModel):
 
 
 class GeoCityMetric(BaseModel):
-    """Şehir × ciro/sipariş kırılımı — harita görselleştirmesi için.
+    """Şehir × ciro/sipariş kırılımı - harita görselleştirmesi için.
 
     `orders.city` doğrudan kullanılır; aggregate tablolar şehir kırılımı
     taşımaz.
@@ -127,7 +127,7 @@ class FunnelStep(BaseModel):
 
 
 class FunnelGroup(BaseModel):
-    """Boyuta göre (cihaz/kanal) gruplanmış funnel — mini funnel kartları için."""
+    """Boyuta göre (cihaz/kanal) gruplanmış funnel - mini funnel kartları için."""
 
     key: str  # mobile / desktop / tablet | organic_search / paid_search / paid_social
     label_tr: str

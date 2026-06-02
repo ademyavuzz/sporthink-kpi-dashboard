@@ -1,6 +1,6 @@
 """Pydantic API şemaları.
 
-`models/` ORM (DB şekli), `schemas/` API contract — bu ikisi karıştırılmaz
+`models/` ORM (DB şekli), `schemas/` API contract - bu ikisi karıştırılmaz
 (backend/CLAUDE.md §4).
 """
 

@@ -16,7 +16,7 @@ from app.schemas.user import UserResponse
 class LoginRequest(BaseModel):
     """Login isteği.
 
-    `email` `EmailStr` — Pydantic katmanında format doğrulanır, malformed
+    `email` `EmailStr` - Pydantic katmanında format doğrulanır, malformed
     payload backend'de DB lookup'a düşmeden 422 ile reddedilir. Davranış
     güvenli (yetkisiz erişim zaten 401'di) ama frontend için "format hatası"
     daha açıklayıcı.
@@ -46,8 +46,7 @@ class TokenResponse(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     """`POST /auth/forgot-password` isteği.
 
-    Kullanıcı email enum'unu sızdırmamak için response her zaman aynı —
-    `{"sent": true}`. Bu istek başarılı/başarısız ayırt edilemez.
+    Kullanıcı email enum'unu sızdırmamak için response her zaman aynı -     `{"sent": true}`. Bu istek başarılı/başarısız ayırt edilemez.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -92,7 +91,7 @@ class ResetPasswordResponse(BaseModel):
 class MeUpdateRequest(BaseModel):
     """Kullanıcının kendi profil alanlarını güncellemek için.
 
-    Email değişmiyor (kimliği etkiler — admin gerekir). Tüm alanlar opsiyonel,
+    Email değişmiyor (kimliği etkiler - admin gerekir). Tüm alanlar opsiyonel,
     sadece gönderilen alanlar güncellenir. Boş string ("") "alanı temizle"
     anlamına gelir (örn. linkedin_url'i silmek için "").
     """

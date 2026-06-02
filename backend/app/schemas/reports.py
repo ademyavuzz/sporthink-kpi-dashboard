@@ -21,7 +21,7 @@ ReportStatusKey = Literal["pending", "generating", "completed", "failed"]
 
 
 class ReportCreateRequest(BaseModel):
-    """`POST /reports` payload — kullanıcı tarih aralığı + bölüm seçimi sağlar.
+    """`POST /reports` payload - kullanıcı tarih aralığı + bölüm seçimi sağlar.
 
     `sections` boş bırakılırsa frontend tüm bölümleri varsayılan açık göstermek
     yerine null göndermeli; servis boş listeyi reddeder.
@@ -43,7 +43,7 @@ class ReportCreateRequest(BaseModel):
 
 
 class ReportListItem(BaseModel):
-    """Liste row'u — geçmiş raporlar tablosu için."""
+    """Liste row'u - geçmiş raporlar tablosu için."""
 
     id: int
     name: str
@@ -60,13 +60,13 @@ class ReportListItem(BaseModel):
 
 
 class ReportDetailResponse(ReportListItem):
-    """Detay için aynı shape — şimdilik fark yok, ileride preview metadata
+    """Detay için aynı shape - şimdilik fark yok, ileride preview metadata
     eklenirse burada büyür.
     """
 
 
 class ReportSectionMeta(BaseModel):
-    """`/reports/sections` cevabı — UI checkbox listesi için."""
+    """`/reports/sections` cevabı - UI checkbox listesi için."""
 
     key: ReportSectionKey
     label_tr: str
