@@ -69,12 +69,20 @@ log "5/6 Starting services..."
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --remove-orphans
 
 log "6/6 Waiting for health..."
-sleep 5
-HEALTH=$(curl -sS http://localhost:8000/health 2>/dev/null || echo "FAIL")
+# Prod'da backend portu host'a publish edilmez (sadece nginx uzerinden); health'i
+# container icinden kontrol ediyoruz. Gunicorn boot icin retry.
+HEALTH=""
+for i in $(seq 1 20); do
+    HEALTH=$(docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml exec -T backend \
+        python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).read().decode())" 2>/dev/null || echo "")
+    echo "$HEALTH" | grep -q healthy && break
+    sleep 3
+done
 if echo "$HEALTH" | grep -q healthy; then
-    log "✓ Backend healthy"
+    log "✓ Backend healthy: $HEALTH"
 else
-    log "✗ Backend not healthy: $HEALTH"
+    log "✗ Backend not healthy: ${HEALTH:-no response}"
+    docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml logs --tail=30 backend || true
     exit 1
 fi
 
@@ -83,6 +91,6 @@ docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml exec -T redi
     redis-cli -n 0 --scan --pattern 'kpi:*' | \
     xargs -r docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml exec -T redis redis-cli -n 0 DEL || true
 
+FRONTEND_URL="$(grep -E '^FRONTEND_ORIGIN=' .env | head -1 | cut -d= -f2-)"
 log "✓ Deployment complete"
-log "  Frontend: https://${FRONTEND_DOMAIN:-dashboard.sporthink.com.tr}"
-log "  Backend health: http://localhost:8000/health"
+log "  App: ${FRONTEND_URL:-http://<server-ip>}"
