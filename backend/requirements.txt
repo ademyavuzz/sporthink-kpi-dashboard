@@ -1,6 +1,7 @@
 # --- Web framework ---
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
+gunicorn==23.0.0  # production process manager (docker-compose.prod.yml: gunicorn + UvicornWorker)
 
 # --- Validation / settings ---
 pydantic==2.10.4
