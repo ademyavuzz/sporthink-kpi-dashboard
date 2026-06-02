@@ -64,16 +64,22 @@ cd /opt/sporthink
 # 1. DNS A kaydı <domain> → VDS-IP yapıldığından emin ol (Faz 1 nginx HTTP'de
 #    ACME challenge'a hazır: /.well-known/acme-challenge/).
 # 2. nginx/sporthink.conf içindeki server_name ve cert path'lerini <domain>'e göre ayarla.
-# 3. Sertifikayı al:
+# 3. Sertifikayı al (DİKKAT: `--entrypoint certbot` şart — certbot servisinin
+#    entrypoint'i renewal döngüsü; olmadan certonly çalışmaz, 12h sleep'e girer):
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml \
-  --profile letsencrypt run --rm certbot \
+  --profile letsencrypt run --rm --entrypoint certbot certbot \
   certonly --webroot -w /var/www/certbot \
-  -d <domain> --email <admin-email> --agree-tos --no-eff-email
+  -d <domain> -d www.<domain> --email <admin-email> --agree-tos --no-eff-email --non-interactive
 # 4. .env: NGINX_CONF=./nginx/sporthink.conf  ve  FRONTEND_ORIGIN=https://<domain>
 # 5. HTTPS config'e geç:
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d nginx backend
-curl https://<domain>/health
+curl https://<domain>/api/openapi.json   # 200 = HTTPS + API çalışıyor
 ```
+
+> **Mevcut yayın:** Domain **sporthinkkpidashboard.com** (+ www) için sertifika alındı,
+> `NGINX_CONF=./nginx/sporthink.conf` aktif, https yayında. Otomatik yenileme host
+> cron'unda: `/usr/local/bin/sporthink-renew-cert.sh` (her gün 03:17 → `certbot renew`
+> + `nginx -s reload`; certbot yalnızca <30 gün kala yeniler).
 
 ## Güncel Deploy
 
