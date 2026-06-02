@@ -68,6 +68,13 @@ fi
 log "5/6 Starting services..."
 docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml up -d --remove-orphans
 
+# Backend/frontend yeniden olusturulunca yeni IP alir; nginx upstream hostname'i
+# baslangicta cache'ledigi icin eski IP'ye gidip 502 verir. Reload ile
+# upstream'leri yeniden cozdur (nginx kendisi recreate edilmediyse sart).
+log "Reloading nginx (upstream IP yenile)..."
+docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null \
+    || docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml restart nginx
+
 log "6/6 Waiting for health..."
 # Prod'da backend portu host'a publish edilmez (sadece nginx uzerinden); health'i
 # container icinden kontrol ediyoruz. Gunicorn boot icin retry.
