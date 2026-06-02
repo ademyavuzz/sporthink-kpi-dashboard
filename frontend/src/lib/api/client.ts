@@ -47,8 +47,15 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * Same-origin API kökü. Build sırasında `.env.production` (VITE_API_BASE_URL)
+ * yoksa boş string'e düşüp istekler prefix'siz gider (`/auth/login` → 405).
+ * Fallback ile her zaman `/api/v1`'e yönlenir.
+ */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30_000,
 });
@@ -67,7 +74,7 @@ let refreshInFlight: Promise<string | null> | null = null;
 async function attemptRefresh(): Promise<string | null> {
   try {
     const { data } = await axios.post<SuccessEnvelope<{ access_token: string }>>(
-      `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
+      `${API_BASE_URL}/auth/refresh`,
       {},
       { withCredentials: true },
     );

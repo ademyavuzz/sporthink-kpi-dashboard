@@ -6,6 +6,10 @@
 .env.*
 !.env.example
 !.env.production.example
+# Frontend prod build env (secret DEGIL; sadece VITE_API_BASE_URL=/api/v1).
+# Commit edilmezse sunucu build'inde API base bos kalir -> /api/v1 prefix'i
+# duser, istekler 405 olur. Bu yuzden repo'ya dahil.
+!frontend/.env.production
 
 # IDE / agent local config
 .vscode/
