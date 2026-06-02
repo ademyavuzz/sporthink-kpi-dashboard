@@ -20,13 +20,16 @@ def get_engine() -> AsyncEngine:
     return create_async_engine(
         settings.database_url,
         echo=False,
-        # pool_pre_ping, aiomysql ile birlikte bozuk: SQLAlchemy'nin pymysql
-        # do_ping'i `dbapi_connection.ping()`'i argümansiz çağırıyor, ama
-        # AsyncAdapt_aiomysql_connection.ping() `reconnect` argümanını zorunlu
-        # kiliyor -> her havuzdan tekrar kullanımda TypeError. pool_recycle
-        # bayat baglantilari zaten 1 saatte yeniliyor.
+        # pool_pre_ping aiomysql ile bozuk (SQLAlchemy 2.0.43'te de dogrulandi):
+        # do_ping `ping()`'i argumansiz cagiriyor ama
+        # AsyncAdapt_aiomysql_connection.ping() `reconnect` argumanini zorunlu
+        # kiliyor -> her havuzdan tekrar kullanimda TypeError. Bu yuzden KAPALI.
+        # Onun yerine pool_recycle, MySQL wait_timeout'undan (mysql/my.cnf: 600s)
+        # KUCUK tutulur. Aksi halde 10dk+ bosta kalan baglantiyi MySQL kapatir,
+        # sonraki sorgu "Lost connection (2013)" -> 500 verir (ozellikle az
+        # trafikli dashboard'da bosluktan sonraki ilk login'de). 280s guvenli.
         pool_pre_ping=False,
-        pool_recycle=3600,
+        pool_recycle=280,
         pool_size=10,
         max_overflow=20,
     )
