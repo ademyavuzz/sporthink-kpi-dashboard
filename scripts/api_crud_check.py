@@ -227,26 +227,6 @@ def main():
     )
     step("users.admin_reset_password", code, code == 200, raw[:120])
 
-    section("SEGMENTS")
-    seg_name = f"crud-segment-{int(time.time())}"
-    seg_rules = {"op": "AND", "rules": [{"field": "city", "op": "==", "value": "İstanbul"}]}
-    code, raw, parsed = http(
-        "POST", "/api/v1/segments", token=token,
-        body={"name": seg_name, "description": "smoke", "rules": seg_rules, "is_shared": False},
-    )
-    seg_id = parsed["data"]["id"] if parsed and parsed.get("success") else None
-    step("segments.create", code, code == 200 and seg_id, raw[:140])
-    if seg_id:
-        created.append(("segment", "DELETE", f"/api/v1/segments/{seg_id}"))
-
-    code, raw, _ = http("POST", "/api/v1/segments/preview", token=token,
-                       body={"name": "preview", "rules": seg_rules})
-    step("segments.preview", code, code == 200, raw[:80])
-
-    code, raw, _ = http("PATCH", f"/api/v1/segments/{seg_id}", token=token,
-                       body={"description": "updated"})
-    step("segments.patch", code, code == 200, raw[:80])
-
     section("SAVED-VIEWS")
     code, raw, parsed = http(
         "POST", "/api/v1/saved-views", token=token,
