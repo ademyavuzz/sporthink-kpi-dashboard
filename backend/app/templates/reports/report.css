@@ -352,6 +352,8 @@ p { orphans: 2; widows: 2; }
   margin-bottom: 12pt;
 }
 .kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+/* 3 sutunlu kartlar daha genis; deger fontu buyuk kalabilir. */
+.kpi-grid-3 .kpi-value { font-size: 15pt; }
 
 .kpi-card {
   border: 0.6pt solid #e5e7eb;
@@ -371,11 +373,14 @@ p { orphans: 2; widows: 2; }
 }
 
 .kpi-value {
-  font-size: 16pt;
+  /* 4 sutunlu kartta en uzun TRY degeri (or. 63.867.197,52 TL) tek satira
+   * sigsin diye 12.5pt; sayi ile para birimi arasi bolunmesin. */
+  font-size: 12.5pt;
   font-weight: 800;
   color: #111827;
   letter-spacing: -0.3pt;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .kpi-change {
