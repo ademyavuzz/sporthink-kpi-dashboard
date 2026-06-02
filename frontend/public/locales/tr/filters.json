@@ -20,5 +20,7 @@
   "all_option": "Tümü",
   "n_selected": "{{count}} seçili",
   "no_option": "Seçenek yok",
-  "clear_selection": "Seçimi temizle"
+  "clear_selection": "Seçimi temizle",
+  "advanced": "Gelişmiş",
+  "all_data": "Tüm veriler gösteriliyor"
 }

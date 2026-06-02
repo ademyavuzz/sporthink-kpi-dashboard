@@ -20,5 +20,7 @@
   "all_option": "All",
   "n_selected": "{{count}} selected",
   "no_option": "No options",
-  "clear_selection": "Clear selection"
+  "clear_selection": "Clear selection",
+  "advanced": "Advanced",
+  "all_data": "Showing all data"
 }

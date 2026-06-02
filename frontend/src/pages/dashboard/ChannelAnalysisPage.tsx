@@ -131,7 +131,7 @@ export default function ChannelAnalysisPage() {
           range={range}
           onChangeRange={setRange}
         />
-        <GlobalFilterBar />
+        <GlobalFilterBar fields={["channels", "devices"]} showRanges />
       </div>
 
       {/* KPI grid */}
