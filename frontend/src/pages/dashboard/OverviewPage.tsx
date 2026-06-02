@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Package, TrendingUp, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -8,20 +9,16 @@ import {
   type DateRangeValue,
 } from "@/components/feature/DateRangePicker";
 import { ChartCard } from "@/components/feature/ChartCard";
+import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { TurkeyMap } from "@/components/feature/charts/TurkeyMap";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
+import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
 import { PageHeader } from "@/components/layout/PageHeader";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import {
@@ -34,8 +31,115 @@ import {
 import { cn } from "@/lib/utils";
 import type { ComparisonMode } from "@/stores/useFiltersStore";
 import { useFiltersStore } from "@/stores/useFiltersStore";
+import type { TopProductRow } from "@/types/dashboard";
 
 import { PageShell } from "./_shared";
+
+/** Görsel hizalama için tüm analiz grafiklerinin ortak yüksekliği. */
+const ANALYSIS_CHART_HEIGHT = 300;
+
+/* ──────────────────────────────────────────────────────────────── */
+/* Top ürünler tablosu — kolon tanımları (ChannelAnalysisPage deseni). */
+
+interface TopProductColumn extends ColumnDef {
+  /** colgroup genişliği. */
+  width: string;
+  /** Sağa hizalı sayısal kolon mu? */
+  numeric?: boolean;
+  /** Bir satır için hücre içeriği (idx = sıralama numarası). */
+  cell: (row: TopProductRow, idx: number, maxRevenue: number) => ReactNode;
+  /** Dışa aktarmada kullanılacak ham hücre değeri (formatsız). */
+  exportValue: (row: TopProductRow, idx: number) => string | number | null;
+}
+
+const TOP_PRODUCT_COLUMNS: TopProductColumn[] = [
+  {
+    id: "rank",
+    labelKey: "overview.table_rank",
+    required: true,
+    width: "w-[56px]",
+    cell: (_row, idx) => (
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+          idx < 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+        )}
+      >
+        {idx + 1}
+      </span>
+    ),
+    exportValue: (_row, idx) => idx + 1,
+  },
+  {
+    id: "sku",
+    labelKey: "overview.table_sku",
+    width: "w-[140px]",
+    cell: (p) => <span className="font-mono text-xs text-text-muted">{p.sku}</span>,
+    exportValue: (p) => p.sku,
+  },
+  {
+    id: "product",
+    labelKey: "overview.table_product",
+    width: "",
+    cell: (p) => (
+      <span
+        className="block truncate font-medium text-foreground"
+        title={p.product_name ?? ""}
+      >
+        {p.product_name ?? "—"}
+      </span>
+    ),
+    exportValue: (p) => p.product_name,
+  },
+  {
+    id: "brand",
+    labelKey: "overview.table_brand",
+    width: "w-[150px]",
+    cell: (p) =>
+      p.brand ? (
+        <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
+          {p.brand}
+        </span>
+      ) : (
+        <span className="text-text-dim">—</span>
+      ),
+    exportValue: (p) => p.brand,
+  },
+  {
+    id: "units",
+    labelKey: "overview.table_units",
+    width: "w-[100px]",
+    numeric: true,
+    cell: (p) => (
+      <span className="tabular-nums text-sm">{formatCount(p.units_sold)}</span>
+    ),
+    exportValue: (p) => p.units_sold,
+  },
+  {
+    id: "revenue",
+    labelKey: "overview.table_revenue",
+    width: "w-[200px]",
+    numeric: true,
+    cell: (p, _idx, maxRevenue) => {
+      const rev = toNumber(p.revenue) ?? 0;
+      const barPct = (rev / maxRevenue) * 100;
+      return (
+        <div className="flex items-center justify-end gap-2">
+          <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
+            <div
+              className="h-full rounded-full bg-primary/70"
+              style={{ width: `${Math.max(barPct, 3)}%` }}
+            />
+          </div>
+          <span className="tabular-nums text-sm font-semibold text-foreground">
+            {formatCurrency(rev)}
+          </span>
+        </div>
+      );
+    },
+    exportValue: (p) => toNumber(p.revenue),
+  },
+];
 
 /**
  * Genel Özet — profesyonel analitik dashboard.
@@ -43,11 +147,13 @@ import { PageShell } from "./_shared";
  * Filtre & cross-filter:
  *  - Tarih + karşılaştırma: sayfa-local state.
  *  - Kanal/Cihaz: `useFiltersStore` (cross-page) → backend cross-filter.
+ *    Backend `/overview` yalnızca channels + devices kabul eder; bu yüzden
+ *    GlobalFilterBar bu iki alanla sınırlıdır (işe yaramayan filtre yok).
  *  - Kanal donut'una tıkla → o kanala filtre; Türkiye haritasında şehre tıkla
  *    → şehir vurgulanır + global store'a yazılır (diğer sayfalara taşınır).
  *
- * Layout zonları: Filtre → KPI (3 hero + 6 destek) → Trend+Kanal →
- * Harita+Funnel → Top ürünler.
+ * Layout zonları: Filtre → KPI (3 hero + 6 destek) → Harita →
+ * Kanal·Ürün·Funnel·Müşteri → Trend → Top ürünler (kolon yönetimi + export).
  */
 export default function OverviewPage() {
   const { t } = useTranslation("dashboard");
@@ -143,6 +249,7 @@ export default function OverviewPage() {
           subtitle={t("overview.subtitle_vs_prev")}
         />
         <GlobalFilterBar
+          fields={["channels", "devices"]}
           trailing={
             <>
               <ComparisonToggle value={comparison} onChange={setComparison} />
@@ -153,7 +260,7 @@ export default function OverviewPage() {
       </div>
 
       {/* ─── KPI: 3 hero ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-3">
         {isLoading || !data ? (
           <>
             <KPICardSkeleton hero />
@@ -170,7 +277,7 @@ export default function OverviewPage() {
       </div>
 
       {/* ─── KPI: 6 destek ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-6">
         {isLoading || !data ? (
           Array.from({ length: 6 }).map((_, i) => (
             <KPICardSkeleton key={i} compact />
@@ -210,6 +317,7 @@ export default function OverviewPage() {
         >
           <DonutChart
             loading={isLoading}
+            height={ANALYSIS_CHART_HEIGHT}
             labels={channelLabels}
             values={channelValues}
             valueFormatter={formatCurrency}
@@ -226,6 +334,7 @@ export default function OverviewPage() {
         >
           <DonutChart
             loading={isLoading}
+            height={ANALYSIS_CHART_HEIGHT}
             labels={prodLabels}
             values={prodValues}
             valueFormatter={formatCount}
@@ -238,10 +347,18 @@ export default function OverviewPage() {
           hint={t("overview.funnel_card_hint")}
           className="h-full self-stretch"
         >
-          <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
+          <div
+            className="flex flex-col justify-center"
+            style={{ minHeight: ANALYSIS_CHART_HEIGHT }}
+          >
+            <FunnelChart steps={data?.funnel ?? []} loading={isLoading} />
+          </div>
         </ChartCard>
 
-        <NewVsReturningCard data={data?.new_vs_returning ?? []} loading={isLoading} />
+        <NewVsReturningCard
+          data={data?.new_vs_returning ?? []}
+          loading={isLoading}
+        />
       </div>
 
       {/* ─── Ciro & Sipariş trendi ────────────────────────────────── */}
@@ -281,6 +398,8 @@ export default function OverviewPage() {
       <TopProductsCard
         products={data?.top_products ?? []}
         loading={isLoading}
+        dateFrom={range.date_from}
+        dateTo={range.date_to}
       />
     </PageShell>
   );
@@ -412,26 +531,39 @@ function FunnelChart({
 
 /* ──────────────────────────────────────────────────────────────── */
 
-interface TopProduct {
-  sku: string;
-  product_name: string | null;
-  brand: string | null;
-  units_sold: number;
-  revenue: string;
-}
-
-/** En çok satan ürünler — ciro hücresinde orantılı mini bar. */
+/**
+ * En çok satan ürünler — kolon yönetimi (göster/gizle + sürükle-sırala) ve
+ * CSV/XLSX export. Export edilen veri ekrandaki görünür kolonlarla birebir
+ * aynıdır (ChannelAnalysisPage deseni).
+ */
 function TopProductsCard({
   products,
   loading,
+  dateFrom,
+  dateTo,
 }: {
-  products: TopProduct[];
+  products: TopProductRow[];
   loading?: boolean;
+  dateFrom: string;
+  dateTo: string;
 }) {
   const { t } = useTranslation("dashboard");
+  const columns = useColumnManager("overview-top-products-table", TOP_PRODUCT_COLUMNS);
+
   const maxRevenue = useMemo(
     () => Math.max(...products.map((p) => toNumber(p.revenue) ?? 0), 1),
     [products],
+  );
+
+  // Export, ekrandaki görünür kolonların ham değerini taşır (filtreli veri).
+  const exportColumns = useMemo(
+    () =>
+      columns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (row: TopProductRow) =>
+          col.exportValue(row, products.indexOf(row)),
+      })),
+    [columns.visibleColumns, products, t],
   );
 
   return (
@@ -439,51 +571,50 @@ function TopProductsCard({
       title={t("overview.top_products_card_title")}
       icon={Package}
       contentClassName="p-0"
+      action={
+        <div className="flex items-center gap-2">
+          <ExportMenu
+            rows={products}
+            columns={exportColumns}
+            fileBase="top-products"
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            sheetName={t("overview.top_products_card_title")}
+          />
+          <ColumnSettingsMenu manager={columns} ns="dashboard" />
+        </div>
+      }
     >
       <div className="overflow-x-auto">
         <Table className="table-fixed">
           <colgroup>
-            <col className="w-[56px]" />
-            <col className="w-[132px]" />
-            <col />
-            <col className="w-[150px]" />
-            <col className="w-[100px]" />
-            <col className="w-[200px]" />
+            {columns.visibleColumns.map((col) => (
+              <col key={col.id} className={col.width || undefined} />
+            ))}
           </colgroup>
-          <TableHeader>
-            <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                #
-              </TableHead>
-              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                {t("overview.table_sku")}
-              </TableHead>
-              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                {t("overview.table_product")}
-              </TableHead>
-              <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                {t("overview.table_brand")}
-              </TableHead>
-              <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                {t("overview.table_units")}
-              </TableHead>
-              <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                {t("overview.table_revenue")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+          <ManagedColumnHeader
+            manager={columns}
+            ns="dashboard"
+            headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+          />
           <TableBody>
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={6} className="px-4 py-3.5">
+                  <TableCell
+                    colSpan={columns.visibleColumns.length}
+                    className="px-4 py-3.5"
+                  >
                     <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                   </TableCell>
                 </TableRow>
               ))
             ) : products.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={6} className="px-4 py-12 text-center">
+                <TableCell
+                  colSpan={columns.visibleColumns.length}
+                  className="px-4 py-12 text-center"
+                >
                   <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-text-muted">
                     <Package className="size-6 text-text-dim" />
                     <p className="text-sm font-semibold text-foreground">
@@ -496,65 +627,21 @@ function TopProductsCard({
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((p, idx) => {
-                const rev = toNumber(p.revenue) ?? 0;
-                const barPct = (rev / maxRevenue) * 100;
-                return (
-                  <TableRow
-                    key={p.sku}
-                    className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
-                  >
-                    <TableCell className="px-3 py-3.5">
-                      <span
-                        className={cn(
-                          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                          idx < 3
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-text-muted",
-                        )}
-                      >
-                        {idx + 1}
-                      </span>
+              products.map((p, idx) => (
+                <TableRow
+                  key={p.sku}
+                  className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
+                >
+                  {columns.visibleColumns.map((col) => (
+                    <TableCell
+                      key={col.id}
+                      className={cn("px-3 py-3.5", col.numeric && "text-right")}
+                    >
+                      {col.cell(p, idx, maxRevenue)}
                     </TableCell>
-                    <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
-                      {p.sku}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-sm">
-                      <span
-                        className="block truncate font-medium text-foreground"
-                        title={p.product_name ?? ""}
-                      >
-                        {p.product_name ?? "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-sm">
-                      {p.brand ? (
-                        <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
-                          {p.brand}
-                        </span>
-                      ) : (
-                        <span className="text-text-dim">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                      {formatCount(p.units_sold)}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
-                          <div
-                            className="h-full rounded-full bg-primary/70"
-                            style={{ width: `${Math.max(barPct, 3)}%` }}
-                          />
-                        </div>
-                        <span className="tabular-nums text-sm font-semibold text-foreground">
-                          {formatCurrency(rev)}
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                  ))}
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -594,6 +681,7 @@ function NewVsReturningCard({
     >
       <DonutChart
         loading={loading}
+        height={ANALYSIS_CHART_HEIGHT}
         labels={[t("overview.nvr_new"), t("overview.nvr_returning")]}
         values={[newRev, retRev]}
         valueFormatter={formatCurrency}

@@ -11,35 +11,173 @@ import {
   VenetianMask,
 } from "lucide-react";
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/feature/ChartCard";
+import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import { formatCount, formatCurrency, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { CustomerOverviewRow } from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 /**
- * Musteriler sayfasi. 6 musteri KPI'si, yeni musteri trendi, cinsiyet/yas/
- * sehir/frekans kirilimleri, newsletter karsilastirmasi ve top musteri tablosu.
+ * Top musteri tablosu kolon tanimlari (id = stabil localStorage anahtari).
+ * Hucre ve disa aktarma erisimcileri satir + 0-tabanli siralama index'i alir
+ * (sira rozeti icin gerekli).
+ */
+interface CustomerColumn extends ColumnDef {
+  /** Kolonun colgroup genisligi. */
+  width: string;
+  /** Saga hizali sayisal kolon mu? */
+  numeric?: boolean;
+  /** Tek satir icin hucre icerigini render eder. */
+  cell: (row: CustomerOverviewRow, index: number) => ReactNode;
+  /** Disa aktarmada kullanilacak ham hucre degeri (formatsiz). */
+  exportValue: (row: CustomerOverviewRow, index: number) => string | number | null;
+}
+
+/**
+ * Musteriler sayfasi. `dashboard/customers` endpoint'i yalnizca tarih araligi
+ * kabul eder (kanal/cihaz/sehir vb. cross-filter desteklenmez), bu yuzden
+ * GlobalFilterBar BILEREK eklenmedi. Top musteri tablosu kolon-ozellestirilebilir
+ * ve CSV/XLSX disa aktarilabilir.
  */
 export default function CustomersPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
+
+  const genderLabel = (g: string | null) =>
+    t(`customers.gender_${g ?? "unknown"}`, {
+      defaultValue: g ?? t("customers.gender_unknown"),
+    });
+
+  const customerColumns = useMemo<CustomerColumn[]>(
+    () => [
+      {
+        id: "rank",
+        labelKey: "customers.col_rank",
+        required: true,
+        width: "w-[56px]",
+        cell: (_c, i) => (
+          <span
+            className={cn(
+              "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+              i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+            )}
+          >
+            {i + 1}
+          </span>
+        ),
+        exportValue: (_c, i) => i + 1,
+      },
+      {
+        id: "customer",
+        labelKey: "customers.col_customer",
+        required: true,
+        width: "w-[220px]",
+        cell: (c) => (
+          <>
+            <div className="truncate text-sm font-semibold text-foreground">
+              {c.customer_name ?? "-"}
+            </div>
+            <div className="font-mono text-[11px] text-text-dim">{c.customer_id}</div>
+          </>
+        ),
+        exportValue: (c) => c.customer_name ?? "-",
+      },
+      {
+        id: "customer_id",
+        labelKey: "customers.col_customer_id",
+        width: "w-[140px]",
+        cell: (c) => (
+          <span className="font-mono text-xs text-text-muted">{c.customer_id}</span>
+        ),
+        exportValue: (c) => c.customer_id,
+      },
+      {
+        id: "city",
+        labelKey: "customers.col_city",
+        width: "w-[140px]",
+        cell: (c) =>
+          c.city ? (
+            <span className="text-sm text-text-muted">{c.city}</span>
+          ) : (
+            <span className="text-text-dim">-</span>
+          ),
+        exportValue: (c) => c.city,
+      },
+      {
+        id: "gender",
+        labelKey: "customers.col_gender",
+        width: "w-[110px]",
+        cell: (c) => (
+          <span className="text-sm text-text-muted">
+            {c.gender ? genderLabel(c.gender) : "-"}
+          </span>
+        ),
+        exportValue: (c) => (c.gender ? genderLabel(c.gender) : null),
+      },
+      {
+        id: "age_group",
+        labelKey: "customers.col_age_group",
+        width: "w-[110px]",
+        cell: (c) => (
+          <span className="text-sm text-text-muted">{c.age_group ?? "-"}</span>
+        ),
+        exportValue: (c) => c.age_group,
+      },
+      {
+        id: "orders",
+        labelKey: "customers.col_orders",
+        width: "w-[100px]",
+        numeric: true,
+        cell: (c) => (
+          <span className="tabular-nums text-sm">{formatCount(c.total_orders)}</span>
+        ),
+        exportValue: (c) => c.total_orders,
+      },
+      {
+        id: "revenue",
+        labelKey: "customers.col_revenue",
+        width: "w-[140px]",
+        numeric: true,
+        cell: (c) => (
+          <span className="tabular-nums text-sm font-semibold text-foreground">
+            {formatCurrency(c.total_revenue)}
+          </span>
+        ),
+        exportValue: (c) => toNumber(c.total_revenue),
+      },
+      {
+        id: "last_order",
+        labelKey: "customers.col_last_order",
+        width: "w-[140px]",
+        cell: (c) => (
+          <span className="text-xs text-text-muted">
+            {c.last_order_date ? dayjs(c.last_order_date).format("DD.MM.YYYY") : "-"}
+          </span>
+        ),
+        exportValue: (c) =>
+          c.last_order_date ? dayjs(c.last_order_date).format("DD.MM.YYYY") : null,
+      },
+    ],
+    // genderLabel sadece t()'ye bagli; t referansi degisirse kolonlar yeniden kurulur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t],
+  );
+
+  const columns = useColumnManager("customers-top-table", customerColumns);
 
   const q = useQuery({
     queryKey: ["dashboard", "customers", range.date_from, range.date_to],
@@ -54,10 +192,16 @@ export default function CustomersPage() {
   const data = q.data;
   const loading = q.isPending;
 
-  const genderLabel = (g: string | null) =>
-    t(`customers.gender_${g ?? "unknown"}`, {
-      defaultValue: g ?? t("customers.gender_unknown"),
-    });
+  const topCustomers = useMemo(() => data?.top_customers ?? [], [data]);
+  const customerExportColumns = useMemo(
+    () =>
+      columns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (row: CustomerOverviewRow) =>
+          col.exportValue(row, topCustomers.indexOf(row)),
+      })),
+    [columns.visibleColumns, t, topCustomers],
+  );
 
   const genderLabels = useMemo(
     () => data?.by_gender.map((b) => genderLabel(b.label)) ?? [],
@@ -69,7 +213,9 @@ export default function CustomersPage() {
     [data],
   );
   const ageLabels = useMemo(
-    () => data?.by_age_group.map((b) => b.label ?? "Bilinmiyor") ?? [],
+    () =>
+      data?.by_age_group.map((b) => b.label ?? t("customers.gender_unknown")) ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data],
   );
   const ageValues = useMemo(
@@ -95,11 +241,13 @@ export default function CustomersPage() {
 
   return (
     <PageShell>
-      <DashboardHeader
-        title={t("customers.title")}
-        range={range}
-        onChangeRange={setRange}
-      />
+      <div className="sticky top-0 z-20 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+        <DashboardHeader
+          title={t("customers.title")}
+          range={range}
+          onChangeRange={setRange}
+        />
+      </div>
 
       {/* Musteri KPI'lari */}
       <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -243,106 +391,67 @@ export default function CustomersPage() {
         hint={t("customers.top_customers_hint")}
         icon={Trophy}
         contentClassName="p-0"
+        action={
+          <div className="flex items-center gap-2">
+            <ExportMenu
+              rows={topCustomers}
+              columns={customerExportColumns}
+              fileBase="top-customers"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("customers.top_customers_title")}
+            />
+            <ColumnSettingsMenu manager={columns} ns="dashboard" />
+          </div>
+        }
       >
         <div className="overflow-x-auto">
           <Table className="table-fixed">
             <colgroup>
-              <col className="w-[56px]" />
-              <col />
-              <col className="w-[140px]" />
-              <col className="w-[200px]" />
-              <col className="w-[100px]" />
-              <col className="w-[140px]" />
-              <col className="w-[140px]" />
+              {columns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width} />
+              ))}
             </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  #
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_customer")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_city")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_demographics")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_orders")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_revenue")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("customers.col_last_order")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ManagedColumnHeader
+              manager={columns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
             <TableBody>
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7} className="px-4 py-3.5">
+                    <TableCell
+                      colSpan={columns.visibleColumns.length}
+                      className="px-4 py-3.5"
+                    >
                       <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                     </TableCell>
                   </TableRow>
                 ))
-              ) : !data || data.top_customers.length === 0 ? (
+              ) : topCustomers.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={7}
+                    colSpan={columns.visibleColumns.length}
                     className="py-12 text-center text-sm text-text-muted"
                   >
                     {t("customers.empty_top")}
                   </TableCell>
                 </TableRow>
               ) : (
-                data.top_customers.map((c, i) => (
+                topCustomers.map((c, i) => (
                   <TableRow
                     key={c.customer_id}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
                   >
-                    <TableCell className="px-3 py-3.5">
-                      <span
-                        className={cn(
-                          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                          i < 3
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-text-muted",
-                        )}
+                    {columns.visibleColumns.map((col) => (
+                      <TableCell
+                        key={col.id}
+                        className={cn("px-3 py-3.5", col.numeric && "text-right")}
                       >
-                        {i + 1}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5">
-                      <div className="truncate text-sm font-semibold text-foreground">
-                        {c.customer_name ?? "-"}
-                      </div>
-                      <div className="font-mono text-[11px] text-text-dim">
-                        {c.customer_id}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-sm text-text-muted">
-                      {c.city ?? <span className="text-text-dim">-</span>}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-xs text-text-muted">
-                      {[c.gender ? genderLabel(c.gender) : null, c.age_group]
-                        .filter(Boolean)
-                        .join(" · ") || "-"}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                      {formatCount(c.total_orders)}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm font-semibold text-foreground">
-                      {formatCurrency(c.total_revenue)}
-                    </TableCell>
-                    <TableCell className="px-3 py-3.5 text-xs text-text-muted">
-                      {c.last_order_date
-                        ? dayjs(c.last_order_date).format("DD.MM.YYYY")
-                        : "-"}
-                    </TableCell>
+                        {col.cell(c, i)}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               )}

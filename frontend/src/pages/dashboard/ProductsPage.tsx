@@ -1,27 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { Package, Tag, Trophy } from "lucide-react";
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
-import {
-  formatAxisCurrency,
-  formatCount,
-  formatCurrency,
-  toNumber,
-} from "@/lib/format";
+import { formatAxisCurrency, formatCount, formatCurrency, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TopProductRow } from "@/types/dashboard";
 
@@ -29,11 +20,120 @@ import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 /**
  * Urun Performansi sayfasi. Satilan urun KPI'si, kategori/marka bazli ciro
- * kirilimleri ve en cok satan urunler tablosu.
+ * kirilimleri ve en cok satan urunler tablosu (kolon yonetimi + export).
+ *
+ * Not: Backend `/dashboard/products` endpoint'i yalnizca tarih araligi (ve
+ * comparison_mode) kabul eder; kanal/cihaz/kategori vb. filtre desteklemez.
+ * Bu nedenle bu sayfada GlobalFilterBar gosterilmez (ise yaramayan filtre
+ * sunmamak icin) — sadece tarih araligi ile filtrelenir.
  */
+
+/** En cok satan urunler tablosu kolon tanimlari (id = stabil localStorage anahtari). */
+interface ProductColumn extends ColumnDef {
+  /** Kolonun colgroup genisligi. */
+  width: string;
+  /** Saga hizali sayisal kolon mu? */
+  numeric?: boolean;
+  /** Tek satir icin hucre icerigini render eder (rank 1-bazli sira). */
+  cell: (row: TopProductRow, rank: number, barPct: number) => ReactNode;
+  /** Disa aktarmada kullanilacak ham hucre degeri (formatsiz). */
+  exportValue: (row: TopProductRow, rank: number) => string | number | null;
+}
+
+const PRODUCT_COLUMNS: ProductColumn[] = [
+  {
+    id: "rank",
+    labelKey: "products.col_rank",
+    required: true,
+    width: "w-[56px]",
+    cell: (_p, rank) => (
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+          rank <= 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+        )}
+      >
+        {rank}
+      </span>
+    ),
+    exportValue: (_p, rank) => rank,
+  },
+  {
+    id: "sku",
+    labelKey: "products.col_sku",
+    width: "w-[140px]",
+    cell: (p) => (
+      <span className="font-mono text-xs text-text-muted">{p.sku}</span>
+    ),
+    exportValue: (p) => p.sku,
+  },
+  {
+    id: "product",
+    labelKey: "products.col_product",
+    required: true,
+    width: "",
+    cell: (p) => (
+      <span
+        className="block truncate font-medium text-foreground"
+        title={p.product_name ?? ""}
+      >
+        {p.product_name ?? "-"}
+      </span>
+    ),
+    exportValue: (p) => p.product_name,
+  },
+  {
+    id: "brand",
+    labelKey: "products.col_brand",
+    width: "w-[160px]",
+    cell: (p) =>
+      p.brand ? (
+        <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
+          {p.brand}
+        </span>
+      ) : (
+        <span className="text-text-dim">-</span>
+      ),
+    exportValue: (p) => p.brand,
+  },
+  {
+    id: "units",
+    labelKey: "products.col_units",
+    width: "w-[100px]",
+    numeric: true,
+    cell: (p) => (
+      <span className="tabular-nums text-sm">{formatCount(p.units_sold)}</span>
+    ),
+    exportValue: (p) => p.units_sold,
+  },
+  {
+    id: "revenue",
+    labelKey: "products.col_revenue",
+    width: "w-[200px]",
+    numeric: true,
+    cell: (p, _rank, barPct) => (
+      <div className="flex items-center justify-end gap-2">
+        <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
+          <div
+            className="h-full rounded-full bg-primary/70"
+            style={{ width: `${Math.max(barPct, 3)}%` }}
+          />
+        </div>
+        <span className="tabular-nums text-sm font-semibold text-foreground">
+          {formatCurrency(toNumber(p.revenue) ?? 0)}
+        </span>
+      </div>
+    ),
+    exportValue: (p) => toNumber(p.revenue),
+  },
+];
+
 export default function ProductsPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
+
+  const productColumns = useColumnManager("products-top-table", PRODUCT_COLUMNS);
+
   const q = useQuery({
     queryKey: ["dashboard", "products", range.date_from, range.date_to],
     queryFn: () =>
@@ -46,6 +146,7 @@ export default function ProductsPage() {
 
   const data = q.data;
   const isLoading = q.isPending;
+
   const topProducts = useMemo(() => data?.top_products ?? [], [data]);
   const maxRevenue = useMemo(
     () => Math.max(...topProducts.map((p) => toNumber(p.revenue) ?? 0), 1),
@@ -53,36 +154,27 @@ export default function ProductsPage() {
   );
 
   const productExportColumns = useMemo(
-    () => [
-      {
-        header: t("products.col_sku"),
-        accessor: (p: TopProductRow) => p.sku,
-      },
-      {
-        header: t("products.col_product"),
-        accessor: (p: TopProductRow) => p.product_name,
-      },
-      {
-        header: t("products.col_brand"),
-        accessor: (p: TopProductRow) => p.brand,
-      },
-      {
-        header: t("products.col_units"),
-        accessor: (p: TopProductRow) => p.units_sold,
-      },
-      {
-        header: t("products.col_revenue"),
-        accessor: (p: TopProductRow) => toNumber(p.revenue),
-      },
-    ],
-    [t],
+    () =>
+      productColumns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (p: TopProductRow) =>
+          col.exportValue(p, topProducts.indexOf(p) + 1),
+      })),
+    [productColumns.visibleColumns, topProducts, t],
   );
 
   return (
     <PageShell>
-      <DashboardHeader title={t("products.title")} range={range} onChangeRange={setRange} />
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+        <DashboardHeader
+          title={t("products.title")}
+          range={range}
+          onChangeRange={setRange}
+        />
+      </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:max-w-xs">
+      {/* KPI grid */}
+      <div className="grid grid-cols-1 items-stretch gap-3 sm:max-w-xs">
         {isLoading || !data ? (
           <KPICardSkeleton hero />
         ) : (
@@ -150,53 +242,39 @@ export default function ProductsPage() {
         icon={Trophy}
         contentClassName="p-0"
         action={
-          <ExportMenu
-            rows={topProducts}
-            columns={productExportColumns}
-            fileBase="products-top"
-            dateFrom={range.date_from}
-            dateTo={range.date_to}
-            sheetName={t("products.top_products_card_title")}
-          />
+          <div className="flex items-center gap-2">
+            <ExportMenu
+              rows={topProducts}
+              columns={productExportColumns}
+              fileBase="products-top"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("products.top_products_card_title")}
+            />
+            <ColumnSettingsMenu manager={productColumns} ns="dashboard" />
+          </div>
         }
       >
         <div className="overflow-x-auto">
           <Table className="table-fixed">
             <colgroup>
-              <col className="w-[56px]" />
-              <col className="w-[140px]" />
-              <col />
-              <col className="w-[160px]" />
-              <col className="w-[100px]" />
-              <col className="w-[200px]" />
+              {productColumns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width} />
+              ))}
             </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  #
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("products.col_sku")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("products.col_product")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("products.col_brand")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("products.col_units")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                  {t("products.col_revenue")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ManagedColumnHeader
+              manager={productColumns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6} className="px-4 py-3.5">
+                    <TableCell
+                      colSpan={productColumns.visibleColumns.length}
+                      className="px-4 py-3.5"
+                    >
                       <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
                     </TableCell>
                   </TableRow>
@@ -204,7 +282,7 @@ export default function ProductsPage() {
               ) : topProducts.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
-                    colSpan={6}
+                    colSpan={productColumns.visibleColumns.length}
                     className="py-12 text-center text-sm text-text-muted"
                   >
                     {t("products.empty")}
@@ -219,54 +297,14 @@ export default function ProductsPage() {
                       key={p.sku}
                       className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
                     >
-                      <TableCell className="px-3 py-3.5">
-                        <span
-                          className={cn(
-                            "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                            i < 3
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-text-muted",
-                          )}
+                      {productColumns.visibleColumns.map((col) => (
+                        <TableCell
+                          key={col.id}
+                          className={cn("px-3 py-3.5", col.numeric && "text-right")}
                         >
-                          {i + 1}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 font-mono text-xs text-text-muted">
-                        {p.sku}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        <span
-                          className="block truncate font-medium text-foreground"
-                          title={p.product_name ?? ""}
-                        >
-                          {p.product_name ?? "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-sm">
-                        {p.brand ? (
-                          <span className="inline-flex rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-medium text-text-muted">
-                            {p.brand}
-                          </span>
-                        ) : (
-                          <span className="text-text-dim">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                        {formatCount(p.units_sold)}
-                      </TableCell>
-                      <TableCell className="px-3 py-3.5">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted/50 sm:block">
-                            <div
-                              className="h-full rounded-full bg-primary/70"
-                              style={{ width: `${Math.max(barPct, 3)}%` }}
-                            />
-                          </div>
-                          <span className="tabular-nums text-sm font-semibold text-foreground">
-                            {formatCurrency(rev)}
-                          </span>
-                        </div>
-                      </TableCell>
+                          {col.cell(p, i + 1, barPct)}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   );
                 })

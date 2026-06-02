@@ -91,9 +91,20 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async campaign(p: DashboardQuery): Promise<CampaignAnalysisResponse> {
+  async campaign(
+    p: Pick<DashboardQuery, "date_from" | "date_to" | "comparison_mode"> & {
+      /** Tek platforma daraltir (meta veya google); bos ise her ikisi. */
+      platform?: "meta" | "google";
+    },
+  ): Promise<CampaignAnalysisResponse> {
+    const params = new URLSearchParams({
+      date_from: p.date_from,
+      date_to: p.date_to,
+    });
+    if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+    if (p.platform) params.set("platform", p.platform);
     const r = await apiClient.get<ApiEnvelope<CampaignAnalysisResponse>>(
-      `/dashboard/campaign?${qs(p)}`,
+      `/dashboard/campaign?${params.toString()}`,
     );
     return unwrap(r);
   },

@@ -89,11 +89,72 @@
 
   "sources": {
     "section_title": "Kaynak Bağlantıları",
-    "section_subtitle": "Pazarlama ve e-ticaret kaynaklarınızı bağlayarak verileri otomatik çekin. Bu entegrasyonlar yakında aktif olacak.",
-    "badge_coming_soon": "Yakında",
+    "section_subtitle": "Pazarlama ve e-ticaret kaynaklarınızı bağlayarak verileri otomatik çekin.",
+    "badge_connected": "Bağlı",
+    "badge_not_connected": "Bağlı değil",
     "btn_connect": "Bağlan",
-    "coming_soon_title": "{{source}} entegrasyonu",
-    "coming_soon_body": "Bu entegrasyon henüz aktif değil; çok yakında bağlanabilir olacak. Şimdilik verilerinizi CSV dosyası yükleyerek aktarabilirsiniz.",
+    "btn_connecting": "Bağlanıyor…",
+    "btn_resync": "Yeniden senkronla",
+    "btn_syncing": "Senkronlanıyor…",
+    "btn_disconnect": "Bağlantıyı kes",
+    "connect_title": "{{source}} bağlantısı",
+    "connect_body": "Hesap kimlik bilgilerini girerek bu kaynağı bağlayın. Bağlandıktan sonra veriler otomatik olarak senkronize edilir.",
+    "connect_demo_note": "Demo modu: Bu ekran gerçek bir entegrasyon akışını taklit eder. Girdiğiniz bilgiler hiçbir yere gönderilmez ve saklanmaz; yalnızca bağlantı durumu bu tarayıcıda tutulur.",
+    "connect_success_toast": "{{source}} bağlandı (demo)",
+    "resync_success_toast": "Veriler yeniden senkronlandı (demo)",
+    "detail_account": "Hesap",
+    "detail_last_sync": "Son senkron",
+    "detail_records": "Aktarılan kayıt",
+    "detail_records_value": "{{formatted}} kayıt (demo)",
+    "field_errors": {
+      "field_too_short": "Bu alan en az 3 karakter olmalı"
+    },
+    "fields": {
+      "meta_ads": {
+        "app_id": {
+          "label": "Uygulama Kimliği (App ID)",
+          "placeholder": "örn. 1234567890123456"
+        },
+        "app_secret": {
+          "label": "Uygulama Gizli Anahtarı (App Secret)",
+          "placeholder": "Meta uygulama gizli anahtarı"
+        },
+        "access_token": {
+          "label": "Erişim Token'ı (Access Token)",
+          "placeholder": "EAAB… uzun erişim token'ı"
+        }
+      },
+      "google_ads": {
+        "customer_id": {
+          "label": "Müşteri Kimliği (Customer ID)",
+          "placeholder": "örn. 123-456-7890"
+        },
+        "developer_token": {
+          "label": "Geliştirici Token'ı (Developer Token)",
+          "placeholder": "Google Ads geliştirici token'ı"
+        }
+      },
+      "ga4": {
+        "property_id": {
+          "label": "Mülk Kimliği (Property ID)",
+          "placeholder": "örn. properties/123456789"
+        },
+        "service_account_json": {
+          "label": "Servis Hesabı Anahtarı (JSON)",
+          "placeholder": "{ \"type\": \"service_account\", \"project_id\": … }"
+        }
+      },
+      "database": {
+        "connection_url": {
+          "label": "Bağlantı Adresi (URL)",
+          "placeholder": "örn. https://api.magaza.com/v1"
+        },
+        "api_key": {
+          "label": "API Anahtarı",
+          "placeholder": "Gizli API anahtarı"
+        }
+      }
+    },
     "meta_ads": {
       "title": "Meta Ads",
       "description": "Facebook ve Instagram reklam kampanyalarını otomatik içe aktarın."

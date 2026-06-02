@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import {
   CreditCard,
+  Layers,
   MapPin,
   Package,
   ShoppingCart,
   Smartphone,
   Tag,
   TrendingUp,
+  Trophy,
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -39,7 +41,11 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useFiltersStore } from "@/stores/useFiltersStore";
-import type { OrderListRow, TopProductRow } from "@/types/dashboard";
+import type {
+  OrderListRow,
+  TopCustomerRow,
+  TopProductRow,
+} from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
@@ -224,10 +230,129 @@ const ORDER_COLUMNS: OrderColumn[] = [
   },
 ];
 
+/** Top musteri tablosu satir-render baglami (siralama icin). */
+interface TopCustomerCtx {
+  index: number;
+}
+
+interface TopCustomerColumn extends ColumnDef {
+  width: string;
+  numeric?: boolean;
+  cell: (row: TopCustomerRow, ctx: TopCustomerCtx, t: TFunction) => ReactNode;
+  /** Disa aktarmada kullanilacak hucre degeri (gerektiginde t() ile cevrili). */
+  exportValue: (
+    row: TopCustomerRow,
+    ctx: TopCustomerCtx,
+    t: TFunction,
+  ) => string | number | null;
+}
+
+/** Cinsiyet ham degerini lokalize eder (OrderDetailDialog ile tutarli). */
+function genderLabel(gender: string | null, t: TFunction): string | null {
+  if (!gender) return null;
+  return t(`ecom.gender_${gender}`, { defaultValue: gender });
+}
+
+const TOP_CUSTOMER_COLUMNS: TopCustomerColumn[] = [
+  {
+    id: "rank",
+    labelKey: "ecom.col_rank",
+    required: true,
+    width: "w-[52px]",
+    cell: (_c, { index }) => (
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+          index < 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+        )}
+      >
+        {index + 1}
+      </span>
+    ),
+    exportValue: (_c, { index }) => index + 1,
+  },
+  {
+    id: "customer",
+    labelKey: "ecom.col_customer",
+    width: "",
+    cell: (c) => (
+      <span
+        className="block truncate text-sm font-medium text-foreground"
+        title={c.customer_name ?? c.customer_id}
+      >
+        {c.customer_name ?? (
+          <span className="font-mono text-xs text-text-muted">{c.customer_id}</span>
+        )}
+      </span>
+    ),
+    exportValue: (c) => c.customer_name ?? c.customer_id,
+  },
+  {
+    id: "customer_id",
+    labelKey: "ecom.col_customer_id",
+    width: "w-[132px]",
+    cell: (c) => (
+      <span className="font-mono text-xs text-text-muted">{c.customer_id}</span>
+    ),
+    exportValue: (c) => c.customer_id,
+  },
+  {
+    id: "city",
+    labelKey: "ecom.col_city",
+    width: "w-[140px]",
+    cell: (c) => (
+      <span className="text-sm text-text-muted">{c.city ?? "-"}</span>
+    ),
+    exportValue: (c) => c.city,
+  },
+  {
+    id: "gender",
+    labelKey: "ecom.col_gender",
+    width: "w-[110px]",
+    cell: (c, _ctx, t) => (
+      <span className="text-sm text-text-muted">
+        {genderLabel(c.gender, t) ?? "-"}
+      </span>
+    ),
+    exportValue: (c, _ctx, t) => genderLabel(c.gender, t),
+  },
+  {
+    id: "age_group",
+    labelKey: "ecom.col_age_group",
+    width: "w-[110px]",
+    cell: (c) => (
+      <span className="text-sm text-text-muted">{c.age_group ?? "-"}</span>
+    ),
+    exportValue: (c) => c.age_group,
+  },
+  {
+    id: "orders",
+    labelKey: "ecom.col_orders",
+    width: "w-[100px]",
+    numeric: true,
+    cell: (c) => (
+      <span className="tabular-nums text-sm">{formatCount(c.order_count)}</span>
+    ),
+    exportValue: (c) => c.order_count,
+  },
+  {
+    id: "revenue",
+    labelKey: "ecom.col_revenue",
+    width: "w-[140px]",
+    numeric: true,
+    cell: (c) => (
+      <span className="tabular-nums text-sm font-semibold text-foreground">
+        {formatCurrency(c.revenue)}
+      </span>
+    ),
+    exportValue: (c) => toNumber(c.revenue),
+  },
+];
+
 /**
  * E-Ticaret sayfasi. Filtreli (kategori/marka/durum/odeme) 6 KPI,
- * trend, kategori/cihaz/sehir/odeme kirilimleri, yeni-vs-tekrarlayan
- * karsilastirmasi, top urun ve siparis tablolari.
+ * trend, kanal/kategori/cihaz/sehir/odeme kirilimleri, yeni-vs-tekrarlayan
+ * karsilastirmasi, top urun, top musteri ve siparis tablolari.
  */
 export default function EcommercePage() {
   const { t } = useTranslation("dashboard");
@@ -269,6 +394,7 @@ export default function EcommercePage() {
   const data = q.data;
   const isLoading = q.isPending;
   const topProducts = useMemo(() => data?.top_products ?? [], [data]);
+  const topCustomers = useMemo(() => data?.top_customers ?? [], [data]);
   const ordersList = data?.orders_list ?? [];
   const maxProductRevenue = useMemo(
     () => Math.max(...topProducts.map((p) => toNumber(p.revenue) ?? 0), 1),
@@ -276,6 +402,7 @@ export default function EcommercePage() {
   );
 
   const productColumns = useColumnManager("ecom-top-products", TOP_PRODUCT_COLUMNS);
+  const customerColumns = useColumnManager("ecom-top-customers", TOP_CUSTOMER_COLUMNS);
   const orderColumns = useColumnManager("ecom-orders", ORDER_COLUMNS);
 
   const productExportColumns = useMemo(
@@ -289,6 +416,16 @@ export default function EcommercePage() {
           }),
       })),
     [productColumns.visibleColumns, t, topProducts, maxProductRevenue],
+  );
+
+  const customerExportColumns = useMemo(
+    () =>
+      customerColumns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (c: TopCustomerRow) =>
+          col.exportValue(c, { index: topCustomers.indexOf(c) }, t),
+      })),
+    [customerColumns.visibleColumns, t, topCustomers],
   );
 
   const orderExportColumns = useMemo(
@@ -360,6 +497,35 @@ export default function EcommercePage() {
                 : []
             }
             yFormatter={formatAxisCurrency}
+          />
+        </ChartErrorBoundary>
+      </ChartCard>
+
+      {/* Kanal bazli ciro */}
+      <ChartCard
+        title={t("ecom.by_channel_card_title")}
+        hint={t("ecom.by_channel_hint")}
+        icon={Layers}
+      >
+        <ChartErrorBoundary height={300}>
+          <BarChart
+            loading={isLoading}
+            horizontal
+            height={300}
+            categories={
+              data
+                ? data.by_channel.map((c) => c.channel ?? t("ecom.label_unknown"))
+                : []
+            }
+            series={[
+              {
+                name: t("ecom.series_revenue"),
+                data: data
+                  ? data.by_channel.map((c) => toNumber(c.revenue) ?? 0)
+                  : [],
+              },
+            ]}
+            valueFormatter={formatAxisCurrency}
           />
         </ChartErrorBoundary>
       </ChartCard>
@@ -602,6 +768,81 @@ export default function EcommercePage() {
                         className={cn("px-3 py-3.5", col.numeric && "text-right")}
                       >
                         {col.cell(p, { index: idx, maxRevenue: maxProductRevenue })}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </ChartCard>
+
+      {/* Top musteriler */}
+      <ChartCard
+        title={t("ecom.top_customers_card_title")}
+        hint={t("ecom.top_customers_hint")}
+        icon={Trophy}
+        contentClassName="p-0"
+        action={
+          <div className="flex items-center gap-2">
+            <ExportMenu
+              rows={topCustomers}
+              columns={customerExportColumns}
+              fileBase="ecom-top-customers"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("ecom.top_customers_card_title")}
+            />
+            <ColumnSettingsMenu manager={customerColumns} ns="dashboard" />
+          </div>
+        }
+      >
+        <div className="overflow-x-auto">
+          <Table className="table-fixed">
+            <colgroup>
+              {customerColumns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width || undefined} />
+              ))}
+            </colgroup>
+            <ManagedColumnHeader
+              manager={customerColumns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell
+                      colSpan={customerColumns.visibleColumns.length}
+                      className="px-4 py-3.5"
+                    >
+                      <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : topCustomers.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={customerColumns.visibleColumns.length}
+                    className="py-12 text-center text-sm text-text-muted"
+                  >
+                    {t("ecom.top_customers_empty")}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                topCustomers.map((c, idx) => (
+                  <TableRow
+                    key={c.customer_id}
+                    className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
+                  >
+                    {customerColumns.visibleColumns.map((col) => (
+                      <TableCell
+                        key={col.id}
+                        className={cn("px-3 py-3.5", col.numeric && "text-right")}
+                      >
+                        {col.cell(c, { index: idx }, t)}
                       </TableCell>
                     ))}
                   </TableRow>

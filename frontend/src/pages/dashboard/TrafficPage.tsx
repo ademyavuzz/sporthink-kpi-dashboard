@@ -1,20 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileText, MapPin, Radio, Smartphone, TrendingUp } from "lucide-react";
+import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/feature/ChartCard";
+import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import {
@@ -24,6 +22,7 @@ import {
   formatPercent,
   toNumber,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { useFiltersStore } from "@/stores/useFiltersStore";
 import type { LandingPageRow } from "@/types/dashboard";
 
@@ -31,14 +30,140 @@ import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 /**
  * Trafik (GA4) sayfasi. 7 trafik KPI'si, gunluk oturum trendi, kanal/cihaz
- * kirilimleri ve sehir bazli trafik tablosu.
+ * kirilimleri, sehir bazli trafik ve kolon-ozellestirilebilir/disa
+ * aktarilabilir acilis sayfalari tablosu. Kanal, cihaz ve sehir filtreleri
+ * cross-filter olarak query'ye baglidir.
  */
+
+/** Acilis sayfalari tablosu kolon tanimi (id = stabil localStorage anahtari). */
+interface LandingColumn extends ColumnDef {
+  /** Kolonun colgroup genisligi. */
+  width: string;
+  /** Saga hizali sayisal kolon mu? */
+  numeric?: boolean;
+  /** Tek satir icin hucre icerigini render eder (idx: 0 tabanli sira). */
+  cell: (row: LandingPageRow, idx: number, maxSessions: number) => ReactNode;
+  /** Disa aktarmada kullanilacak ham hucre degeri (formatsiz). */
+  exportValue: (row: LandingPageRow, idx: number) => string | number | null;
+}
+
+const LANDING_COLUMNS: LandingColumn[] = [
+  {
+    id: "rank",
+    labelKey: "traffic.landing_col_rank",
+    required: true,
+    width: "w-[52px]",
+    cell: (_r, idx) => (
+      <span
+        className={cn(
+          "inline-flex size-6 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
+          idx < 3 ? "bg-primary/10 text-primary" : "bg-muted text-text-muted",
+        )}
+      >
+        {idx + 1}
+      </span>
+    ),
+    exportValue: (_r, idx) => idx + 1,
+  },
+  {
+    id: "page",
+    labelKey: "traffic.landing_col_page",
+    required: true,
+    width: "w-auto",
+    cell: (r) => (
+      <span
+        className="block truncate font-mono text-xs text-foreground"
+        title={r.page_path}
+      >
+        {r.page_path}
+      </span>
+    ),
+    exportValue: (r) => r.page_path,
+  },
+  {
+    id: "sessions",
+    labelKey: "traffic.landing_col_sessions",
+    width: "w-[170px]",
+    numeric: true,
+    cell: (r, _idx, maxSessions) => {
+      const barPct = (r.sessions / maxSessions) * 100;
+      return (
+        <div className="flex items-center justify-end gap-2">
+          <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-muted/50 sm:block">
+            <div
+              className="h-full rounded-full bg-blue-500/70"
+              style={{ width: `${Math.max(barPct, 3)}%` }}
+            />
+          </div>
+          <span className="tabular-nums text-sm font-semibold text-foreground">
+            {formatCount(r.sessions)}
+          </span>
+        </div>
+      );
+    },
+    exportValue: (r) => r.sessions,
+  },
+  {
+    id: "users",
+    labelKey: "traffic.landing_col_users",
+    width: "w-[110px]",
+    numeric: true,
+    cell: (r) => (
+      <span className="tabular-nums text-sm text-text-muted">
+        {formatCount(r.users)}
+      </span>
+    ),
+    exportValue: (r) => r.users,
+  },
+  {
+    id: "bounce",
+    labelKey: "traffic.landing_col_bounce",
+    width: "w-[120px]",
+    numeric: true,
+    cell: (r) => (
+      <span className="tabular-nums text-sm text-text-muted">
+        {r.bounce_rate !== null ? formatPercent(r.bounce_rate, 1) : "—"}
+      </span>
+    ),
+    exportValue: (r) => toNumber(r.bounce_rate),
+  },
+  {
+    id: "duration",
+    labelKey: "traffic.landing_col_duration",
+    width: "w-[120px]",
+    numeric: true,
+    cell: (r) => (
+      <span className="tabular-nums text-sm text-text-muted">
+        {r.avg_session_duration !== null
+          ? formatDurationSeconds(r.avg_session_duration)
+          : "—"}
+      </span>
+    ),
+    exportValue: (r) => toNumber(r.avg_session_duration),
+  },
+  {
+    id: "conversion",
+    labelKey: "traffic.landing_col_conversion",
+    width: "w-[120px]",
+    numeric: true,
+    cell: (r) => (
+      <span className="tabular-nums text-sm">
+        {r.conversion_rate !== null ? formatPercent(r.conversion_rate, 2) : "—"}
+      </span>
+    ),
+    exportValue: (r) => toNumber(r.conversion_rate),
+  },
+];
+
 export default function TrafficPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
   const channels = useFiltersStore((s) => s.selected_channels);
   const devices = useFiltersStore((s) => s.selected_devices);
   const cities = useFiltersStore((s) => s.selected_cities);
+
+  const landingColumns = useColumnManager("traffic-landing-pages", LANDING_COLUMNS);
+
   const q = useQuery({
     queryKey: ["dashboard", "traffic", range.date_from, range.date_to, channels, devices, cities],
     queryFn: () =>
@@ -57,6 +182,20 @@ export default function TrafficPage() {
   const sessionsLabel = t("traffic.series_sessions");
   const fmtSessions = (v: number) =>
     `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`;
+
+  const landingRows = useMemo(() => data?.landing_pages ?? [], [data]);
+  const maxSessions = useMemo(
+    () => Math.max(...landingRows.map((r) => r.sessions), 1),
+    [landingRows],
+  );
+  const landingExportColumns = useMemo(
+    () =>
+      landingColumns.visibleColumns.map((col) => ({
+        header: t(col.labelKey),
+        accessor: (row: LandingPageRow) => col.exportValue(row, landingRows.indexOf(row)),
+      })),
+    [landingColumns.visibleColumns, landingRows, t],
+  );
 
   return (
     <PageShell>
@@ -90,6 +229,7 @@ export default function TrafficPage() {
       >
         <LineChart
           loading={isLoading}
+          height={320}
           series={
             data
               ? [
@@ -138,6 +278,7 @@ export default function TrafficPage() {
           <BarChart
             loading={isLoading}
             horizontal
+            height={340}
             categories={
               data
                 ? data.by_channel.map((c) => c.label ?? t("traffic.label_other"))
@@ -165,6 +306,7 @@ export default function TrafficPage() {
         >
           <BarChart
             loading={isLoading}
+            height={340}
             categories={
               data
                 ? data.by_device.map((d) => d.label ?? t("traffic.label_other"))
@@ -218,127 +360,74 @@ export default function TrafficPage() {
         hint={t("traffic.landing_pages_hint")}
         icon={FileText}
         contentClassName="p-0"
+        action={
+          <div className="flex items-center gap-2">
+            <ExportMenu
+              rows={landingRows}
+              columns={landingExportColumns}
+              fileBase="traffic-landing-pages"
+              dateFrom={range.date_from}
+              dateTo={range.date_to}
+              sheetName={t("traffic.landing_pages_card_title")}
+            />
+            <ColumnSettingsMenu manager={landingColumns} ns="dashboard" />
+          </div>
+        }
       >
-        <LandingPagesTable rows={data?.landing_pages ?? []} loading={isLoading} />
-      </ChartCard>
-    </PageShell>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────── */
-
-/** En cok trafik alan acilis sayfalari — oturum, kullanici ve etkilesim. */
-function LandingPagesTable({
-  rows,
-  loading,
-}: {
-  rows: LandingPageRow[];
-  loading?: boolean;
-}) {
-  const { t } = useTranslation("dashboard");
-  const maxSessions = Math.max(...rows.map((r) => r.sessions), 1);
-  return (
-    <div className="overflow-x-auto">
-      <Table className="table-fixed">
-        <colgroup>
-          <col className="w-[44px]" />
-          <col />
-          <col className="w-[160px]" />
-          <col className="w-[110px]" />
-          <col className="w-[110px]" />
-          <col className="w-[110px]" />
-        </colgroup>
-        <TableHeader>
-          <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-            <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-              #
-            </TableHead>
-            <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-              {t("traffic.landing_col_page")}
-            </TableHead>
-            <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-              {t("traffic.landing_col_sessions")}
-            </TableHead>
-            <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-              {t("traffic.landing_col_bounce")}
-            </TableHead>
-            <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-              {t("traffic.landing_col_duration")}
-            </TableHead>
-            <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-              {t("traffic.landing_col_conversion")}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell colSpan={6} className="px-4 py-3.5">
-                  <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
-                </TableCell>
-              </TableRow>
-            ))
-          ) : rows.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={6}
-                className="py-12 text-center text-sm text-text-muted"
-              >
-                {t("traffic.landing_pages_empty")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            rows.map((r, idx) => {
-              const barPct = (r.sessions / maxSessions) * 100;
-              return (
-                <TableRow
-                  key={r.page_path}
-                  className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
-                >
-                  <TableCell className="px-3 py-3.5 text-right tabular-nums text-xs text-text-dim">
-                    {idx + 1}
-                  </TableCell>
-                  <TableCell className="px-3 py-3.5 text-sm">
-                    <span
-                      className="block truncate font-mono text-xs text-foreground"
-                      title={r.page_path}
+        <div className="overflow-x-auto">
+          <Table className="table-fixed">
+            <colgroup>
+              {landingColumns.visibleColumns.map((col) => (
+                <col key={col.id} className={col.width} />
+              ))}
+            </colgroup>
+            <ManagedColumnHeader
+              manager={landingColumns}
+              ns="dashboard"
+              headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+            />
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell
+                      colSpan={landingColumns.visibleColumns.length}
+                      className="px-4 py-3.5"
                     >
-                      {r.page_path}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-3 py-3.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-muted/50 sm:block">
-                        <div
-                          className="h-full rounded-full bg-blue-500/70"
-                          style={{ width: `${Math.max(barPct, 3)}%` }}
-                        />
-                      </div>
-                      <span className="tabular-nums text-sm font-semibold text-foreground">
-                        {formatCount(r.sessions)}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
-                    {r.bounce_rate !== null ? formatPercent(r.bounce_rate, 1) : "—"}
-                  </TableCell>
-                  <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm text-text-muted">
-                    {r.avg_session_duration !== null
-                      ? formatDurationSeconds(r.avg_session_duration)
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="px-3 py-3.5 text-right tabular-nums text-sm">
-                    {r.conversion_rate !== null
-                      ? formatPercent(r.conversion_rate, 2)
-                      : "—"}
+                      <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : landingRows.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={landingColumns.visibleColumns.length}
+                    className="py-12 text-center text-sm text-text-muted"
+                  >
+                    {t("traffic.landing_pages_empty")}
                   </TableCell>
                 </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
+              ) : (
+                landingRows.map((r, idx) => (
+                  <TableRow
+                    key={r.page_path}
+                    className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
+                  >
+                    {landingColumns.visibleColumns.map((col) => (
+                      <TableCell
+                        key={col.id}
+                        className={cn("px-3 py-3.5", col.numeric && "text-right")}
+                      >
+                        {col.cell(r, idx, maxSessions)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </ChartCard>
+    </PageShell>
   );
 }

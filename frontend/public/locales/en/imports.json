@@ -89,11 +89,72 @@
 
   "sources": {
     "section_title": "Source Connections",
-    "section_subtitle": "Connect your marketing and e-commerce sources to pull data automatically. These integrations are coming soon.",
-    "badge_coming_soon": "Coming soon",
+    "section_subtitle": "Connect your marketing and e-commerce sources to pull data automatically.",
+    "badge_connected": "Connected",
+    "badge_not_connected": "Not connected",
     "btn_connect": "Connect",
-    "coming_soon_title": "{{source}} integration",
-    "coming_soon_body": "This integration is not active yet; it will be connectable very soon. For now you can ingest your data by uploading a CSV file.",
+    "btn_connecting": "Connecting…",
+    "btn_resync": "Re-sync",
+    "btn_syncing": "Syncing…",
+    "btn_disconnect": "Disconnect",
+    "connect_title": "Connect {{source}}",
+    "connect_body": "Enter your account credentials to connect this source. Once connected, data is synced automatically.",
+    "connect_demo_note": "Demo mode: This screen mimics a real integration flow. The details you enter are never sent anywhere or stored; only the connection state is kept in this browser.",
+    "connect_success_toast": "{{source}} connected (demo)",
+    "resync_success_toast": "Data re-synced (demo)",
+    "detail_account": "Account",
+    "detail_last_sync": "Last sync",
+    "detail_records": "Records imported",
+    "detail_records_value": "{{formatted}} records (demo)",
+    "field_errors": {
+      "field_too_short": "This field must be at least 3 characters"
+    },
+    "fields": {
+      "meta_ads": {
+        "app_id": {
+          "label": "App ID",
+          "placeholder": "e.g. 1234567890123456"
+        },
+        "app_secret": {
+          "label": "App Secret",
+          "placeholder": "Meta app secret"
+        },
+        "access_token": {
+          "label": "Access Token",
+          "placeholder": "EAAB… long-lived access token"
+        }
+      },
+      "google_ads": {
+        "customer_id": {
+          "label": "Customer ID",
+          "placeholder": "e.g. 123-456-7890"
+        },
+        "developer_token": {
+          "label": "Developer Token",
+          "placeholder": "Google Ads developer token"
+        }
+      },
+      "ga4": {
+        "property_id": {
+          "label": "Property ID",
+          "placeholder": "e.g. properties/123456789"
+        },
+        "service_account_json": {
+          "label": "Service Account Key (JSON)",
+          "placeholder": "{ \"type\": \"service_account\", \"project_id\": … }"
+        }
+      },
+      "database": {
+        "connection_url": {
+          "label": "Connection URL",
+          "placeholder": "e.g. https://api.store.com/v1"
+        },
+        "api_key": {
+          "label": "API Key",
+          "placeholder": "Secret API key"
+        }
+      }
+    },
     "meta_ads": {
       "title": "Meta Ads",
       "description": "Automatically import Facebook and Instagram ad campaigns."
