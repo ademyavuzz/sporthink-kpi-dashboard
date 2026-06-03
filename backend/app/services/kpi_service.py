@@ -1461,7 +1461,12 @@ async def campaign_detail(
         resolved_name = campaign_name
         resolved_pk_id = campaign.id
 
-    # 1) Ad performance — kpi_campaign_aggregates (period match)
+    # 1) Ad performance — istenen [date_from, date_to] aralığı için ham
+    # tablolardan (meta_ads/google_ads) DOĞRU SUM. kpi_campaign_aggregates
+    # period_start/period_end ile sabitlenmiş satırlar içerir; bu satırlar
+    # rastgele bir UI tarih aralığıyla eşleşmez (tek period slice'ı dönerdi).
+    # Bu yüzden ad_metrics her zaman ham satırlardan, kampanya + tarih
+    # aralığında toplanır. ROAS = conversions_value / spend olarak çıkar.
     ad_metrics = {
         "impressions": Decimal(0),
         "clicks": Decimal(0),
@@ -1470,61 +1475,43 @@ async def campaign_detail(
         "conversions_value": Decimal(0),
     }
     if resolved_pk_id is not None:
-        # Aggregation kaydı period_start/period_end ile UNIQUE; rebuild aynı
-        # dönem için tek satır üretir. Kampanya bu dönem için aggregate
-        # edilmemişse raw tablolardan (meta_ads/google_ads) hesapla.
-        from app.models import GoogleAds, KPICampaignAggregate, MetaAds
+        from app.models import GoogleAds, MetaAds
 
-        agg_stmt = select(KPICampaignAggregate).where(
-            KPICampaignAggregate.campaign_pk_id == resolved_pk_id
+        meta_stmt = select(
+            func.coalesce(func.sum(MetaAds.impressions), 0),
+            func.coalesce(func.sum(MetaAds.clicks), 0),
+            func.coalesce(func.sum(MetaAds.spend), 0),
+            func.coalesce(func.sum(MetaAds.actions_purchase), 0),
+            func.coalesce(func.sum(MetaAds.action_values_purchase), 0),
+        ).where(
+            and_(
+                MetaAds.campaign_pk_id == resolved_pk_id,
+                MetaAds.date_start >= date_from,
+                MetaAds.date_start <= date_to,
+            )
         )
-        agg_row = (await db.execute(agg_stmt)).scalars().first()
-        if agg_row is not None:
-            ad_metrics = {
-                "impressions": Decimal(agg_row.impressions),
-                "clicks": Decimal(agg_row.clicks),
-                "spend": agg_row.spend,
-                "conversions": agg_row.conversions,
-                "conversions_value": agg_row.conversions_value,
-            }
-        else:
-            # Aggregate yoksa raw'dan canlı hesapla (meta + google union)
-            meta_stmt = select(
-                func.coalesce(func.sum(MetaAds.impressions), 0),
-                func.coalesce(func.sum(MetaAds.clicks), 0),
-                func.coalesce(func.sum(MetaAds.spend), 0),
-                func.coalesce(func.sum(MetaAds.actions_purchase), 0),
-                func.coalesce(func.sum(MetaAds.action_values_purchase), 0),
-            ).where(
-                and_(
-                    MetaAds.campaign_pk_id == resolved_pk_id,
-                    MetaAds.date_start >= date_from,
-                    MetaAds.date_start <= date_to,
-                )
+        google_stmt = select(
+            func.coalesce(func.sum(GoogleAds.impressions), 0),
+            func.coalesce(func.sum(GoogleAds.clicks), 0),
+            func.coalesce(func.sum(GoogleAds.cost), 0),
+            func.coalesce(func.sum(GoogleAds.conversions), 0),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0),
+        ).where(
+            and_(
+                GoogleAds.campaign_pk_id == resolved_pk_id,
+                GoogleAds.date >= date_from,
+                GoogleAds.date <= date_to,
             )
-            google_stmt = select(
-                func.coalesce(func.sum(GoogleAds.impressions), 0),
-                func.coalesce(func.sum(GoogleAds.clicks), 0),
-                func.coalesce(func.sum(GoogleAds.cost), 0),
-                func.coalesce(func.sum(GoogleAds.conversions), 0),
-                func.coalesce(func.sum(GoogleAds.conversions_value), 0),
-            ).where(
-                and_(
-                    GoogleAds.campaign_pk_id == resolved_pk_id,
-                    GoogleAds.date >= date_from,
-                    GoogleAds.date <= date_to,
-                )
-            )
-            m = (await db.execute(meta_stmt)).one()
-            g = (await db.execute(google_stmt)).one()
-            ad_metrics = {
-                "impressions": Decimal(int(m[0]) + int(g[0])),
-                "clicks": Decimal(int(m[1]) + int(g[1])),
-                "spend": _quantize(Decimal(str(m[2])) + Decimal(str(g[2]))) or Decimal(0),
-                "conversions": _quantize(Decimal(str(m[3])) + Decimal(str(g[3]))) or Decimal(0),
-                "conversions_value": _quantize(Decimal(str(m[4])) + Decimal(str(g[4])))
-                or Decimal(0),
-            }
+        )
+        m = (await db.execute(meta_stmt)).one()
+        g = (await db.execute(google_stmt)).one()
+        ad_metrics = {
+            "impressions": Decimal(int(m[0]) + int(g[0])),
+            "clicks": Decimal(int(m[1]) + int(g[1])),
+            "spend": _quantize(Decimal(str(m[2])) + Decimal(str(g[2]))) or Decimal(0),
+            "conversions": _quantize(Decimal(str(m[3])) + Decimal(str(g[3]))) or Decimal(0),
+            "conversions_value": _quantize(Decimal(str(m[4])) + Decimal(str(g[4]))) or Decimal(0),
+        }
 
     # 2) E-ticaret attribution — orders.campaign_name = resolved_name
     ecom_summary = {

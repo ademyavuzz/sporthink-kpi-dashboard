@@ -176,7 +176,7 @@ export function CampaignDetailDialog({
               title={t("campaign_detail.section_ecom_attribution")}
               hint={t("campaign_detail.section_ecom_attribution_hint")}
             >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatTile
                   icon={ShoppingBag}
                   label={t("campaign_detail.label_orders_short")}
@@ -219,11 +219,11 @@ export function CampaignDetailDialog({
               ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                   <div className="overflow-x-auto">
-                    <Table className="table-fixed">
+                    <Table className="min-w-[720px]">
                       <colgroup>
                         <col className="w-[44px]" />
                         <col className="w-[110px]" />
-                        <col />
+                        <col className="min-w-[180px]" />
                         <col className="w-[120px]" />
                         <col className="w-[140px]" />
                         <col className="w-[80px]" />
@@ -387,7 +387,7 @@ function StatTile({
 }) {
   return (
     <div className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-3.5">
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <span
           className={cn(
             "inline-flex size-7 shrink-0 items-center justify-center rounded-lg",
@@ -399,16 +399,15 @@ function StatTile({
         >
           <Icon className="size-3.5" />
         </span>
-        <p className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wide text-text-dim">
+        <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-text-dim">
           {label}
         </p>
       </div>
       <p
         className={cn(
-          "mt-2 truncate text-xl font-semibold leading-tight tracking-tight tabular-nums text-foreground",
+          "mt-2 whitespace-nowrap text-lg font-semibold leading-tight tracking-tight tabular-nums text-foreground",
           tone === "good" && "text-emerald-600 dark:text-emerald-400",
         )}
-        title={value}
       >
         {value}
       </p>
@@ -428,7 +427,7 @@ function ColHead({
   return (
     <TableHead
       className={cn(
-        "h-9 px-3 text-[11px] font-semibold uppercase tracking-wider text-text-dim",
+        "h-9 whitespace-nowrap px-3 text-[11px] font-semibold uppercase tracking-wider text-text-dim",
         align === "right" && "text-right",
         className,
       )}
