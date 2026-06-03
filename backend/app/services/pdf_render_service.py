@@ -87,6 +87,28 @@ _LABELS: dict[str, dict[str, str]] = {
         "city": "Şehir",
         "no_data": "Bu dönem için veri yok.",
         "page_label": "Sayfa",
+        # --- Kapak dönem özeti ---
+        "cover_summary_title": "Dönem Özeti",
+        "cover_revenue": "Toplam Gelir",
+        "cover_orders": "Sipariş",
+        "cover_roas": "ROAS",
+        "cover_sessions": "Oturum",
+        # --- Bölüm içgörü / yorum başlığı ---
+        "insight_label": "Yönetici Yorumu",
+        "trend_label": "Trend Özeti",
+        # --- Genel içgörü cümle parçaları ---
+        "insight_no_data": "Bu bölüm için yeterli veri bulunmuyor.",
+        "share_label": "pay",
+        # --- Kanal performans özeti ---
+        "channel_perf_title": "Kanal Performans Özeti",
+        "channel_perf_desc": "Gelire en çok katkı veren kanallar ve toplam içindeki payları.",
+        "share": "Pay",
+        "best_channel": "En güçlü kanal",
+        # --- E-ticaret katkı ---
+        "new_customer": "yeni müşteri",
+        "returning_customer": "geri dönen müşteri",
+        # --- Tablo mini-bar başlığı ---
+        "revenue_share": "Gelir Payı",
     },
     "en": {
         "report_title": "Marketing & E-commerce Report",
@@ -137,6 +159,28 @@ _LABELS: dict[str, dict[str, str]] = {
         "city": "City",
         "no_data": "No data for this period.",
         "page_label": "Page",
+        # --- Cover period summary ---
+        "cover_summary_title": "Period Summary",
+        "cover_revenue": "Total Revenue",
+        "cover_orders": "Orders",
+        "cover_roas": "ROAS",
+        "cover_sessions": "Sessions",
+        # --- Section insight / commentary heading ---
+        "insight_label": "Executive Note",
+        "trend_label": "Trend Summary",
+        # --- Generic insight fragments ---
+        "insight_no_data": "Not enough data for this section.",
+        "share_label": "share",
+        # --- Channel performance summary ---
+        "channel_perf_title": "Channel Performance Summary",
+        "channel_perf_desc": "Top revenue-contributing channels and their share of total.",
+        "share": "Share",
+        "best_channel": "Strongest channel",
+        # --- E-commerce contribution ---
+        "new_customer": "new customers",
+        "returning_customer": "returning customers",
+        # --- Table mini-bar header ---
+        "revenue_share": "Revenue Share",
     },
 }
 
@@ -678,6 +722,289 @@ def build_executive_summary(
 
 
 # --------------------------------------------------------------------------- #
+# Section insights — veriye dayalı kısa "yönetici yorumu" cümleleri
+# --------------------------------------------------------------------------- #
+
+
+def _delta_phrase(pct: Decimal | None, lang: str, *, positive_is_up: bool = True) -> str | None:
+    """Bir değişim yüzdesini doğal dilde yön ifadesine çevirir.
+
+    Örn (tr): +12.4 → 'önceki döneme göre %12,4 artış'.
+    `positive_is_up=False` yön kelimesini değil sadece işareti etkilemez; cümle
+    kuran taraf yorum yapar — burada yalnızca artış/azalış ifadesi üretilir.
+    """
+    if pct is None:
+        return None
+    val = abs(float(pct))
+    num = (f"%{val:.1f}".replace(".", ",")) if lang == "tr" else f"{val:.1f}%"
+    if pct > 0:
+        word = "artış" if lang == "tr" else "increase"
+    elif pct < 0:
+        word = "azalış" if lang == "tr" else "decrease"
+    else:
+        return "önceki döneme göre yatay seyir" if lang == "tr" else "flat vs. previous period"
+    if lang == "tr":
+        return f"önceki döneme göre {num} {word}"
+    return f"a {num} {word} vs. previous period"
+
+
+def _overview_insight(summary: Any | None, lang: str) -> str | None:
+    """Genel özet için tek cümlelik içgörü: gelir yönü + dönüşüm + en güçlü sinyal."""
+    if summary is None:
+        return None
+    rev = getattr(summary, "revenue", None)
+    conv = getattr(summary, "conversion_rate", None)
+    roas = getattr(summary, "roas", None)
+    if rev is None or rev.value is None:
+        return None
+    rev_str = _fmt_currency(rev.value, lang)
+    rev_delta = _delta_phrase(rev.change_percentage, lang)
+    parts: list[str]
+    if lang == "tr":
+        head = f"Dönem geliri {rev_str}"
+        if rev_delta:
+            head += f", {rev_delta} ile kaydedildi"
+        parts = [head]
+        if conv is not None and conv.value is not None:
+            parts.append(f"dönüşüm oranı {_fmt_percent(conv.value, lang)}")
+        if roas is not None and roas.value is not None:
+            parts.append(f"reklam getirisi (ROAS) {_fmt_multiplier(roas.value)}")
+        return "; ".join(parts) + "."
+    head = f"Period revenue reached {rev_str}"
+    if rev_delta:
+        head += f", marking {rev_delta}"
+    parts = [head]
+    if conv is not None and conv.value is not None:
+        parts.append(f"conversion rate {_fmt_percent(conv.value, lang)}")
+    if roas is not None and roas.value is not None:
+        parts.append(f"return on ad spend {_fmt_multiplier(roas.value)}")
+    return "; ".join(parts) + "."
+
+
+def _channel_insight(rows: list[dict[str, Any]], lang: str) -> str | None:
+    """En çok gelir getiren kanalı ve toplam içindeki payını cümleye döker."""
+    if not rows:
+        return None
+    total = sum(float(r.get("revenue_float", 0) or 0) for r in rows)
+    if total <= 0:
+        return None
+    top = max(rows, key=lambda r: float(r.get("revenue_float", 0) or 0))
+    share = float(top.get("revenue_float", 0) or 0) * 100.0 / total
+    share_str = (f"%{share:.1f}".replace(".", ",")) if lang == "tr" else f"{share:.1f}%"
+    ch = top.get("channel", "")
+    if lang == "tr":
+        return (
+            f"Gelirin en büyük kısmı {ch} kanalından geldi ve toplam kanal gelirinin "
+            f"{share_str} kadarını oluşturdu."
+        )
+    return (
+        f"{ch} was the leading revenue channel, accounting for {share_str} of total "
+        f"channel revenue."
+    )
+
+
+def _ads_insight(ads_kpis: list[dict[str, Any]], summary: Any | None, lang: str) -> str | None:
+    """ROAS ve harcama üzerinden reklam verimliliği yorumu."""
+    roas = getattr(summary, "roas", None) if summary is not None else None
+    spend = getattr(summary, "ad_spend", None) if summary is not None else None
+    if roas is None or roas.value is None:
+        return None
+    roas_str = _fmt_multiplier(roas.value)
+    try:
+        efficient = float(roas.value) >= 1.0
+    except (TypeError, ValueError):
+        efficient = True
+    if lang == "tr":
+        spend_str = _fmt_currency(spend.value, lang) if spend and spend.value is not None else None
+        base = f"Reklam yatırımının getirisi (ROAS) {roas_str}"
+        if spend_str:
+            base += f", toplam harcama {spend_str}"
+        tail = (
+            "; harcanan her 1 ₺ kâra dönüşüyor."
+            if efficient
+            else "; getiri kritik eşiğin altında, kampanya optimizasyonu önerilir."
+        )
+        return base + tail
+    spend_str = _fmt_currency(spend.value, lang) if spend and spend.value is not None else None
+    base = f"Return on ad spend (ROAS) is {roas_str}"
+    if spend_str:
+        base += f" on total spend of {spend_str}"
+    tail = (
+        "; each unit spent is returning value."
+        if efficient
+        else "; returns are below break-even, campaign optimisation is advised."
+    )
+    return base + tail
+
+
+def _ecom_insight(
+    new_revenue: Decimal | None,
+    returning_revenue: Decimal | None,
+    summary: Any | None,
+    lang: str,
+) -> str | None:
+    """Yeni/geri dönen müşteri kompozisyonu + AOV yorumu."""
+    n_v = float(new_revenue or 0)
+    r_v = float(returning_revenue or 0)
+    total = n_v + r_v
+    if total <= 0:
+        aov = getattr(summary, "aov", None) if summary is not None else None
+        if aov is None or aov.value is None:
+            return None
+        if lang == "tr":
+            return f"Bu dönemde sepet ortalaması {_fmt_currency(aov.value, lang)} oldu."
+        return f"Average order value for the period was {_fmt_currency(aov.value, lang)}."
+    ret_pct = r_v * 100.0 / total
+    ret_str = (f"%{ret_pct:.1f}".replace(".", ",")) if lang == "tr" else f"{ret_pct:.1f}%"
+    if lang == "tr":
+        skew = "geri dönen müşteri ağırlıklı" if ret_pct >= 50 else "yeni müşteri ağırlıklı"
+        return (
+            f"Gelirin {ret_str} kadarı geri dönen müşterilerden geldi; satış kompozisyonu {skew}."
+        )
+    skew = (
+        "weighted toward returning customers" if ret_pct >= 50 else "weighted toward new customers"
+    )
+    return f"Returning customers generated {ret_str} of revenue; the mix is {skew}."
+
+
+def _funnel_insight(steps: list[dict[str, Any]], lang: str) -> str | None:
+    """En büyük kaybın yaşandığı adımı tespit edip yorumlar."""
+    if not steps or len(steps) < 2:
+        return None
+    worst_label = None
+    worst_drop = -1.0
+    for s in steps:
+        d = s.get("drop_str")
+        if not d:
+            continue
+        cleaned = d.replace("%", "").replace(",", ".").strip()
+        try:
+            dv = float(cleaned)
+        except ValueError:
+            continue
+        if dv > worst_drop:
+            worst_drop = dv
+            worst_label = s.get("label")
+    first = steps[0]
+    last = steps[-1]
+    overall = None
+    try:
+        fc = int(first.get("count_int", 0))
+        lc = int(last.get("count_int", 0))
+        if fc > 0:
+            overall = lc * 100.0 / fc
+    except (TypeError, ValueError):
+        overall = None
+    if lang == "tr":
+        parts = []
+        if worst_label is not None and worst_drop >= 0:
+            wd = f"%{worst_drop:.1f}".replace(".", ",")
+            parts.append(f"En büyük kayıp '{worst_label}' adımında yaşandı ({wd})")
+        if overall is not None:
+            ov = f"%{overall:.1f}".replace(".", ",")
+            parts.append(f"görüntülemelerin {ov} kadarı satın almaya ulaştı")
+        return ("; ".join(parts) + ".") if parts else None
+    parts = []
+    if worst_label is not None and worst_drop >= 0:
+        parts.append(f"The largest drop-off occurred at '{worst_label}' ({worst_drop:.1f}%)")
+    if overall is not None:
+        parts.append(f"{overall:.1f}% of views converted to purchase")
+    return ("; ".join(parts) + ".") if parts else None
+
+
+def _top_insight(products: list[dict[str, Any]], lang: str) -> str | None:
+    """En çok satan ürünü öne çıkarır."""
+    if not products:
+        return None
+    top = products[0]
+    name = top.get("name") or top.get("sku") or ""
+    rev = top.get("revenue", "")
+    if lang == "tr":
+        return f"Dönemin en çok gelir getiren ürünü '{name}' ({rev})."
+    return f"The top revenue-generating product this period was '{name}' ({rev})."
+
+
+def _attach_revenue_bars(rows: list[dict[str, str]], value_key: str) -> list[dict[str, Any]]:
+    """Tablo satırlarına gelir payına oranlı mini-bar genişliği (0-100) ekler.
+
+    `value_key` parse edilebilir bir gelir string'i içeren kolon adı (örn 'revenue').
+    Sayıya çevrilemeyen satırlar için bar genişliği 0 olur. Orijinal dict'ler
+    kopyalanıp `bar_pct` eklenir; çağıran taraf bozulmaz.
+    """
+    parsed: list[float] = []
+    for r in rows:
+        raw = str(r.get(value_key, "") or "")
+        # Para/sayı string'inden rakam dışını ayıkla: '250.000,00 ₺' → 250000.00
+        cleaned = (
+            raw.replace(" ", "")
+            .replace("₺", "")
+            .replace("$", "")
+            .replace(".", "")
+            .replace(",", ".")
+        )
+        try:
+            parsed.append(abs(float(cleaned)))
+        except ValueError:
+            parsed.append(0.0)
+    vmax = max(parsed, default=0.0) or 1.0
+    out: list[dict[str, Any]] = []
+    for r, v in zip(rows, parsed, strict=False):
+        nr = dict(r)
+        nr["bar_pct"] = round(v * 100.0 / vmax, 1)
+        out.append(nr)
+    return out
+
+
+def _build_cover_summary(summary: Any | None, lang: str) -> list[dict[str, str]]:
+    """Kapakta gösterilecek 4 başlık rakamı (gelir, sipariş, ROAS, oturum)."""
+    if summary is None:
+        return []
+    labels = _LABELS.get(lang, _LABELS["tr"])
+    out: list[dict[str, str]] = []
+    lineup = [
+        ("revenue", "cover_revenue", "currency"),
+        ("orders", "cover_orders", "count"),
+        ("roas", "cover_roas", "multiplier"),
+        ("sessions", "cover_sessions", "count"),
+    ]
+    for attr, label_key, unit in lineup:
+        kpi = getattr(summary, attr, None)
+        if kpi is None or kpi.value is None:
+            continue
+        if unit == "currency":
+            v = _fmt_currency(kpi.value, lang)
+        elif unit == "multiplier":
+            v = _fmt_multiplier(kpi.value)
+        else:
+            v = _fmt_int(kpi.value, lang)
+        out.append({"label": labels.get(label_key, label_key), "value": v})
+    return out
+
+
+def _build_channel_perf_rows(rows: list[dict[str, Any]], lang: str) -> list[dict[str, Any]]:
+    """ga4 kanal verisinden 'kanal performans özeti' satırları (pay yüzdesi + mini-bar)."""
+    if not rows:
+        return []
+    total = sum(float(r.get("revenue_float", 0) or 0) for r in rows)
+    if total <= 0:
+        return []
+    out: list[dict[str, Any]] = []
+    for r in rows[:6]:
+        v = float(r.get("revenue_float", 0) or 0)
+        share = v * 100.0 / total
+        share_str = (f"%{share:.1f}".replace(".", ",")) if lang == "tr" else f"{share:.1f}%"
+        out.append(
+            {
+                "channel": r.get("channel", ""),
+                "revenue_str": r.get("revenue_str", ""),
+                "share_pct": round(share, 1),
+                "share_str": share_str,
+            }
+        )
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # Public render entry points
 # --------------------------------------------------------------------------- #
 
@@ -756,6 +1083,33 @@ def render_report_html(
 
     exec_summary = build_executive_summary(overview_summary, lang=lang)
 
+    # --- Bölüm içgörüleri (veriye dayalı tek cümlelik yönetici yorumu) ---
+    overview_insight = _overview_insight(overview_summary, lang) if "overview" in sections else None
+    channel_insight = _channel_insight(channel_bar_rows or [], lang) if "ga4" in sections else None
+    ads_insight = _ads_insight(ads_kpis, overview_summary, lang) if "ads" in sections else None
+    ecom_insight = (
+        _ecom_insight(new_revenue, returning_revenue, overview_summary, lang)
+        if "ecommerce" in sections
+        else None
+    )
+    funnel_insight = (
+        _funnel_insight(funnel_chart_steps or [], lang) if "funnel" in sections else None
+    )
+    top_insight = _top_insight(top_products, lang) if "top" in sections else None
+
+    # --- Kanal performans özeti (pay yüzdesi + mini-bar) ---
+    channel_perf_rows = (
+        _build_channel_perf_rows(channel_bar_rows or [], lang) if "ga4" in sections else []
+    )
+
+    # --- Tablolara mini-bar (gelir payına oranlı) ---
+    top_products_bars = (
+        _attach_revenue_bars(top_products, "revenue") if "top" in sections else top_products
+    )
+
+    # --- Kapak dönem özeti rakamları ---
+    cover_summary = _build_cover_summary(overview_summary, lang)
+
     template = _env.get_template("report.html.j2")
     css = (_TEMPLATES_DIR / "report.css").read_text(encoding="utf-8")
 
@@ -775,15 +1129,23 @@ def render_report_html(
         if lang == "tr"
         else generated_at.strftime("%Y-%m-%d %H:%M"),
         created_by_name=created_by_name or EMPTY,
+        cover_summary=cover_summary,
         overview_kpis=overview_kpis,
         overview_chart_svg=overview_chart_svg,
+        overview_insight=overview_insight,
         channel_rows=channel_rows,
         channel_bar_svg=channel_bar_svg,
+        channel_insight=channel_insight,
+        channel_perf_rows=channel_perf_rows,
+        ads_insight=ads_insight,
+        ecom_insight=ecom_insight,
         funnel_steps=funnel_steps_view,
         funnel_chart_svg=funnel_chart_svg,
+        funnel_insight=funnel_insight,
         new_returning_svg=new_returning_svg,
-        top_products=top_products,
+        top_products=top_products_bars,
         top_customers=top_customers,
+        top_insight=top_insight,
         ads_kpis=ads_kpis,
         ecom_kpis=ecom_kpis,
         exec_summary=exec_summary,

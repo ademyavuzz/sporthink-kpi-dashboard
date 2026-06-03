@@ -73,7 +73,8 @@ async def list_roles(
 
     out: list[dict[str, Any]] = []
     for r in roles:
-        # Süper Admin → "tüm izinler" (40)
+        # Süper Admin → tüm izinler (enum'daki izin sayısı; bypass'lı rol
+        # role_permissions tablosunda satır tutmaz).
         from app.core.permissions import Permission
 
         perm_count = len(Permission) if r.is_system else perm_counts.get(r.id, 0)
@@ -410,19 +411,29 @@ async def delete_role(
 async def list_permissions_grouped(
     db: AsyncSession,
 ) -> dict[str, list[dict[str, Any]]]:
-    """37+ izni 4 kategori altında gruplu döner. UI'daki rol oluşturma
-    formundaki checkbox grid için.
+    """İzinleri 4 kategori altında gruplu döner. UI'daki rol oluşturma /
+    düzenleme ekranındaki izin checkbox grid'i için.
+
+    Kategori anahtarları `app/core/permissions.py::PERMISSION_CATEGORIES`
+    değerleriyle birebir eşleşir (`view`, `data`, `admin`, `system`).
+    Sözlük insertion-order korunur; UI bu sırayla render eder.
     """
     rows = (await db.execute(select(PermissionModel).order_by(PermissionModel.id))).scalars().all()
 
-    grouped: dict[str, list[dict[str, Any]]] = {}
+    # Kategori sırası + label. Anahtarlar DB'deki `category` kolonu ile birebir
+    # (PERMISSION_CATEGORIES). Bilinmeyen kategori en sona, ham kod label'ı ile.
     category_labels = {
         "view": "Veri Görüntüleme",
         "data": "Veri İşlemleri",
-        "users": "Kullanıcı ve Rol Yönetimi",
+        "admin": "Kullanıcı ve Rol Yönetimi",
         "system": "Sistem ve Loglar",
     }
-    for r in rows:
+    category_order = {cat: idx for idx, cat in enumerate(category_labels)}
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for r in sorted(
+        rows, key=lambda x: (category_order.get(x.category, len(category_order)), x.id)
+    ):
         key = r.category
         grouped.setdefault(key, []).append(
             {

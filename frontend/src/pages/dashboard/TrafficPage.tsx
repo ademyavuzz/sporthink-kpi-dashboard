@@ -339,6 +339,7 @@ export default function TrafficPage() {
           height={320}
           series={trendVisibleSeries}
           yFormatter={formatAxisNumber}
+          showLegend={false}
         />
       </ChartCard>
 

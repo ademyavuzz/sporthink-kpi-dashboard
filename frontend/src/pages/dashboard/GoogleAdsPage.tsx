@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
@@ -23,6 +24,7 @@ import {
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 import { dayjs } from "@/lib/dayjs";
 import {
   formatAxisCurrency,
@@ -390,23 +392,40 @@ const PRODUCT_SORT_ACCESSORS: SortAccessors<GoogleProductRow> = {
  * Google Ads sayfasi. 9 reklam KPI'si, gunluk harcama/getiri trendi, kanal
  * turu kirilimi ile anahtar kelime, urun ve kampanya performans tablolari.
  *
- * Not: `/dashboard/google` endpoint'i yalnizca tarih araligi kabul eder
- * (kanal/cihaz capraz filtresi desteklemez); bu yuzden GlobalFilterBar yok.
+ * Filtreler: kampanya / cihaz / kanal turu boyutlari `useFiltersStore`'dan
+ * (cross-page) okunur ve `/dashboard/google` cross-filter'ina gecirilir;
+ * GlobalFilterBar yalnizca backend'in destekledigi bu alanlari gosterir.
  */
 export default function GoogleAdsPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
+
+  // Google Ads boyut cross-filtreleri (cross-page, GlobalFilterBar ile yonetilir).
+  const googleCampaigns = useFiltersStore((s) => s.selected_google_campaigns);
+  const googleDevices = useFiltersStore((s) => s.selected_google_devices);
+  const googleChannelTypes = useFiltersStore((s) => s.selected_google_channel_types);
 
   const campaignColumns = useColumnManager("google-campaigns-table", CAMPAIGN_COLUMNS);
   const keywordColumns = useColumnManager("google-keywords-table", KEYWORD_COLUMNS);
   const productColumns = useColumnManager("google-products-table", PRODUCT_COLUMNS);
 
   const q = useQuery({
-    queryKey: ["dashboard", "google", range.date_from, range.date_to],
+    queryKey: [
+      "dashboard",
+      "google",
+      range.date_from,
+      range.date_to,
+      googleCampaigns,
+      googleDevices,
+      googleChannelTypes,
+    ],
     queryFn: () =>
       dashboardApi.google({
         date_from: range.date_from,
         date_to: range.date_to,
+        campaigns: googleCampaigns.length ? googleCampaigns : undefined,
+        devices: googleDevices.length ? googleDevices : undefined,
+        channel_types: googleChannelTypes.length ? googleChannelTypes : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   });
@@ -528,6 +547,10 @@ export default function GoogleAdsPage() {
           range={range}
           onChangeRange={setRange}
         />
+        <GlobalFilterBar
+          fields={["google_campaigns", "google_devices", "google_channel_types"]}
+          showRanges
+        />
       </div>
 
       {/* Reklam KPI'lari */}
@@ -574,6 +597,7 @@ export default function GoogleAdsPage() {
             <LineChart
               height={300}
               multiAxis
+              showLegend={false}
               series={trendSeries}
               yFormatter={formatAxisCurrency}
             />

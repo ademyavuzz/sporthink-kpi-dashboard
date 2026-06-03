@@ -205,6 +205,54 @@ p { orphans: 2; widows: 2; }
   font-weight: 700;
 }
 
+/* Kapak donem ozeti - basit dort baslik rakami. */
+.cover-summary {
+  margin-top: 26pt;
+  padding-top: 16pt;
+  border-top: 0.6pt solid #e5e7eb;
+}
+
+.cover-summary-title {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1pt;
+  color: #9ca3af;
+  margin-bottom: 12pt;
+}
+
+.cover-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10pt;
+}
+
+.cover-summary-item {
+  border: 0.6pt solid #e5e7eb;
+  border-radius: 6pt;
+  padding: 11pt 12pt;
+  background: #fafaf9;
+}
+
+.cover-summary-value {
+  font-size: 16pt;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.4pt;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.cover-summary-label {
+  margin-top: 4pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: #9ca3af;
+}
+
 /* --------------------------------------------------------------------- */
 /* Section                                                               */
 /* --------------------------------------------------------------------- */
@@ -250,6 +298,45 @@ p { orphans: 2; widows: 2; }
   text-transform: uppercase;
   letter-spacing: 0.5pt;
   page-break-after: avoid;
+}
+
+.subsection-desc {
+  font-size: 9pt;
+  color: #6b7280;
+  margin: 0 0 8pt 0;
+  page-break-after: avoid;
+}
+
+/* --------------------------------------------------------------------- */
+/* Insight box - bolum ici veriye dayali yonetici yorumu                 */
+/* --------------------------------------------------------------------- */
+
+.insight-box {
+  margin: 12pt 0 4pt 0;
+  padding: 10pt 13pt;
+  background: #fafaf9;
+  border: 0.6pt solid #f1e2e5;
+  border-left: 3pt solid #be123c;
+  border-radius: 5pt;
+  page-break-inside: avoid;
+}
+
+.insight-tag {
+  display: inline-block;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6pt;
+  color: #be123c;
+  margin-bottom: 4pt;
+}
+
+.insight-text {
+  margin: 0;
+  font-size: 9.5pt;
+  color: #1f2937;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
 }
 
 /* --------------------------------------------------------------------- */
@@ -440,6 +527,28 @@ p { orphans: 2; widows: 2; }
 .t-right  { text-align: right; }
 .t-center { text-align: center; }
 .muted    { color: #9ca3af; font-style: italic; font-variant-numeric: normal; }
+
+/* Mini-bar iceren tablolar - son kolon gorsel paya orantili dolgu. */
+.data-table-bars .col-share { width: 12%; }
+.data-table-bars .col-bar { width: 30%; }
+
+.minibar-track {
+  display: inline-block;
+  width: 100%;
+  min-width: 80pt;
+  height: 7pt;
+  background: #f3f4f6;
+  border-radius: 4pt;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.minibar-fill {
+  display: block;
+  height: 100%;
+  background: #be123c;
+  border-radius: 4pt;
+}
 
 /* --------------------------------------------------------------------- */
 /* Charts (inline SVG)                                                   */

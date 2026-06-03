@@ -13,7 +13,9 @@ import type {
   EcommerceResponse,
   FunnelResponse,
   GoogleAdsResponse,
+  GoogleQuery,
   MetaAdsResponse,
+  MetaQuery,
   OrderDetailResponse,
   OverviewResponse,
   ProductsQuery,
@@ -60,15 +62,21 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async meta(p: DashboardQuery): Promise<MetaAdsResponse> {
+  async meta(p: MetaQuery): Promise<MetaAdsResponse> {
+    const params = new URLSearchParams(qs(p));
+    p.campaigns?.forEach((c) => params.append("campaigns", c));
+    p.objectives?.forEach((o) => params.append("objectives", o));
     const r = await apiClient.get<ApiEnvelope<MetaAdsResponse>>(
-      `/dashboard/meta?${qs(p)}`,
+      `/dashboard/meta?${params.toString()}`,
     );
     return unwrap(r);
   },
-  async google(p: DashboardQuery): Promise<GoogleAdsResponse> {
+  async google(p: GoogleQuery): Promise<GoogleAdsResponse> {
+    const params = new URLSearchParams(qs(p));
+    p.campaigns?.forEach((c) => params.append("campaigns", c));
+    p.channel_types?.forEach((ct) => params.append("channel_types", ct));
     const r = await apiClient.get<ApiEnvelope<GoogleAdsResponse>>(
-      `/dashboard/google?${qs(p)}`,
+      `/dashboard/google?${params.toString()}`,
     );
     return unwrap(r);
   },

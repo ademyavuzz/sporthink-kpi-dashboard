@@ -126,7 +126,13 @@
     "error_create_failed": "Could not create role",
     "error_update_failed": "Update failed",
     "error_delete_failed": "Could not delete role",
-    "deleted_with_deactivations": "Role deleted. {{count}} user(s) deactivated."
+    "deleted_with_deactivations": "Role deleted. {{count}} user(s) deactivated.",
+    "action_view": "View details",
+    "action_edit_permissions": "Edit role & permissions",
+    "detail_updated": "Updated",
+    "detail_granted": "Granted",
+    "detail_not_granted": "Not granted",
+    "detail_system_note": "Super Admin is a system role with all permissions and cannot be modified."
   },
   "channels": {
     "title": "Channel Mapping",

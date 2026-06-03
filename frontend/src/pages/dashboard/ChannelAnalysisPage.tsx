@@ -359,7 +359,12 @@ export default function ChannelAnalysisPage() {
           ) : trendAllSeries.length === 0 ? (
             <ChartEmpty height={300} />
           ) : (
-            <LineChart height={300} series={trendSeries} yFormatter={formatAxisCurrency} />
+            <LineChart
+              height={300}
+              series={trendSeries}
+              yFormatter={formatAxisCurrency}
+              showLegend={false}
+            />
           )}
         </ChartCard>
 

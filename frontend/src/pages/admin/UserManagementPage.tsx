@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  Eye,
   KeyRound,
   Loader2,
+  Lock,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -21,6 +23,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PermissionPicker } from "@/components/feature/PermissionPicker";
+import { RolePermissionMatrix } from "@/components/feature/RolePermissionMatrix";
 import { UserAvatar } from "@/components/feature/UserAvatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +53,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -828,20 +838,22 @@ function RoleActionsMenu({
   role,
   canEdit,
   canDelete,
+  onView,
   onEdit,
   onDelete,
 }: {
   role: RoleListItem;
   canEdit: boolean;
   canDelete: boolean;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation("admin");
+  // Sistem rolü (Süper Admin) düzenlenemez/silinemez — yalnızca görüntülenir.
   const isSystem = role.is_system;
-  if (!canEdit && !canDelete) {
-    return null;
-  }
+  const showEdit = canEdit && !isSystem;
+  const showDelete = canDelete && !isSystem;
 
   return (
     <DropdownMenu>
@@ -850,20 +862,23 @@ function RoleActionsMenu({
           variant="ghost"
           size="icon-sm"
           aria-label={t("users.actions_aria")}
-          disabled={isSystem}
         >
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        {canEdit && (
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={onView}>
+          <Eye />
+          {t("roles.action_view")}
+        </DropdownMenuItem>
+        {showEdit && (
           <DropdownMenuItem onSelect={onEdit}>
             <Pencil />
             {t("users.action_edit")}
           </DropdownMenuItem>
         )}
-        {canEdit && canDelete && <DropdownMenuSeparator />}
-        {canDelete && (
+        {showDelete && <DropdownMenuSeparator />}
+        {showDelete && (
           <DropdownMenuItem variant="destructive" onSelect={onDelete}>
             <Trash2 />
             {t("users.action_delete")}
@@ -1269,6 +1284,7 @@ function RolesTab() {
   const canDelete = has("roles.delete");
   const [createOpen, setCreateOpen] = useState(false);
   const [editRole, setEditRole] = useState<RoleListItem | null>(null);
+  const [viewRole, setViewRole] = useState<RoleListItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RoleListItem | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -1349,6 +1365,13 @@ function RolesTab() {
     );
   }, [allRoles, search]);
 
+  const stats = useMemo(() => {
+    const total = allRoles.length;
+    const system = allRoles.filter((r) => r.is_system).length;
+    const assignments = allRoles.reduce((sum, r) => sum + r.user_count, 0);
+    return { total, system, custom: total - system, assignments };
+  }, [allRoles]);
+
   return (
     <>
       {/* Açıklama bandı */}
@@ -1358,6 +1381,36 @@ function RolesTab() {
           <span>{t("admin:roles.subtitle")}</span>
         </p>
       </div>
+
+      {/* İstatistik kartları */}
+      {!q.isPending && allRoles.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <RoleStatCard
+            icon={ShieldCheck}
+            label={t("admin:roles.stat_total")}
+            value={stats.total}
+            tone="primary"
+          />
+          <RoleStatCard
+            icon={Lock}
+            label={t("admin:roles.stat_system")}
+            value={stats.system}
+            tone="error"
+          />
+          <RoleStatCard
+            icon={KeyRound}
+            label={t("admin:roles.stat_custom")}
+            value={stats.custom}
+            tone="info"
+          />
+          <RoleStatCard
+            icon={UsersIcon}
+            label={t("admin:roles.stat_assignments")}
+            value={stats.assignments}
+            tone="success"
+          />
+        </div>
+      )}
 
       {/* Filter + Yeni rol */}
       <div className="flex flex-wrap items-center gap-2.5">
@@ -1417,7 +1470,8 @@ function RolesTab() {
                   {filtered.map((r) => (
                     <TableRow
                       key={r.id}
-                      className="border-b border-border/40 last:border-b-0 hover:bg-muted/40"
+                      className="cursor-pointer border-b border-border/40 last:border-b-0 hover:bg-muted/40"
+                      onClick={() => setViewRole(r)}
                     >
                       <TableCell className="py-3">
                         <div className="flex items-start gap-3">
@@ -1463,11 +1517,15 @@ function RolesTab() {
                       <TableCell className="text-right tabular-nums text-sm text-text-muted">
                         {r.permission_count}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <RoleActionsMenu
                           role={r}
                           canEdit={canUpdate}
                           canDelete={canDelete}
+                          onView={() => setViewRole(r)}
                           onEdit={() => setEditRole(r)}
                           onDelete={() => setPendingDelete(r)}
                         />
@@ -1572,7 +1630,199 @@ function RolesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ROL DETAY (salt-okunur izin matrisi) */}
+      <RoleDetailSheet
+        role={viewRole}
+        onClose={() => setViewRole(null)}
+        canEdit={canUpdate}
+        onEdit={(r) => {
+          setViewRole(null);
+          setEditRole(r);
+        }}
+      />
     </>
+  );
+}
+
+/** Roller sekmesi üst istatistik kartı. */
+function RoleStatCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  tone: "primary" | "error" | "info" | "success";
+}) {
+  const toneClass: Record<typeof tone, string> = {
+    primary: "bg-primary/10 text-primary",
+    error: "bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500",
+    info: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
+    success:
+      "bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
+  };
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 p-4">
+        <span
+          className={cn(
+            "inline-flex size-10 shrink-0 items-center justify-center rounded-xl",
+            toneClass[tone],
+          )}
+        >
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-2xl font-semibold leading-none tabular-nums text-foreground">
+            {value.toLocaleString("tr-TR")}
+          </p>
+          <p className="mt-1 truncate text-xs text-text-muted">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Rol detay paneli — sağdan açılan drawer. Rolün meta bilgisi + kategori
+ * bazlı salt-okunur izin matrisi. Sistem rolü için "tam yetki" rozeti gösterir.
+ */
+function RoleDetailSheet({
+  role,
+  onClose,
+  canEdit,
+  onEdit,
+}: {
+  role: RoleListItem | null;
+  onClose: () => void;
+  canEdit: boolean;
+  onEdit: (role: RoleListItem) => void;
+}) {
+  const { t, i18n } = useTranslation(["admin", "common"]);
+
+  // Detay (izin kodları) backend'den; liste item'ı izin kodu taşımaz.
+  const detailQuery = useQuery({
+    queryKey: ["roles", "detail", role?.id],
+    queryFn: () => adminApi.getRole(role!.id),
+    enabled: role !== null,
+  });
+
+  return (
+    <Sheet open={role !== null} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-lg"
+      >
+        {role && (
+          <>
+            <SheetHeader className="border-b border-border p-5">
+              <div className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    "inline-flex size-11 shrink-0 items-center justify-center rounded-xl",
+                    !role.color && "bg-primary/10 text-primary",
+                  )}
+                  style={
+                    role.color
+                      ? { background: `${role.color}1f`, color: role.color }
+                      : undefined
+                  }
+                >
+                  <ShieldCheck className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="flex items-center gap-2 text-left">
+                    <span className="truncate">{role.name}</span>
+                    {role.is_system ? (
+                      <StatusBadge tone="error" size="sm">
+                        <Lock className="size-2.5" />
+                        {t("admin:roles.type_system")}
+                      </StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral" size="sm">
+                        {t("admin:roles.type_custom")}
+                      </StatusBadge>
+                    )}
+                  </SheetTitle>
+                  <SheetDescription className="mt-1 text-left">
+                    {role.description ?? t("admin:users.no_description")}
+                  </SheetDescription>
+                </div>
+              </div>
+
+              {/* Meta satırı: kullanıcı sayısı + izin sayısı + güncelleme */}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <RoleDetailMeta
+                  label={t("admin:roles.table_users")}
+                  value={role.user_count.toLocaleString("tr-TR")}
+                />
+                <RoleDetailMeta
+                  label={t("admin:roles.table_permissions")}
+                  value={role.permission_count.toLocaleString("tr-TR")}
+                />
+                <RoleDetailMeta
+                  label={t("admin:roles.detail_updated")}
+                  value={dayjs
+                    .utc(role.updated_at)
+                    .locale(i18n.language)
+                    .fromNow()}
+                />
+              </div>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              {role.is_system && (
+                <Alert className="mb-4">
+                  <AlertDescription className="flex items-start gap-2">
+                    <Lock className="mt-0.5 size-3.5 shrink-0 text-text-muted" />
+                    <span>{t("admin:roles.detail_system_note")}</span>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {detailQuery.isPending ? (
+                <div className="py-12 text-center text-text-muted">
+                  <Loader2 className="mx-auto size-5 animate-spin" />
+                </div>
+              ) : (
+                <RolePermissionMatrix
+                  granted={detailQuery.data?.permissions ?? []}
+                  isSystem={role.is_system}
+                />
+              )}
+            </div>
+
+            {canEdit && !role.is_system && (
+              <div className="border-t border-border p-4">
+                <Button
+                  className="w-full gap-1.5"
+                  onClick={() => onEdit(role)}
+                >
+                  <Pencil className="size-4" />
+                  {t("admin:roles.action_edit_permissions")}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function RoleDetailMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 px-3 py-2">
+      <p className="truncate text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </p>
+      <p className="mt-0.5 truncate text-[11px] uppercase tracking-wide text-text-dim">
+        {label}
+      </p>
+    </div>
   );
 }
 

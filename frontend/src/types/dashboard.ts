@@ -530,6 +530,30 @@ export interface DashboardQuery {
   devices?: string[];
 }
 
+/**
+ * Meta Ads endpoint'i — kampanya/hedef boyut filtreleri (backend: /dashboard/meta).
+ * `DashboardQuery`'nin tarih + comparison + channels/devices cross-filter'ını
+ * miras alır; ek olarak Meta'ya özgü kampanya/hedef boyutlarını taşır.
+ */
+export interface MetaQuery extends DashboardQuery {
+  /** Kampanya adlarına daraltır; boş ise tüm kampanyalar. */
+  campaigns?: string[];
+  /** Meta objective (OUTCOME_SALES vb.); boş ise tüm hedefler. */
+  objectives?: string[];
+}
+
+/**
+ * Google Ads endpoint'i — kampanya/cihaz/kanal türü filtreleri
+ * (backend: /dashboard/google). Tarih + comparison `DashboardQuery`'den;
+ * `devices` burada Google'ın cihaz boyutudur (mobile/desktop/tablet/other).
+ */
+export interface GoogleQuery extends DashboardQuery {
+  /** Kampanya adlarına daraltır; boş ise tüm kampanyalar. */
+  campaigns?: string[];
+  /** Kanal türü (search/shopping/performance_max/display/video); boş ise hepsi. */
+  channel_types?: string[];
+}
+
 /** Ürünler endpoint'i — kategori/marka boyut filtreleri (backend: products). */
 export interface ProductsQuery {
   date_from: string;

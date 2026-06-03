@@ -2,13 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   CalendarRange,
   CreditCard,
+  Layers,
   ListChecks,
   MapPin,
+  Megaphone,
   MonitorSmartphone,
   Radio,
   ShoppingBag,
   SlidersHorizontal,
   Tag,
+  Target,
   Users,
   X,
 } from "lucide-react";
@@ -105,11 +108,46 @@ export function GlobalFilterBar({
     staleTime: 60 * 60 * 1000,
     enabled: fields.includes("age_groups"),
   });
+  const metaCampaignsQ = useQuery({
+    queryKey: ["filters", "meta_campaigns"],
+    queryFn: () => adminApi.filterMetaCampaigns(),
+    staleTime: 30 * 60 * 1000,
+    enabled: fields.includes("meta_campaigns"),
+  });
+  const metaObjectivesQ = useQuery({
+    queryKey: ["filters", "meta_objectives"],
+    queryFn: () => adminApi.filterMetaObjectives(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("meta_objectives"),
+  });
+  const googleCampaignsQ = useQuery({
+    queryKey: ["filters", "google_campaigns"],
+    queryFn: () => adminApi.filterGoogleCampaigns(),
+    staleTime: 30 * 60 * 1000,
+    enabled: fields.includes("google_campaigns"),
+  });
+  const googleDevicesQ = useQuery({
+    queryKey: ["filters", "google_devices"],
+    queryFn: () => adminApi.filterGoogleDevices(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("google_devices"),
+  });
+  const googleChannelTypesQ = useQuery({
+    queryKey: ["filters", "google_channel_types"],
+    queryFn: () => adminApi.filterGoogleChannelTypes(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("google_channel_types"),
+  });
 
   const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
   const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
   const renderGender = (o: string) =>
     t(`dashboard:customers.gender_${o}`, { defaultValue: o });
+  const renderObjective = (o: string) =>
+    t(`filters:objective_${o}`, { defaultValue: o });
+  const renderChannelType = (o: string) =>
+    t(`filters:channel_type_${o}`, { defaultValue: o });
+  const renderDevice = (o: string) => t(`filters:device_${o}`, { defaultValue: o });
 
   const total = countActiveFilters(store);
 
@@ -230,6 +268,61 @@ export function GlobalFilterBar({
           selected={store.selected_age_groups}
           loading={ageGroupsQ.isPending}
           onChange={store.setSelectedAgeGroups}
+        />
+      )}
+      {fields.includes("meta_campaigns") && (
+        <FilterMultiSelect
+          label={t("filters:campaign")}
+          icon={Megaphone}
+          options={metaCampaignsQ.data ?? []}
+          selected={store.selected_meta_campaigns}
+          loading={metaCampaignsQ.isPending}
+          searchable
+          onChange={store.setSelectedMetaCampaigns}
+        />
+      )}
+      {fields.includes("meta_objectives") && (
+        <FilterMultiSelect
+          label={t("filters:objective")}
+          icon={Target}
+          options={metaObjectivesQ.data ?? []}
+          selected={store.selected_meta_objectives}
+          loading={metaObjectivesQ.isPending}
+          renderOption={renderObjective}
+          onChange={store.setSelectedMetaObjectives}
+        />
+      )}
+      {fields.includes("google_campaigns") && (
+        <FilterMultiSelect
+          label={t("filters:campaign")}
+          icon={Megaphone}
+          options={googleCampaignsQ.data ?? []}
+          selected={store.selected_google_campaigns}
+          loading={googleCampaignsQ.isPending}
+          searchable
+          onChange={store.setSelectedGoogleCampaigns}
+        />
+      )}
+      {fields.includes("google_devices") && (
+        <FilterMultiSelect
+          label={t("filters:device")}
+          icon={MonitorSmartphone}
+          options={googleDevicesQ.data ?? []}
+          selected={store.selected_google_devices}
+          loading={googleDevicesQ.isPending}
+          renderOption={renderDevice}
+          onChange={store.setSelectedGoogleDevices}
+        />
+      )}
+      {fields.includes("google_channel_types") && (
+        <FilterMultiSelect
+          label={t("filters:channel_type")}
+          icon={Layers}
+          options={googleChannelTypesQ.data ?? []}
+          selected={store.selected_google_channel_types}
+          loading={googleChannelTypesQ.isPending}
+          renderOption={renderChannelType}
+          onChange={store.setSelectedGoogleChannelTypes}
         />
       )}
 

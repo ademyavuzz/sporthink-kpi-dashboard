@@ -3,6 +3,8 @@ import { BarChart3, Megaphone, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 
 import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
@@ -14,6 +16,7 @@ import {
   MetricToggles,
   type MetricOption,
 } from "@/components/feature/charts/MetricToggles";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import {
   ColumnSettingsMenu,
   ManagedColumnHeader,
@@ -24,6 +27,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
+import { useFilterUrlSync } from "@/lib/filter-url";
 import {
   formatAxisCurrency,
   formatCount,
@@ -32,6 +36,7 @@ import {
   toNumber,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 import type { CampaignMetric } from "@/types/dashboard";
 
 import {
@@ -46,10 +51,9 @@ import {
  * gore en iyi kampanyalar grafigi ve kolon-ozellestirilebilir + disa
  * aktarilabilir kampanya performans tablosu.
  *
- * Not: backend `/dashboard/meta` endpoint'i yalnizca date_from/date_to
- * (+ comparison_mode) kabul eder; channels/devices gibi capraz filtre
- * parametresi almaz. Bu nedenle bu sayfada GlobalFilterBar yoktur (ise
- * yaramayan filtre gosterilmez).
+ * Filtreler: backend `/dashboard/meta` kampanya (campaigns) ve hedef
+ * (objectives) boyut filtrelerini destekler. GlobalFilterBar bu iki alani
+ * gosterir; secimler queryKey'e baglanir, degisince otomatik refetch olur.
  */
 /** Kampanya tablosu kolon tanimlari (id = stabil localStorage anahtari). */
 interface CampaignColumn extends ColumnDef {
@@ -186,14 +190,31 @@ const CAMPAIGN_COLUMNS: CampaignColumn[] = [
 
 export default function MetaAdsPage() {
   const { t } = useTranslation("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  useFilterUrlSync(searchParams, setSearchParams);
+
   const [range, setRange] = useDashboardRange();
 
   const campaignColumns = useColumnManager("meta-ads-campaigns", CAMPAIGN_COLUMNS);
 
+  // Meta boyut filtreleri (kampanya/hedef) global store'dan okunur; queryKey'e
+  // baglandigi icin secim degisince query otomatik refetch eder.
+  const filters = useFiltersStore(
+    useShallow((s) => ({
+      campaigns: s.selected_meta_campaigns,
+      objectives: s.selected_meta_objectives,
+    })),
+  );
+
   const q = useQuery({
-    queryKey: ["dashboard", "meta", range.date_from, range.date_to],
+    queryKey: ["dashboard", "meta", range.date_from, range.date_to, filters],
     queryFn: () =>
-      dashboardApi.meta({ date_from: range.date_from, date_to: range.date_to }),
+      dashboardApi.meta({
+        date_from: range.date_from,
+        date_to: range.date_to,
+        campaigns: filters.campaigns.length ? filters.campaigns : undefined,
+        objectives: filters.objectives.length ? filters.objectives : undefined,
+      }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -307,6 +328,10 @@ export default function MetaAdsPage() {
           range={range}
           onChangeRange={setRange}
         />
+        <GlobalFilterBar
+          fields={["meta_campaigns", "meta_objectives"]}
+          showRanges
+        />
       </div>
 
       {/* Reklam KPI'lari */}
@@ -356,6 +381,7 @@ export default function MetaAdsPage() {
               multiAxis
               series={trendSeries}
               yFormatter={formatAxisCurrency}
+              showLegend={false}
             />
           )}
         </ChartCard>

@@ -30,6 +30,20 @@
     <h1 class="cover-title">{{ report_title }}</h1>
     <p class="cover-subtitle">{{ subtitle }}</p>
     <div class="cover-pill">{{ date_from_str }} – {{ date_to_str }}</div>
+
+    {% if cover_summary %}
+    <div class="cover-summary">
+      <div class="cover-summary-title">{{ labels.cover_summary_title }}</div>
+      <div class="cover-summary-grid">
+        {% for s in cover_summary %}
+        <div class="cover-summary-item">
+          <div class="cover-summary-value">{{ s.value }}</div>
+          <div class="cover-summary-label">{{ s.label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="cover-meta">
@@ -131,6 +145,13 @@
     {% endfor %}
   </div>
 
+  {% if overview_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ overview_insight }}</p>
+  </div>
+  {% endif %}
+
   {% if overview_chart_svg %}
   <div class="chart-block">
     <div class="chart-title">{{ labels.daily_revenue_trend }}</div>
@@ -146,6 +167,13 @@
     <h2 class="section-title">{{ labels.ga4 }}</h2>
     <p class="section-desc">{{ labels.ga4_desc }}</p>
   </div>
+
+  {% if channel_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ channel_insight }}</p>
+  </div>
+  {% endif %}
 
   {% if channel_bar_svg %}
   <div class="chart-block">
@@ -179,6 +207,33 @@
       {% endif %}
     </tbody>
   </table>
+
+  {% if channel_perf_rows %}
+  <h3 class="subsection-title">{{ labels.channel_perf_title }}</h3>
+  <p class="subsection-desc">{{ labels.channel_perf_desc }}</p>
+  <table class="data-table data-table-bars">
+    <thead>
+      <tr>
+        <th class="t-left">{{ labels.channel }}</th>
+        <th class="t-right">{{ labels.revenue }}</th>
+        <th class="t-right col-share">{{ labels.share }}</th>
+        <th class="t-left col-bar">{{ labels.revenue_share }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in channel_perf_rows %}
+      <tr>
+        <td class="t-left">{{ r.channel }}</td>
+        <td class="t-right">{{ r.revenue_str }}</td>
+        <td class="t-right col-share">{{ r.share_str }}</td>
+        <td class="t-left col-bar">
+          <span class="minibar-track"><span class="minibar-fill" style="width: {{ r.share_pct }}%"></span></span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </section>
 {% endif %}
 
@@ -200,6 +255,13 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if ads_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ ads_insight }}</p>
+  </div>
+  {% endif %}
 </section>
 {% endif %}
 
@@ -222,6 +284,13 @@
     {% endfor %}
   </div>
 
+  {% if ecom_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ ecom_insight }}</p>
+  </div>
+  {% endif %}
+
   {% if new_returning_svg %}
   <div class="chart-block chart-block-tight">
     <div class="chart-title">{{ labels.new_vs_returning }}</div>
@@ -238,6 +307,13 @@
     <h2 class="section-title">{{ labels.funnel }}</h2>
     <p class="section-desc">{{ labels.funnel_desc }}</p>
   </div>
+
+  {% if funnel_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ funnel_insight }}</p>
+  </div>
+  {% endif %}
 
   {% if funnel_chart_svg %}
   <div class="chart-block">
@@ -277,14 +353,22 @@
     <p class="section-desc">{{ labels.top_desc }}</p>
   </div>
 
+  {% if top_insight %}
+  <div class="insight-box">
+    <span class="insight-tag">{{ labels.insight_label }}</span>
+    <p class="insight-text">{{ top_insight }}</p>
+  </div>
+  {% endif %}
+
   <h3 class="subsection-title">{{ labels.top_products }}</h3>
-  <table class="data-table">
+  <table class="data-table data-table-bars">
     <thead>
       <tr>
         <th class="t-left">{{ labels.sku }}</th>
         <th class="t-left">{{ labels.product }}</th>
         <th class="t-right">{{ labels.units }}</th>
         <th class="t-right">{{ labels.revenue }}</th>
+        <th class="t-left col-bar">{{ labels.revenue_share }}</th>
       </tr>
     </thead>
     <tbody>
@@ -294,10 +378,13 @@
         <td class="t-left">{{ p.name }}</td>
         <td class="t-right">{{ p.units }}</td>
         <td class="t-right">{{ p.revenue }}</td>
+        <td class="t-left col-bar">
+          <span class="minibar-track"><span class="minibar-fill" style="width: {{ p.bar_pct if p.bar_pct is defined else 0 }}%"></span></span>
+        </td>
       </tr>
       {% endfor %}
       {% if not top_products %}
-      <tr><td colspan="4" class="t-center muted">{{ labels.no_data }}</td></tr>
+      <tr><td colspan="5" class="t-center muted">{{ labels.no_data }}</td></tr>
       {% endif %}
     </tbody>
   </table>

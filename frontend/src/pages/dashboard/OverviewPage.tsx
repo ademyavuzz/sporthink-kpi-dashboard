@@ -27,6 +27,7 @@ import {
 } from "@/components/feature/table";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { CHART_PALETTE } from "@/hooks/useChartTheme";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
@@ -443,6 +444,7 @@ export default function OverviewPage() {
         <LineChart
           loading={isLoading}
           multiAxis
+          showLegend={false}
           series={trendVisibleSeries}
           yFormatter={formatAxisCurrency}
         />
@@ -723,7 +725,21 @@ interface NvrRow {
   orders: number;
 }
 
-/** Yeni vs Tekrarlayan müşteri — ciro dağılımı (pasta/donut grafiği). */
+/**
+ * Yeni vs Tekrarlayan müşteri — ciro dağılımı.
+ *
+ * Segment renkleri DonutChart ile aynı palet sırasını korur (yeni = palette[0],
+ * tekrarlayan = palette[1]) — diğer grafiklerle görsel tutarlılık.
+ *
+ * Empty / tek-segment durumları:
+ *  - İki segment de 0 (ör. dönemde realize sipariş yok) → boş durum mesajı.
+ *  - Bir segment 0, diğeri dolu (ör. ilk-sipariş tarihleri seçili dönemden
+ *    önce; "Yeni müşteri %0 / Tekrarlayan %100") → bu BACKEND'in dönem-bağımlı
+ *    doğru sonucudur. Donut'un tek dolu halka + "0,0%" satırı görseli "bozuk"
+ *    durduğu için burada orantılı bir split-bar + segment kırılımı (ciro,
+ *    sipariş adedi, yüzde) gösterilir; 0 olan segment soluk/boş kalır ve "0
+ *    sipariş · %0,0" satırı kendiliğinden "bu dönemde yeni müşteri yok"u anlatır.
+ */
 function NewVsReturningCard({
   data,
   loading,
@@ -736,6 +752,24 @@ function NewVsReturningCard({
   const retRow = data.find((d) => d.customer_type === "returning");
   const newRev = toNumber(newRow?.revenue ?? null) ?? 0;
   const retRev = toNumber(retRow?.revenue ?? null) ?? 0;
+  const total = newRev + retRev;
+
+  const segments = [
+    {
+      key: "new",
+      label: t("overview.nvr_new"),
+      revenue: newRev,
+      orders: newRow?.orders ?? 0,
+      color: CHART_PALETTE[0]!,
+    },
+    {
+      key: "returning",
+      label: t("overview.nvr_returning"),
+      revenue: retRev,
+      orders: retRow?.orders ?? 0,
+      color: CHART_PALETTE[1]!,
+    },
+  ];
 
   return (
     <ChartCard
@@ -744,15 +778,93 @@ function NewVsReturningCard({
       icon={Users}
       className="h-full self-stretch"
     >
-      <DonutChart
-        loading={loading}
-        height={ANALYSIS_CHART_HEIGHT}
-        labels={[t("overview.nvr_new"), t("overview.nvr_returning")]}
-        values={[newRev, retRev]}
-        valueFormatter={formatCurrency}
-        totalLabel={t("overview.nvr_total")}
-        groupSmallSlices={false}
-      />
+      <div
+        className="flex flex-col"
+        style={{ minHeight: ANALYSIS_CHART_HEIGHT }}
+      >
+        {loading ? (
+          <div className="flex flex-1 flex-col justify-center gap-4">
+            <div className="h-4 w-full animate-pulse rounded-full bg-muted/40" />
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="h-14 animate-pulse rounded-lg bg-muted/40" />
+            ))}
+          </div>
+        ) : total === 0 ? (
+          // İki segment de 0 — anlamlı boş durum.
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-text-muted">
+            <Users className="size-6 text-text-dim" />
+            <p className="max-w-xs text-sm">{t("overview.nvr_card_hint")}</p>
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col justify-center gap-5">
+            {/* Toplam ciro */}
+            <div>
+              <p className="text-xs font-medium text-text-muted">
+                {t("overview.nvr_total")}
+              </p>
+              <p className="text-2xl font-bold tabular-nums text-foreground">
+                {formatCurrency(total)}
+              </p>
+            </div>
+
+            {/* Orantılı split bar — 0 olan segment boş/soluk kalır. */}
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/40">
+              {segments.map((s) => {
+                const pct = (s.revenue / total) * 100;
+                if (pct <= 0) return null;
+                return (
+                  <div
+                    key={s.key}
+                    className="h-full transition-all duration-500"
+                    style={{ width: `${pct}%`, backgroundColor: s.color }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Segment kırılımı — ciro, sipariş adedi ve yüzde. */}
+            <ul className="space-y-2.5" role="list">
+              {segments.map((s) => {
+                const pct = total > 0 ? (s.revenue / total) * 100 : 0;
+                const isEmpty = s.revenue === 0;
+                return (
+                  <li
+                    key={s.key}
+                    className={cn(
+                      "flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface-2/40 px-3 py-2.5 transition-opacity",
+                      isEmpty && "opacity-50",
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: s.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-foreground">
+                          {s.label}
+                        </span>
+                        <span className="block text-xs text-text-muted">
+                          {formatCount(s.orders)} {t("overview.nvr_orders")}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="text-sm font-semibold tabular-nums text-foreground">
+                        {formatCurrency(s.revenue)}
+                      </span>
+                      <span className="text-xs tabular-nums text-text-muted">
+                        {pct.toFixed(1).replace(".", ",")}%
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
     </ChartCard>
   );
 }

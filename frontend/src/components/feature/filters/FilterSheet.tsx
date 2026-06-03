@@ -27,7 +27,12 @@ export type FilterField =
   | "statuses"
   | "payment_methods"
   | "genders"
-  | "age_groups";
+  | "age_groups"
+  | "meta_campaigns"
+  | "meta_objectives"
+  | "google_campaigns"
+  | "google_devices"
+  | "google_channel_types";
 
 const RANGE_KEYS = ["revenue", "orders", "roas", "conversion"] as const;
 type RangeKey = (typeof RANGE_KEYS)[number];
@@ -54,6 +59,11 @@ interface Draft {
   payment_methods: string[];
   genders: string[];
   age_groups: string[];
+  meta_campaigns: string[];
+  meta_objectives: string[];
+  google_campaigns: string[];
+  google_devices: string[];
+  google_channel_types: string[];
   ranges: Record<RangeKey, RangeFilter>;
 }
 
@@ -122,11 +132,46 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     staleTime: 60 * 60 * 1000,
     enabled: open && fields.includes("age_groups"),
   });
+  const metaCampaignsQ = useQuery({
+    queryKey: ["filters", "meta_campaigns"],
+    queryFn: () => adminApi.filterMetaCampaigns(),
+    staleTime: 30 * 60 * 1000,
+    enabled: open && fields.includes("meta_campaigns"),
+  });
+  const metaObjectivesQ = useQuery({
+    queryKey: ["filters", "meta_objectives"],
+    queryFn: () => adminApi.filterMetaObjectives(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("meta_objectives"),
+  });
+  const googleCampaignsQ = useQuery({
+    queryKey: ["filters", "google_campaigns"],
+    queryFn: () => adminApi.filterGoogleCampaigns(),
+    staleTime: 30 * 60 * 1000,
+    enabled: open && fields.includes("google_campaigns"),
+  });
+  const googleDevicesQ = useQuery({
+    queryKey: ["filters", "google_devices"],
+    queryFn: () => adminApi.filterGoogleDevices(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("google_devices"),
+  });
+  const googleChannelTypesQ = useQuery({
+    queryKey: ["filters", "google_channel_types"],
+    queryFn: () => adminApi.filterGoogleChannelTypes(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("google_channel_types"),
+  });
 
   const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
   const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
   const renderGender = (o: string) =>
     t(`dashboard:customers.gender_${o}`, { defaultValue: o });
+  const renderObjective = (o: string) =>
+    t(`filters:objective_${o}`, { defaultValue: o });
+  const renderChannelType = (o: string) =>
+    t(`filters:channel_type_${o}`, { defaultValue: o });
+  const renderDevice = (o: string) => t(`filters:device_${o}`, { defaultValue: o });
 
   const snapshot = (): Draft => ({
     channels: store.selected_channels,
@@ -138,6 +183,11 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     payment_methods: store.selected_payment_methods,
     genders: store.selected_genders,
     age_groups: store.selected_age_groups,
+    meta_campaigns: store.selected_meta_campaigns,
+    meta_objectives: store.selected_meta_objectives,
+    google_campaigns: store.selected_google_campaigns,
+    google_devices: store.selected_google_devices,
+    google_channel_types: store.selected_google_channel_types,
     ranges: {
       revenue: { ...store.revenue_range },
       orders: { ...store.orders_range },
@@ -170,6 +220,11 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     (draft.payment_methods.length ? 1 : 0) +
     (draft.genders.length ? 1 : 0) +
     (draft.age_groups.length ? 1 : 0) +
+    (draft.meta_campaigns.length ? 1 : 0) +
+    (draft.meta_objectives.length ? 1 : 0) +
+    (draft.google_campaigns.length ? 1 : 0) +
+    (draft.google_devices.length ? 1 : 0) +
+    (draft.google_channel_types.length ? 1 : 0) +
     (showRanges
       ? RANGE_KEYS.filter((k) => draft.ranges[k].min !== null || draft.ranges[k].max !== null).length
       : 0);
@@ -185,6 +240,11 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       selected_payment_methods: draft.payment_methods,
       selected_genders: draft.genders,
       selected_age_groups: draft.age_groups,
+      selected_meta_campaigns: draft.meta_campaigns,
+      selected_meta_objectives: draft.meta_objectives,
+      selected_google_campaigns: draft.google_campaigns,
+      selected_google_devices: draft.google_devices,
+      selected_google_channel_types: draft.google_channel_types,
       ...(showRanges
         ? {
             revenue_range: draft.ranges.revenue,
@@ -208,6 +268,11 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       payment_methods: [],
       genders: [],
       age_groups: [],
+      meta_campaigns: [],
+      meta_objectives: [],
+      google_campaigns: [],
+      google_devices: [],
+      google_channel_types: [],
       ranges: {
         revenue: { min: null, max: null },
         orders: { min: null, max: null },
@@ -334,6 +399,61 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
                   selected={draft.age_groups}
                   loading={ageGroupsQ.isPending}
                   onChange={(v) => setDraft((d) => ({ ...d, age_groups: v }))}
+                />
+              )}
+              {fields.includes("meta_campaigns") && (
+                <FilterMultiSelect
+                  label={t("filters:campaign")}
+                  className="w-full"
+                  options={metaCampaignsQ.data ?? []}
+                  selected={draft.meta_campaigns}
+                  loading={metaCampaignsQ.isPending}
+                  searchable
+                  onChange={(v) => setDraft((d) => ({ ...d, meta_campaigns: v }))}
+                />
+              )}
+              {fields.includes("meta_objectives") && (
+                <FilterMultiSelect
+                  label={t("filters:objective")}
+                  className="w-full"
+                  options={metaObjectivesQ.data ?? []}
+                  selected={draft.meta_objectives}
+                  loading={metaObjectivesQ.isPending}
+                  renderOption={renderObjective}
+                  onChange={(v) => setDraft((d) => ({ ...d, meta_objectives: v }))}
+                />
+              )}
+              {fields.includes("google_campaigns") && (
+                <FilterMultiSelect
+                  label={t("filters:campaign")}
+                  className="w-full"
+                  options={googleCampaignsQ.data ?? []}
+                  selected={draft.google_campaigns}
+                  loading={googleCampaignsQ.isPending}
+                  searchable
+                  onChange={(v) => setDraft((d) => ({ ...d, google_campaigns: v }))}
+                />
+              )}
+              {fields.includes("google_devices") && (
+                <FilterMultiSelect
+                  label={t("filters:device")}
+                  className="w-full"
+                  options={googleDevicesQ.data ?? []}
+                  selected={draft.google_devices}
+                  loading={googleDevicesQ.isPending}
+                  renderOption={renderDevice}
+                  onChange={(v) => setDraft((d) => ({ ...d, google_devices: v }))}
+                />
+              )}
+              {fields.includes("google_channel_types") && (
+                <FilterMultiSelect
+                  label={t("filters:channel_type")}
+                  className="w-full"
+                  options={googleChannelTypesQ.data ?? []}
+                  selected={draft.google_channel_types}
+                  loading={googleChannelTypesQ.isPending}
+                  renderOption={renderChannelType}
+                  onChange={(v) => setDraft((d) => ({ ...d, google_channel_types: v }))}
                 />
               )}
             </div>

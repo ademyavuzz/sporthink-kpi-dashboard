@@ -42,6 +42,13 @@ export interface FiltersState {
   // Müşteri/kohort demografi boyut filtreleri (backend: customers/cohort)
   selected_genders: string[];
   selected_age_groups: string[];
+  // Meta Ads boyut filtreleri (backend: /dashboard/meta)
+  selected_meta_campaigns: string[];
+  selected_meta_objectives: string[];
+  // Google Ads boyut filtreleri (backend: /dashboard/google)
+  selected_google_campaigns: string[];
+  selected_google_devices: string[];
+  selected_google_channel_types: string[];
   // Gelişmiş range filtreler
   revenue_range: RangeFilter;
   orders_range: RangeFilter;
@@ -65,6 +72,11 @@ export interface FiltersState {
   setSelectedPaymentMethods: (paymentMethods: string[]) => void;
   setSelectedGenders: (genders: string[]) => void;
   setSelectedAgeGroups: (ageGroups: string[]) => void;
+  setSelectedMetaCampaigns: (campaigns: string[]) => void;
+  setSelectedMetaObjectives: (objectives: string[]) => void;
+  setSelectedGoogleCampaigns: (campaigns: string[]) => void;
+  setSelectedGoogleDevices: (devices: string[]) => void;
+  setSelectedGoogleChannelTypes: (channelTypes: string[]) => void;
   setRevenueRange: (r: RangeFilter) => void;
   setOrdersRange: (r: RangeFilter) => void;
   setRoasRange: (r: RangeFilter) => void;
@@ -95,6 +107,11 @@ export const useFiltersStore = create<FiltersState>()(
       selected_payment_methods: [],
       selected_genders: [],
       selected_age_groups: [],
+      selected_meta_campaigns: [],
+      selected_meta_objectives: [],
+      selected_google_campaigns: [],
+      selected_google_devices: [],
+      selected_google_channel_types: [],
       revenue_range: { ..._emptyRange },
       orders_range: { ..._emptyRange },
       roas_range: { ..._emptyRange },
@@ -137,6 +154,16 @@ export const useFiltersStore = create<FiltersState>()(
         set({ selected_payment_methods: paymentMethods }),
       setSelectedGenders: (genders) => set({ selected_genders: genders }),
       setSelectedAgeGroups: (ageGroups) => set({ selected_age_groups: ageGroups }),
+      setSelectedMetaCampaigns: (campaigns) =>
+        set({ selected_meta_campaigns: campaigns }),
+      setSelectedMetaObjectives: (objectives) =>
+        set({ selected_meta_objectives: objectives }),
+      setSelectedGoogleCampaigns: (campaigns) =>
+        set({ selected_google_campaigns: campaigns }),
+      setSelectedGoogleDevices: (devices) =>
+        set({ selected_google_devices: devices }),
+      setSelectedGoogleChannelTypes: (channelTypes) =>
+        set({ selected_google_channel_types: channelTypes }),
       setRevenueRange: (r) => set({ revenue_range: r }),
       setOrdersRange: (r) => set({ orders_range: r }),
       setRoasRange: (r) => set({ roas_range: r }),
@@ -153,6 +180,11 @@ export const useFiltersStore = create<FiltersState>()(
           selected_payment_methods: [],
           selected_genders: [],
           selected_age_groups: [],
+          selected_meta_campaigns: [],
+          selected_meta_objectives: [],
+          selected_google_campaigns: [],
+          selected_google_devices: [],
+          selected_google_channel_types: [],
           revenue_range: { ..._emptyRange },
           orders_range: { ..._emptyRange },
           roas_range: { ..._emptyRange },
@@ -179,6 +211,11 @@ export function countActiveFilters(s: FiltersState): number {
   n += s.selected_payment_methods.length > 0 ? 1 : 0;
   n += s.selected_genders.length > 0 ? 1 : 0;
   n += s.selected_age_groups.length > 0 ? 1 : 0;
+  n += s.selected_meta_campaigns.length > 0 ? 1 : 0;
+  n += s.selected_meta_objectives.length > 0 ? 1 : 0;
+  n += s.selected_google_campaigns.length > 0 ? 1 : 0;
+  n += s.selected_google_devices.length > 0 ? 1 : 0;
+  n += s.selected_google_channel_types.length > 0 ? 1 : 0;
   n += s.revenue_range.min !== null || s.revenue_range.max !== null ? 1 : 0;
   n += s.orders_range.min !== null || s.orders_range.max !== null ? 1 : 0;
   n += s.roas_range.min !== null || s.roas_range.max !== null ? 1 : 0;

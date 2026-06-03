@@ -1,8 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  CalendarClock,
-  Mail,
-  MailX,
   MapPin,
   Repeat,
   TrendingUp,
@@ -451,30 +448,6 @@ export default function CustomersPage() {
         </ChartCard>
       </div>
 
-      {/* Newsletter karsilastirmasi */}
-      <ChartCard
-        title={t("customers.newsletter_compare_title")}
-        hint={t("customers.newsletter_hint")}
-        icon={Mail}
-      >
-        {loading || !data ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-28 animate-pulse rounded-md border border-border/60 bg-muted/30"
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {data.newsletter_comparison.map((c) => (
-              <NewsletterCompareCard key={String(c.is_subscriber)} data={c} />
-            ))}
-          </div>
-        )}
-      </ChartCard>
-
       {/* Top musteriler */}
       <ChartCard
         title={t("customers.top_customers_title")}
@@ -551,67 +524,5 @@ export default function CustomersPage() {
         </div>
       </ChartCard>
     </PageShell>
-  );
-}
-
-function NewsletterCompareCard({
-  data,
-}: {
-  data: import("@/types/dashboard").NewsletterCompare;
-}) {
-  const { t } = useTranslation("dashboard");
-  const Icon = data.is_subscriber ? Mail : MailX;
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-3 rounded-md border p-4",
-        data.is_subscriber
-          ? "border-primary/20 bg-primary/[0.04]"
-          : "border-border/60 bg-card",
-      )}
-    >
-      <span
-        className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
-          data.is_subscriber
-            ? "bg-primary/15 text-primary"
-            : "bg-muted text-text-muted",
-        )}
-      >
-        <Icon className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">
-          {data.is_subscriber
-            ? t("customers.newsletter_subscribed")
-            : t("customers.newsletter_not_subscribed")}
-        </p>
-        <p className="mt-1 text-lg font-semibold tabular-nums">
-          {formatCount(data.customer_count)}{" "}
-          <span className="text-xs font-normal text-text-muted">
-            {t("customers.customers_label")}
-          </span>
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-text-dim">
-              <CalendarClock className="size-3" />
-              {t("customers.avg_orders_short")}
-            </p>
-            <p className="font-semibold tabular-nums">
-              {formatCount(data.avg_orders)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-text-dim">
-              {t("customers.avg_revenue_short")}
-            </p>
-            <p className="font-semibold tabular-nums">
-              {formatCurrency(data.avg_revenue)}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

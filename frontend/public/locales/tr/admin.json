@@ -126,7 +126,13 @@
     "error_create_failed": "Rol oluşturulamadı",
     "error_update_failed": "Güncelleme başarısız",
     "error_delete_failed": "Rol silinemedi",
-    "deleted_with_deactivations": "Rol silindi. {{count}} kullanıcı pasifleştirildi."
+    "deleted_with_deactivations": "Rol silindi. {{count}} kullanıcı pasifleştirildi.",
+    "action_view": "Detayı görüntüle",
+    "action_edit_permissions": "Rolü ve izinleri düzenle",
+    "detail_updated": "Güncellendi",
+    "detail_granted": "İzin verildi",
+    "detail_not_granted": "İzin yok",
+    "detail_system_note": "Süper Admin sistem rolüdür; tüm izinlere sahiptir ve değiştirilemez."
   },
   "channels": {
     "title": "Kanal Eşleme",

@@ -61,6 +61,26 @@ export const adminApi = {
     const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/age-groups");
     return unwrap(r);
   },
+  async filterMetaCampaigns(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/meta-campaigns");
+    return unwrap(r);
+  },
+  async filterMetaObjectives(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/meta-objectives");
+    return unwrap(r);
+  },
+  async filterGoogleCampaigns(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/google-campaigns");
+    return unwrap(r);
+  },
+  async filterGoogleDevices(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/google-devices");
+    return unwrap(r);
+  },
+  async filterGoogleChannelTypes(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/google-channel-types");
+    return unwrap(r);
+  },
 
   // Users
   async listUsers(includeDeleted = false): Promise<UserListItem[]> {
