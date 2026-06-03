@@ -14,7 +14,12 @@ import {
   type MetricOption,
 } from "@/components/feature/charts/MetricToggles";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -165,6 +170,8 @@ export default function TrafficPage() {
   const channels = useFiltersStore((s) => s.selected_channels);
   const devices = useFiltersStore((s) => s.selected_devices);
   const cities = useFiltersStore((s) => s.selected_cities);
+  const setSelectedChannels = useFiltersStore((s) => s.setSelectedChannels);
+  const selectedChannel = channels[0] ?? null;
 
   const landingColumns = useColumnManager("traffic-landing-pages", LANDING_COLUMNS);
 
@@ -186,6 +193,16 @@ export default function TrafficPage() {
   const sessionsLabel = t("traffic.series_sessions");
   const fmtSessions = (v: number) =>
     `${formatAxisNumber(v)} ${t("traffic.value_sessions_suffix")}`;
+
+  /** Kanal bar'ina tiklama -> kanal cross-filter (OverviewPage deseni). */
+  const otherLabel = t("traffic.label_other");
+  const handleChannelClick = (label: string | null) => {
+    if (!label || label === otherLabel) {
+      setSelectedChannels([]);
+      return;
+    }
+    setSelectedChannels(selectedChannel === label ? [] : [label]);
+  };
 
   const [trendMetrics, setTrendMetrics] = useState<string[]>([
     "sessions",
@@ -240,17 +257,42 @@ export default function TrafficPage() {
   );
 
   const landingRows = useMemo(() => data?.landing_pages ?? [], [data]);
+
+  // Kolon basligina tiklayinca kullanilan siralama deger cikaricilari. Para/
+  // yuzde string'leri toNumber ile sayiya cevrilir; NULL'lar useSortedRows
+  // tarafindan otomatik sona atilir. "rank" siralanmaz (yapisal kolon).
+  const landingSortAccessors = useMemo<SortAccessors<LandingPageRow>>(
+    () => ({
+      page: (r) => r.page_path,
+      sessions: (r) => r.sessions,
+      users: (r) => r.users,
+      bounce: (r) => toNumber(r.bounce_rate),
+      duration: (r) => toNumber(r.avg_session_duration),
+      conversion: (r) => toNumber(r.conversion_rate),
+    }),
+    [],
+  );
+  // Render ve export'tan ONCE sirala. Varsayilan (sortColumnId=null) backend
+  // sirasini korur.
+  const sortedLandingRows = useSortedRows(
+    landingRows,
+    landingSortAccessors,
+    landingColumns.sortColumnId,
+    landingColumns.sortDir,
+  );
+
   const maxSessions = useMemo(
-    () => Math.max(...landingRows.map((r) => r.sessions), 1),
-    [landingRows],
+    () => Math.max(...sortedLandingRows.map((r) => r.sessions), 1),
+    [sortedLandingRows],
   );
   const landingExportColumns = useMemo(
     () =>
       landingColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
-        accessor: (row: LandingPageRow) => col.exportValue(row, landingRows.indexOf(row)),
+        accessor: (row: LandingPageRow) =>
+          col.exportValue(row, sortedLandingRows.indexOf(row)),
       })),
-    [landingColumns.visibleColumns, landingRows, t],
+    [landingColumns.visibleColumns, sortedLandingRows, t],
   );
 
   return (
@@ -328,6 +370,7 @@ export default function TrafficPage() {
                 : []
             }
             valueFormatter={fmtSessions}
+            onSelect={handleChannelClick}
           />
         </ChartCard>
 
@@ -396,7 +439,7 @@ export default function TrafficPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={landingRows}
+              rows={sortedLandingRows}
               columns={landingExportColumns}
               fileBase="traffic-landing-pages"
               dateFrom={range.date_from}
@@ -418,6 +461,7 @@ export default function TrafficPage() {
               manager={landingColumns}
               ns="dashboard"
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+              isSortable={(col) => col.id !== "rank"}
             />
             <TableBody>
               {isLoading ? (
@@ -431,7 +475,7 @@ export default function TrafficPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : landingRows.length === 0 ? (
+              ) : sortedLandingRows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={landingColumns.visibleColumns.length}
@@ -441,7 +485,7 @@ export default function TrafficPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                landingRows.map((r, idx) => (
+                sortedLandingRows.map((r, idx) => (
                   <TableRow
                     key={r.page_path}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

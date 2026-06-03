@@ -11,6 +11,8 @@
   "brand": "Marka",
   "status": "Sipariş Durumu",
   "payment_method": "Ödeme Yöntemi",
+  "gender": "Cinsiyet",
+  "age_group": "Yaş Grubu",
   "revenue_range": "Ciro Aralığı",
   "orders_range": "Sipariş Aralığı",
   "roas_range": "ROAS Aralığı",

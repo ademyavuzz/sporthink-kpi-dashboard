@@ -20,13 +20,20 @@ import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import { formatCount, formatCurrency, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 import type { CustomerOverviewRow } from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
@@ -48,14 +55,21 @@ interface CustomerColumn extends ColumnDef {
 }
 
 /**
- * Musteriler sayfasi. `dashboard/customers` endpoint'i yalnizca tarih araligi
- * kabul eder (kanal/cihaz/sehir vb. cross-filter desteklenmez), bu yuzden
- * GlobalFilterBar BILEREK eklenmedi. Top musteri tablosu kolon-ozellestirilebilir
- * ve CSV/XLSX disa aktarilabilir.
+ * Musteriler sayfasi. `dashboard/customers` endpoint'i cinsiyet/yas grubu/sehir
+ * demografi filtrelerini destekler; GlobalFilterBar bu uc alanla sinirlidir
+ * (backend'in dogru desteklemedigi filtre gosterilmez). Cinsiyet/yas donutuna
+ * tiklayinca ilgili filtre set edilir (cross-filter). Top musteri tablosu
+ * kolon-ozellestirilebilir, kolon-siralanabilir ve CSV/XLSX disa aktarilabilir.
  */
 export default function CustomersPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
+
+  const genders = useFiltersStore((s) => s.selected_genders);
+  const ageGroups = useFiltersStore((s) => s.selected_age_groups);
+  const cities = useFiltersStore((s) => s.selected_cities);
+  const setSelectedGenders = useFiltersStore((s) => s.setSelectedGenders);
+  const setSelectedAgeGroups = useFiltersStore((s) => s.setSelectedAgeGroups);
 
   const genderLabel = (g: string | null) =>
     t(`customers.gender_${g ?? "unknown"}`, {
@@ -180,11 +194,22 @@ export default function CustomersPage() {
   const columns = useColumnManager("customers-top-table", customerColumns);
 
   const q = useQuery({
-    queryKey: ["dashboard", "customers", range.date_from, range.date_to],
+    queryKey: [
+      "dashboard",
+      "customers",
+      range.date_from,
+      range.date_to,
+      genders,
+      ageGroups,
+      cities,
+    ],
     queryFn: () =>
       dashboardApi.customers({
         date_from: range.date_from,
         date_to: range.date_to,
+        genders: genders.length ? genders : undefined,
+        age_groups: ageGroups.length ? ageGroups : undefined,
+        cities: cities.length ? cities : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   });
@@ -193,14 +218,40 @@ export default function CustomersPage() {
   const loading = q.isPending;
 
   const topCustomers = useMemo(() => data?.top_customers ?? [], [data]);
+
+  // Siralanabilir kolonlar icin ham deger cikaricilari (para/sayisal stringler
+  // toNumber ile sayiya cevrilir). "rank" yapisal kolon, siralamaya dahil degil.
+  const sortAccessors = useMemo<SortAccessors<CustomerOverviewRow>>(
+    () => ({
+      customer: (r) => r.customer_name,
+      customer_id: (r) => r.customer_id,
+      city: (r) => r.city,
+      gender: (r) => (r.gender ? genderLabel(r.gender) : null),
+      age_group: (r) => r.age_group,
+      orders: (r) => r.total_orders,
+      revenue: (r) => toNumber(r.total_revenue),
+      last_order: (r) => r.last_order_date,
+    }),
+    // genderLabel sadece t()'ye bagli.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t],
+  );
+  // Render ve export ONCESI siralama (varsayilan: backend sirasi korunur).
+  const sortedCustomers = useSortedRows(
+    topCustomers,
+    sortAccessors,
+    columns.sortColumnId,
+    columns.sortDir,
+  );
+
   const customerExportColumns = useMemo(
     () =>
       columns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
         accessor: (row: CustomerOverviewRow) =>
-          col.exportValue(row, topCustomers.indexOf(row)),
+          col.exportValue(row, sortedCustomers.indexOf(row)),
       })),
-    [columns.visibleColumns, t, topCustomers],
+    [columns.visibleColumns, t, sortedCustomers],
   );
 
   const genderLabels = useMemo(
@@ -239,14 +290,50 @@ export default function CustomersPage() {
     [data],
   );
 
+  // Tek secimde dilim/bar'i vurgulamak icin: aktif filtrenin ham (lokalize
+  // edilmemis) etiketini cikar. DonutChart `selectedLabel` lokalize edilmis
+  // gosterim etiketini bekledigi icin cinsiyet ham degerini genderLabel'a cevir.
+  const selectedGenderLabel =
+    genders.length === 1 ? genderLabel(genders[0] ?? null) : null;
+
+  /**
+   * Cinsiyet donut'una tiklama → cinsiyet cross-filter. `index`, ham cinsiyet
+   * degerini `data.by_gender`'dan cozer (gosterim etiketi lokalize). Ayni dilime
+   * tekrar tiklanirsa filtre temizlenir (toggle).
+   */
+  const handleGenderSelect = (_label: string, index: number) => {
+    const raw = data?.by_gender[index]?.label ?? null;
+    if (raw === null) {
+      setSelectedGenders([]);
+      return;
+    }
+    setSelectedGenders(genders.length === 1 && genders[0] === raw ? [] : [raw]);
+  };
+
+  /**
+   * Yas grubu bar'ina tiklama → yas grubu cross-filter. `index`, ham yas grubu
+   * degerini `data.by_age_group`'tan cozer. Ayni bara tekrar tiklanirsa toggle.
+   */
+  const handleAgeGroupSelect = (_label: string, index: number) => {
+    const raw = data?.by_age_group[index]?.label ?? null;
+    if (raw === null) {
+      setSelectedAgeGroups([]);
+      return;
+    }
+    setSelectedAgeGroups(
+      ageGroups.length === 1 && ageGroups[0] === raw ? [] : [raw],
+    );
+  };
+
   return (
     <PageShell>
-      <div className="sticky top-0 z-20 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
         <DashboardHeader
           title={t("customers.title")}
           range={range}
           onChangeRange={setRange}
         />
+        <GlobalFilterBar fields={["genders", "age_groups", "cities"]} showRanges />
       </div>
 
       {/* Musteri KPI'lari */}
@@ -308,6 +395,8 @@ export default function CustomersPage() {
             height={300}
             totalLabel={t("customers.total")}
             valueFormatter={formatCount}
+            onSelect={handleGenderSelect}
+            selectedLabel={selectedGenderLabel}
           />
         </ChartCard>
 
@@ -323,6 +412,7 @@ export default function CustomersPage() {
             loading={loading}
             height={300}
             valueFormatter={formatCount}
+            onSelect={handleAgeGroupSelect}
           />
         </ChartCard>
       </div>
@@ -394,7 +484,7 @@ export default function CustomersPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={topCustomers}
+              rows={sortedCustomers}
               columns={customerExportColumns}
               fileBase="top-customers"
               dateFrom={range.date_from}
@@ -416,6 +506,7 @@ export default function CustomersPage() {
               manager={columns}
               ns="dashboard"
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+              isSortable={(col) => col.id !== "rank"}
             />
             <TableBody>
               {loading ? (
@@ -429,7 +520,7 @@ export default function CustomersPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : topCustomers.length === 0 ? (
+              ) : sortedCustomers.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={columns.visibleColumns.length}
@@ -439,7 +530,7 @@ export default function CustomersPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                topCustomers.map((c, i) => (
+                sortedCustomers.map((c, i) => (
                   <TableRow
                     key={c.customer_id}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

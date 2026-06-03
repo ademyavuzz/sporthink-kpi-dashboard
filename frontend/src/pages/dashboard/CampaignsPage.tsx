@@ -16,7 +16,12 @@ import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { DonutChart } from "@/components/feature/charts/DonutChart";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import {
   Select,
   SelectContent,
@@ -211,6 +216,30 @@ const CAMPAIGN_COLUMNS: CampaignColumn[] = [
 ];
 
 /**
+ * Tablo siralamasi icin kolon id -> ham deger cikaricisi. `rank` ve `action`
+ * yapisal kolonlardir; siralanmaz (ManagedColumnHeader'da isSortable ile haric
+ * tutulur, burada da yer almazlar). Para/yuzde string'leri toNumber ile sayiya
+ * cevrilir; metin kolonlari (platform, kampanya, hedef) string olarak gecer ve
+ * useSortedRows icinde tr-TR locale ile karsilastirilir. NULL'lar daima sona.
+ */
+const CAMPAIGN_SORT_ACCESSORS: SortAccessors<CampaignMetric> = {
+  platform: (c) => c.platform,
+  campaign: (c) => c.campaign_name,
+  objective: (c) => c.objective,
+  impressions: (c) => c.impressions,
+  clicks: (c) => c.clicks,
+  ctr: (c) => toNumber(c.ctr),
+  cpc: (c) => toNumber(c.cpc),
+  spend: (c) => toNumber(c.spend),
+  conversions: (c) => toNumber(c.conversions),
+  revenue: (c) => toNumber(c.conversions_value),
+  roas: (c) => toNumber(c.roas),
+};
+
+/** Yapisal (siralanamaz) kolon id'leri — sira numarasi ve detay aksiyonu. */
+const NON_SORTABLE_COLUMN_IDS = new Set(["rank", "action"]);
+
+/**
  * Kampanya Analizi sayfasi. 3 ozet KPI, platform filtresi (backend'e gonderilir
  * — hem KPI'lar hem tablo platforma daralir), harcama/ROAS gorselleri ve
  * kolon-ozellestirilebilir + disa aktarilabilir kampanya performans tablosu.
@@ -239,6 +268,16 @@ export default function CampaignsPage() {
   const loading = q.isPending;
 
   const campaigns = useMemo(() => data?.campaigns ?? [], [data]);
+
+  // Tablo + disa aktarma siralamasi: kullanici bir kolon basligina tiklayinca
+  // (asc/desc) satirlar buna gore siralanir. Varsayilan (sortColumnId === null)
+  // backend sirasi korunur. Render ve export AYNI sirayi kullanir.
+  const sortedCampaigns = useSortedRows(
+    campaigns,
+    CAMPAIGN_SORT_ACCESSORS,
+    campaignColumns.sortColumnId,
+    campaignColumns.sortDir,
+  );
 
   // Disa aktarma: yapisal kolonlar (sira, aksiyon) haric gorunur kolonlar.
   const exportColumns = useMemo(
@@ -269,26 +308,23 @@ export default function CampaignsPage() {
     [topBySpend],
   );
 
-  // Reklam gelirinin kampanyalara dagilimi (donut).
-  const revenueDonutLabels = useMemo(
+  // Reklam gelirinin kampanyalara dagilimi (donut) — gelire gore azalan.
+  // Tek siralama, label + deger ayni diziden uretilir (cift sort yerine).
+  const revenueByCampaign = useMemo(
     () =>
-      [...campaigns]
-        .sort(
-          (a, b) =>
-            (toNumber(b.conversions_value) ?? 0) - (toNumber(a.conversions_value) ?? 0),
-        )
-        .map((c) => c.campaign_name ?? "—"),
+      [...campaigns].sort(
+        (a, b) =>
+          (toNumber(b.conversions_value) ?? 0) - (toNumber(a.conversions_value) ?? 0),
+      ),
     [campaigns],
   );
+  const revenueDonutLabels = useMemo(
+    () => revenueByCampaign.map((c) => c.campaign_name ?? "—"),
+    [revenueByCampaign],
+  );
   const revenueDonutValues = useMemo(
-    () =>
-      [...campaigns]
-        .sort(
-          (a, b) =>
-            (toNumber(b.conversions_value) ?? 0) - (toNumber(a.conversions_value) ?? 0),
-        )
-        .map((c) => toNumber(c.conversions_value) ?? 0),
-    [campaigns],
+    () => revenueByCampaign.map((c) => toNumber(c.conversions_value) ?? 0),
+    [revenueByCampaign],
   );
 
   return (
@@ -378,7 +414,7 @@ export default function CampaignsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={campaigns}
+              rows={sortedCampaigns}
               columns={exportColumns}
               fileBase="campaigns"
               dateFrom={range.date_from}
@@ -400,6 +436,7 @@ export default function CampaignsPage() {
               manager={campaignColumns}
               ns="dashboard"
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+              isSortable={(col) => !NON_SORTABLE_COLUMN_IDS.has(col.id)}
             />
             <TableBody>
               {loading ? (
@@ -423,7 +460,7 @@ export default function CampaignsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                campaigns.map((c, idx) => (
+                sortedCampaigns.map((c, idx) => (
                   <TableRow
                     key={c.campaign_id}
                     onClick={() =>

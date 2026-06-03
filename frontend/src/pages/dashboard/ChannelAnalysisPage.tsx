@@ -18,7 +18,12 @@ import {
   MetricToggles,
   type MetricOption,
 } from "@/components/feature/charts/MetricToggles";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  useSortedRows,
+} from "@/components/feature/table";
+import type { SortAccessors } from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { CHART_PALETTE } from "@/hooks/useChartTheme";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
@@ -174,6 +179,16 @@ export default function ChannelAnalysisPage() {
       conversion_range: s.conversion_range,
     })),
   );
+  const setSelectedChannels = useFiltersStore((s) => s.setSelectedChannels);
+
+  // Kanal bar grafigine tikla -> kanal cross-filter. Ayni kanala tekrar
+  // tiklayinca secimi temizler (toggle). Query, secili kanallari queryKey'e
+  // aldigi icin otomatik refetch olur.
+  const handleChannelSelect = (label: string) => {
+    const isOnlySelected =
+      filters.selected_channels.length === 1 && filters.selected_channels[0] === label;
+    setSelectedChannels(isOnlySelected ? [] : [label]);
+  };
 
   const q = useQuery({
     queryKey: ["dashboard", "channel-analysis", range.date_from, range.date_to, filters],
@@ -201,6 +216,30 @@ export default function ChannelAnalysisPage() {
   const loading = q.isPending;
 
   const channelRows = useMemo(() => data?.channels ?? [], [data]);
+
+  // Kolon id -> siralama deger cikarici. Para/yuzde stringleri sayiya cevrilir;
+  // NULL'lar useSortedRows tarafindan her zaman sona alinir. "channel" metinsel.
+  const channelSortAccessors = useMemo<SortAccessors<ChannelPerformanceRow>>(
+    () => ({
+      channel: (c) => c.channel,
+      revenue: (c) => toNumber(c.revenue),
+      orders: (c) => c.orders,
+      sessions: (c) => c.sessions,
+      conversion: (c) => toNumber(c.conversion_rate),
+      ad_spend: (c) => toNumber(c.ad_spend),
+      roas: (c) => toNumber(c.roas),
+      aov: (c) => toNumber(c.aov),
+      customers: (c) => c.customers,
+    }),
+    [],
+  );
+  const sortedChannelRows = useSortedRows(
+    channelRows,
+    channelSortAccessors,
+    channelColumns.sortColumnId,
+    channelColumns.sortDir,
+  );
+
   const channelExportColumns = useMemo(
     () =>
       channelColumns.visibleColumns.map((col) => ({
@@ -356,6 +395,7 @@ export default function ChannelAnalysisPage() {
             horizontal
             height={300}
             valueFormatter={formatMultiplier}
+            onSelect={handleChannelSelect}
           />
         </ChartCard>
 
@@ -374,6 +414,7 @@ export default function ChannelAnalysisPage() {
             horizontal
             height={300}
             valueFormatter={(v) => formatPercent(v, 2)}
+            onSelect={handleChannelSelect}
           />
         </ChartCard>
       </div>
@@ -387,7 +428,7 @@ export default function ChannelAnalysisPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={channelRows}
+              rows={sortedChannelRows}
               columns={channelExportColumns}
               fileBase="channel-analysis"
               dateFrom={range.date_from}
@@ -422,7 +463,7 @@ export default function ChannelAnalysisPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : !data || data.channels.length === 0 ? (
+              ) : !data || sortedChannelRows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={channelColumns.visibleColumns.length}
@@ -432,7 +473,7 @@ export default function ChannelAnalysisPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.channels.map((c) => (
+                sortedChannelRows.map((c) => (
                   <TableRow
                     key={c.channel}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

@@ -18,6 +18,12 @@ interface BarChartProps {
   showValueLabel?: boolean;
   /** Birden fazla seri varsa serileri üst üste stack et. */
   stacked?: boolean;
+  /**
+   * Bir bara tıklanınca çağrılır — cross-filter için. `label` ham (truncate
+   * edilmemiş) kategori adı, `index` kategori dizinidir. (DonutChart ile aynı
+   * standart imza.)
+   */
+  onSelect?: (label: string, index: number) => void;
 }
 
 /**
@@ -33,6 +39,7 @@ export function BarChart({
   loading,
   showValueLabel,
   stacked,
+  onSelect,
 }: BarChartProps) {
   const base = useChartTheme();
   // Yatay bar'da sayı etiketi göstermek varsayılan.
@@ -58,7 +65,27 @@ export function BarChart({
   const options = useMemo<ApexOptions>(
     () => ({
       ...base,
-      chart: { ...base.chart, type: "bar", height: computedHeight, stacked },
+      chart: {
+        ...base.chart,
+        type: "bar",
+        height: computedHeight,
+        stacked,
+        // `events` yalnızca handler varsa eklenir; `events: undefined` ApexCharts
+        // 4'te beforeMount sırasında patlatıyor (DonutChart ile aynı önlem).
+        ...(onSelect && {
+          events: {
+            dataPointSelection: (
+              _e: unknown,
+              _ctx: unknown,
+              config: { dataPointIndex: number },
+            ) => {
+              const label = categories[config.dataPointIndex];
+              if (label === undefined) return;
+              onSelect(label, config.dataPointIndex);
+            },
+          },
+        }),
+      },
       colors: useDistributedColors ? CHART_PALETTE : base.colors,
       plotOptions: {
         bar: {
@@ -139,6 +166,7 @@ export function BarChart({
       series.length,
       stacked,
       useDistributedColors,
+      onSelect,
     ],
   );
 

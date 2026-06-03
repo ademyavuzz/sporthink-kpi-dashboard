@@ -53,6 +53,14 @@ export const adminApi = {
     const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/order-statuses");
     return unwrap(r);
   },
+  async filterGenders(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/genders");
+    return unwrap(r);
+  },
+  async filterAgeGroups(): Promise<string[]> {
+    const r = await apiClient.get<ApiEnvelope<string[]>>("/filters/age-groups");
+    return unwrap(r);
+  },
 
   // Users
   async listUsers(includeDeleted = false): Promise<UserListItem[]> {

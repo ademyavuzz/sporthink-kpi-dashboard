@@ -14,7 +14,12 @@ import {
   MetricToggles,
   type MetricOption,
 } from "@/components/feature/charts/MetricToggles";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -341,6 +346,45 @@ const PRODUCT_COLUMNS: ProductColumn[] = [
 ];
 
 /* ──────────────────────────────────────────────────────────────── */
+/* Siralama deger cikaricilari — kolon id -> satirdan ham karsilastirma degeri.
+   Para/yuzde alanlari string geldigi icin toNumber ile sayiya cevrilir; metin
+   alanlari oldugu gibi locale karsilastirmaya birakilir. "rank" siralanamaz,
+   bu yuzden accessor'i yok. */
+
+const CAMPAIGN_SORT_ACCESSORS: SortAccessors<GoogleCampaignMetric> = {
+  campaign: (c) => c.campaign_name,
+  impressions: (c) => c.impressions,
+  clicks: (c) => c.clicks,
+  ctr: (c) => toNumber(c.ctr),
+  cpc: (c) => toNumber(c.cpc),
+  spend: (c) => toNumber(c.spend),
+  conversions: (c) => toNumber(c.conversions),
+  revenue: (c) => toNumber(c.conversions_value),
+  roas: (c) => toNumber(c.roas),
+};
+
+const KEYWORD_SORT_ACCESSORS: SortAccessors<GoogleKeywordRow> = {
+  keyword: (k) => k.keyword,
+  match_type: (k) => k.match_type,
+  clicks: (k) => k.clicks,
+  impressions: (k) => k.impressions,
+  ctr: (k) => toNumber(k.ctr),
+  cpc: (k) => toNumber(k.cpc),
+  conversions: (k) => toNumber(k.conversions),
+  roas: (k) => toNumber(k.roas),
+};
+
+const PRODUCT_SORT_ACCESSORS: SortAccessors<GoogleProductRow> = {
+  product: (p) => p.product_name ?? p.product_id,
+  impressions: (p) => p.impressions,
+  clicks: (p) => p.clicks,
+  conversions: (p) => toNumber(p.conversions),
+  spend: (p) => toNumber(p.spend),
+  revenue: (p) => toNumber(p.conversions_value),
+  roas: (p) => toNumber(p.roas),
+};
+
+/* ──────────────────────────────────────────────────────────────── */
 
 /**
  * Google Ads sayfasi. 9 reklam KPI'si, gunluk harcama/getiri trendi, kanal
@@ -372,6 +416,27 @@ export default function GoogleAdsPage() {
   const campaigns = useMemo(() => data?.campaigns ?? [], [data]);
   const keywords = useMemo(() => data?.keywords ?? [], [data]);
   const products = useMemo(() => data?.products ?? [], [data]);
+
+  // Kullanici siralamasini render ve export'tan ONCE uygula. Siralama kapaliysa
+  // (sortColumnId === null) backend sirasi (en yuksek harcama/getiri) korunur.
+  const sortedCampaigns = useSortedRows(
+    campaigns,
+    CAMPAIGN_SORT_ACCESSORS,
+    campaignColumns.sortColumnId,
+    campaignColumns.sortDir,
+  );
+  const sortedKeywords = useSortedRows(
+    keywords,
+    KEYWORD_SORT_ACCESSORS,
+    keywordColumns.sortColumnId,
+    keywordColumns.sortDir,
+  );
+  const sortedProducts = useSortedRows(
+    products,
+    PRODUCT_SORT_ACCESSORS,
+    productColumns.sortColumnId,
+    productColumns.sortDir,
+  );
 
   const [trendMetrics, setTrendMetrics] = useState<string[]>([
     "ad_revenue",
@@ -431,10 +496,12 @@ export default function GoogleAdsPage() {
     () =>
       campaignColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
+        // Rank kolonu siraya gore numaralandigi icin gosterilen (siralanmis)
+        // dizinin indeksini kullan.
         accessor: (row: GoogleCampaignMetric) =>
-          col.exportValue(row, campaigns.indexOf(row)),
+          col.exportValue(row, sortedCampaigns.indexOf(row)),
       })),
-    [campaignColumns.visibleColumns, campaigns, t],
+    [campaignColumns.visibleColumns, sortedCampaigns, t],
   );
   const keywordExportColumns = useMemo(
     () =>
@@ -540,7 +607,7 @@ export default function GoogleAdsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={keywords}
+              rows={sortedKeywords}
               columns={keywordExportColumns}
               fileBase="google-keywords"
               dateFrom={range.date_from}
@@ -553,7 +620,7 @@ export default function GoogleAdsPage() {
       >
         <ManagedTable
           manager={keywordColumns}
-          rows={keywords}
+          rows={sortedKeywords}
           loading={isLoading}
           rowKey={(k) => `${k.keyword}-${k.match_type ?? ""}`}
           emptyLabel={t("google_ads.keywords_empty")}
@@ -569,7 +636,7 @@ export default function GoogleAdsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={products}
+              rows={sortedProducts}
               columns={productExportColumns}
               fileBase="google-products"
               dateFrom={range.date_from}
@@ -582,7 +649,7 @@ export default function GoogleAdsPage() {
       >
         <ManagedTable
           manager={productColumns}
-          rows={products}
+          rows={sortedProducts}
           loading={isLoading}
           rowKey={(p) => p.product_id}
           emptyLabel={t("google_ads.products_empty")}
@@ -598,7 +665,7 @@ export default function GoogleAdsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={campaigns}
+              rows={sortedCampaigns}
               columns={campaignExportColumns}
               fileBase="google-campaigns"
               dateFrom={range.date_from}
@@ -611,10 +678,11 @@ export default function GoogleAdsPage() {
       >
         <ManagedTable
           manager={campaignColumns}
-          rows={campaigns}
+          rows={sortedCampaigns}
           loading={isLoading}
           rowKey={(c) => String(c.campaign_id)}
           emptyLabel={t("google_ads.campaigns_empty")}
+          isSortable={(c) => c.id !== "rank"}
         />
       </ChartCard>
     </PageShell>
@@ -654,12 +722,15 @@ function ManagedTable<TCol extends ManagedTableColumn<TRow>, TRow>({
   loading,
   rowKey,
   emptyLabel,
+  isSortable,
 }: {
   manager: ReturnType<typeof useColumnManager<TCol>>;
-  rows: TRow[];
+  rows: readonly TRow[];
   loading?: boolean;
   rowKey: (row: TRow) => string;
   emptyLabel: string;
+  /** Bir kolon siralanabilir mi? Verilmezse tum kolonlar siralanabilir. */
+  isSortable?: (col: TCol) => boolean;
 }) {
   const colCount = manager.visibleColumns.length;
   return (
@@ -674,6 +745,7 @@ function ManagedTable<TCol extends ManagedTableColumn<TRow>, TRow>({
           manager={manager}
           ns="dashboard"
           headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+          isSortable={isSortable}
         />
         <TableBody>
           {loading ? (

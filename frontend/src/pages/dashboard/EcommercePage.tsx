@@ -27,7 +27,12 @@ import { DonutChart } from "@/components/feature/charts/DonutChart";
 import { LineChart } from "@/components/feature/charts/LineChart";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -371,8 +376,18 @@ export default function EcommercePage() {
       brands: s.selected_brands,
       statuses: s.selected_statuses,
       payment_methods: s.selected_payment_methods,
+      cities: s.selected_cities,
+      devices: s.selected_devices,
     })),
   );
+
+  // Cross-filter aksiyonlari: grafik dilimi/barina tiklayinca ilgili filtreyi
+  // ayarla -> query otomatik refetch eder (queryKey filtre objesine bagli).
+  const setSelectedCategories = useFiltersStore((s) => s.setSelectedCategories);
+  const setSelectedPaymentMethods = useFiltersStore(
+    (s) => s.setSelectedPaymentMethods,
+  );
+  const toggleCity = useFiltersStore((s) => s.toggleCity);
 
   const q = useQuery({
     queryKey: ["dashboard", "ecom", range.date_from, range.date_to, filters],
@@ -386,6 +401,8 @@ export default function EcommercePage() {
         payment_methods: filters.payment_methods.length
           ? filters.payment_methods
           : undefined,
+        cities: filters.cities.length ? filters.cities : undefined,
+        devices: filters.devices.length ? filters.devices : undefined,
         orders_limit: 50,
       }),
     staleTime: 5 * 60 * 1000,
@@ -405,17 +422,75 @@ export default function EcommercePage() {
   const customerColumns = useColumnManager("ecom-top-customers", TOP_CUSTOMER_COLUMNS);
   const orderColumns = useColumnManager("ecom-orders", ORDER_COLUMNS);
 
+  // Tablo siralamasi: her siralanabilir kolon icin ham deger cikarici. "rank"
+  // yapisal sutundur, siralanmaz. Para/yuzde string'leri toNumber ile sayiya
+  // cevrilir; bos degerler null kalir (useSortedRows null'lari sona koyar).
+  const productSorted = useSortedRows(
+    topProducts,
+    useMemo<SortAccessors<TopProductRow>>(
+      () => ({
+        sku: (p) => p.sku,
+        product: (p) => p.product_name,
+        brand: (p) => p.brand,
+        units: (p) => p.units_sold,
+        revenue: (p) => toNumber(p.revenue),
+      }),
+      [],
+    ),
+    productColumns.sortColumnId,
+    productColumns.sortDir,
+  );
+
+  const customerSorted = useSortedRows(
+    topCustomers,
+    useMemo<SortAccessors<TopCustomerRow>>(
+      () => ({
+        customer: (c) => c.customer_name ?? c.customer_id,
+        customer_id: (c) => c.customer_id,
+        city: (c) => c.city,
+        gender: (c) => genderLabel(c.gender, t),
+        age_group: (c) => c.age_group,
+        orders: (c) => c.order_count,
+        revenue: (c) => toNumber(c.revenue),
+      }),
+      [t],
+    ),
+    customerColumns.sortColumnId,
+    customerColumns.sortDir,
+  );
+
+  const ordersSorted = useSortedRows(
+    ordersList,
+    useMemo<SortAccessors<OrderListRow>>(
+      () => ({
+        order_id: (o) => o.order_id,
+        date: (o) => o.order_date,
+        customer: (o) => o.customer_name ?? o.customer_id,
+        amount: (o) => toNumber(o.net_revenue),
+        status: (o) =>
+          t(`ecom.status_${o.order_status}`, { defaultValue: o.order_status }),
+        payment: (o) =>
+          t(`ecom.payment_${o.payment_method}`, {
+            defaultValue: o.payment_method,
+          }),
+      }),
+      [t],
+    ),
+    orderColumns.sortColumnId,
+    orderColumns.sortDir,
+  );
+
   const productExportColumns = useMemo(
     () =>
       productColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
         accessor: (p: TopProductRow) =>
           col.exportValue(p, {
-            index: topProducts.indexOf(p),
+            index: productSorted.indexOf(p),
             maxRevenue: maxProductRevenue,
           }),
       })),
-    [productColumns.visibleColumns, t, topProducts, maxProductRevenue],
+    [productColumns.visibleColumns, t, productSorted, maxProductRevenue],
   );
 
   const customerExportColumns = useMemo(
@@ -423,9 +498,9 @@ export default function EcommercePage() {
       customerColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
         accessor: (c: TopCustomerRow) =>
-          col.exportValue(c, { index: topCustomers.indexOf(c) }, t),
+          col.exportValue(c, { index: customerSorted.indexOf(c) }, t),
       })),
-    [customerColumns.visibleColumns, t, topCustomers],
+    [customerColumns.visibleColumns, t, customerSorted],
   );
 
   const orderExportColumns = useMemo(
@@ -437,12 +512,84 @@ export default function EcommercePage() {
     [orderColumns.visibleColumns, t],
   );
 
+  // Cross-filter: grafik dilimi gosterilen etiketle gelir; ham filtre degerine
+  // (kategori/odeme adi) eslemek icin gosterim->ham eslemesi kurulur.
+  const categoryLabelToValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of data?.by_category ?? []) {
+      if (c.label) map.set(c.label, c.label);
+    }
+    return map;
+  }, [data]);
+
+  const paymentLabelToValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of data?.by_payment_method ?? []) {
+      if (p.label) {
+        const display = t(`ecom.payment_${p.label}`, { defaultValue: p.label });
+        map.set(display, p.label);
+      }
+    }
+    return map;
+  }, [data, t]);
+
+  /** Kategori donut'una tiklayinca o kategoriye filtrele (tekrar tiklayinca kaldir). */
+  const handleCategoryClick = (label: string | null) => {
+    if (!label) {
+      setSelectedCategories([]);
+      return;
+    }
+    const value = categoryLabelToValue.get(label) ?? label;
+    setSelectedCategories(
+      filters.categories.length === 1 && filters.categories[0] === value
+        ? []
+        : [value],
+    );
+  };
+
+  /** Odeme donut'una tiklayinca o odeme yontemine filtrele. */
+  const handlePaymentClick = (label: string | null) => {
+    if (!label) {
+      setSelectedPaymentMethods([]);
+      return;
+    }
+    const value = paymentLabelToValue.get(label) ?? label;
+    setSelectedPaymentMethods(
+      filters.payment_methods.length === 1 &&
+        filters.payment_methods[0] === value
+        ? []
+        : [value],
+    );
+  };
+
+  /** Sehir barina tiklayinca o sehri filtreye ekle/cikar (coklu secim). */
+  const handleCityClick = (label: string) => {
+    if (label && label !== "-") toggleCity(label);
+  };
+
+  const selectedCategoryLabel =
+    filters.categories.length === 1 ? filters.categories[0] : null;
+  const selectedPaymentLabel = useMemo(() => {
+    if (filters.payment_methods.length !== 1) return null;
+    const value = filters.payment_methods[0];
+    return value
+      ? t(`ecom.payment_${value}`, { defaultValue: value })
+      : null;
+  }, [filters.payment_methods, t]);
+
   return (
     <PageShell>
       <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
         <DashboardHeader title={t("ecom.title")} range={range} onChangeRange={setRange} />
         <GlobalFilterBar
-          fields={["categories", "brands", "statuses", "payment_methods"]}
+          fields={[
+            "categories",
+            "brands",
+            "statuses",
+            "payment_methods",
+            "cities",
+            "devices",
+          ]}
         />
       </div>
 
@@ -549,6 +696,8 @@ export default function EcommercePage() {
               values={data ? data.by_category.map((c) => toNumber(c.value) ?? 0) : []}
               valueFormatter={formatCurrency}
               totalLabel={t("ecom.total_revenue")}
+              onSliceClick={handleCategoryClick}
+              selectedLabel={selectedCategoryLabel}
             />
           </ChartErrorBoundary>
         </ChartCard>
@@ -599,6 +748,7 @@ export default function EcommercePage() {
                 },
               ]}
               valueFormatter={formatAxisCurrency}
+              onSelect={handleCityClick}
             />
           </ChartErrorBoundary>
         </ChartCard>
@@ -626,6 +776,8 @@ export default function EcommercePage() {
               }
               valueFormatter={formatCurrency}
               totalLabel={t("ecom.total_revenue")}
+              onSliceClick={handlePaymentClick}
+              selectedLabel={selectedPaymentLabel}
             />
           </ChartErrorBoundary>
         </ChartCard>
@@ -712,7 +864,7 @@ export default function EcommercePage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={topProducts}
+              rows={productSorted}
               columns={productExportColumns}
               fileBase="ecom-top-products"
               dateFrom={range.date_from}
@@ -733,6 +885,7 @@ export default function EcommercePage() {
             <ManagedColumnHeader
               manager={productColumns}
               ns="dashboard"
+              isSortable={(col) => col.id !== "rank"}
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
             />
             <TableBody>
@@ -747,7 +900,7 @@ export default function EcommercePage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : topProducts.length === 0 ? (
+              ) : productSorted.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={productColumns.visibleColumns.length}
@@ -757,7 +910,7 @@ export default function EcommercePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                topProducts.map((p, idx) => (
+                productSorted.map((p, idx) => (
                   <TableRow
                     key={p.sku}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
@@ -787,7 +940,7 @@ export default function EcommercePage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={topCustomers}
+              rows={customerSorted}
               columns={customerExportColumns}
               fileBase="ecom-top-customers"
               dateFrom={range.date_from}
@@ -808,6 +961,7 @@ export default function EcommercePage() {
             <ManagedColumnHeader
               manager={customerColumns}
               ns="dashboard"
+              isSortable={(col) => col.id !== "rank"}
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
             />
             <TableBody>
@@ -822,7 +976,7 @@ export default function EcommercePage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : topCustomers.length === 0 ? (
+              ) : customerSorted.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={customerColumns.visibleColumns.length}
@@ -832,7 +986,7 @@ export default function EcommercePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                topCustomers.map((c, idx) => (
+                customerSorted.map((c, idx) => (
                   <TableRow
                     key={c.customer_id}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"
@@ -870,7 +1024,7 @@ export default function EcommercePage() {
               </span>
             )}
             <ExportMenu
-              rows={ordersList}
+              rows={ordersSorted}
               columns={orderExportColumns}
               fileBase="orders"
               dateFrom={range.date_from}
@@ -905,7 +1059,7 @@ export default function EcommercePage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : ordersList.length === 0 ? (
+              ) : ordersSorted.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={orderColumns.visibleColumns.length}
@@ -915,7 +1069,7 @@ export default function EcommercePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                ordersList.map((o) => (
+                ordersSorted.map((o) => (
                   <TableRow
                     key={o.order_pk_id}
                     role="button"

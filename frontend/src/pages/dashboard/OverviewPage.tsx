@@ -19,7 +19,12 @@ import {
 } from "@/components/feature/charts/MetricToggles";
 import { TurkeyMap } from "@/components/feature/charts/TurkeyMap";
 import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
@@ -144,6 +149,19 @@ const TOP_PRODUCT_COLUMNS: TopProductColumn[] = [
     exportValue: (p) => toNumber(p.revenue),
   },
 ];
+
+/**
+ * Top ürünler — siralanabilir kolonlarin ham deger cikaricilari. Para/yuzde
+ * string'leri `toNumber` ile sayisallastirilir; "rank" yapisal kolon oldugu
+ * icin haric tutulur (siralama display sirasini takip eder).
+ */
+const TOP_PRODUCT_SORT_ACCESSORS: SortAccessors<TopProductRow> = {
+  sku: (p) => p.sku,
+  product: (p) => p.product_name,
+  brand: (p) => p.brand,
+  units: (p) => p.units_sold,
+  revenue: (p) => toNumber(p.revenue),
+};
 
 /**
  * Genel Özet — profesyonel analitik dashboard.
@@ -586,20 +604,30 @@ function TopProductsCard({
   const { t } = useTranslation("dashboard");
   const columns = useColumnManager("overview-top-products-table", TOP_PRODUCT_COLUMNS);
 
+  // Kolon basligi siralamasi — render ve export ayni sirali veriyi kullanir.
+  // Siralama yokken (sortColumnId=null) backend sirasi korunur.
+  const sortedProducts = useSortedRows(
+    products,
+    TOP_PRODUCT_SORT_ACCESSORS,
+    columns.sortColumnId,
+    columns.sortDir,
+  );
+
   const maxRevenue = useMemo(
     () => Math.max(...products.map((p) => toNumber(p.revenue) ?? 0), 1),
     [products],
   );
 
-  // Export, ekrandaki görünür kolonların ham değerini taşır (filtreli veri).
+  // Export, ekrandaki görünür kolonların ham değerini taşır (sirali + filtreli
+  // veri). idx, sirali display sirasidir; "rank" kolonu bunu yansitir.
   const exportColumns = useMemo(
     () =>
       columns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
         accessor: (row: TopProductRow) =>
-          col.exportValue(row, products.indexOf(row)),
+          col.exportValue(row, sortedProducts.indexOf(row)),
       })),
-    [columns.visibleColumns, products, t],
+    [columns.visibleColumns, sortedProducts, t],
   );
 
   return (
@@ -610,7 +638,7 @@ function TopProductsCard({
       action={
         <div className="flex items-center gap-2">
           <ExportMenu
-            rows={products}
+            rows={sortedProducts}
             columns={exportColumns}
             fileBase="top-products"
             dateFrom={dateFrom}
@@ -631,6 +659,7 @@ function TopProductsCard({
           <ManagedColumnHeader
             manager={columns}
             ns="dashboard"
+            isSortable={(col) => col.id !== "rank"}
             headClassName={(col) => (col.numeric ? "text-right" : undefined)}
           />
           <TableBody>
@@ -645,7 +674,7 @@ function TopProductsCard({
                   </TableCell>
                 </TableRow>
               ))
-            ) : products.length === 0 ? (
+            ) : sortedProducts.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns.visibleColumns.length}
@@ -663,7 +692,7 @@ function TopProductsCard({
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((p, idx) => (
+              sortedProducts.map((p, idx) => (
                 <TableRow
                   key={p.sku}
                   className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

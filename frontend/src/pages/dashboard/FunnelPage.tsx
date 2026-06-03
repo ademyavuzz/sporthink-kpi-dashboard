@@ -16,7 +16,12 @@ import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
 import { ChartEmpty, ChartLoading } from "@/components/feature/charts/ChartEmpty";
 import { LineChart } from "@/components/feature/charts/LineChart";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -333,6 +338,31 @@ export default function FunnelPage() {
     return rows.map((r) => ({ ...r, dimensionLabel: t(r.dimensionKey) }));
   }, [data, t]);
 
+  // Kolon basligina tiklayinca kullanilan siralama deger cikaricilari. Adim
+  // sayilari sayisal; donusum yuzdesi NULL olabilir (useSortedRows tarafindan
+  // otomatik sona atilir). Boyut/segment string olarak tr-TR locale ile siralanir.
+  const breakdownSortAccessors = useMemo<SortAccessors<ResolvedBreakdownRow>>(
+    () => ({
+      dimension: (r) => r.dimensionLabel,
+      segment: (r) => r.label,
+      view: (r) => r.view,
+      add_to_cart: (r) => r.add_to_cart,
+      checkout: (r) => r.checkout,
+      purchase: (r) => r.purchase,
+      conversion: (r) => r.conversion,
+    }),
+    [],
+  );
+
+  // Render ve export'tan ONCE sirala. Varsayilan (sortColumnId=null) backend
+  // sirasini (kanallar sonra cihazlar) korur.
+  const sortedBreakdownRows = useSortedRows(
+    breakdownRows,
+    breakdownSortAccessors,
+    breakdownColumns.sortColumnId,
+    breakdownColumns.sortDir,
+  );
+
   const breakdownExportColumns = useMemo(
     () =>
       breakdownColumns.visibleColumns.map((col) => ({
@@ -529,7 +559,7 @@ export default function FunnelPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={breakdownRows}
+              rows={sortedBreakdownRows}
               columns={breakdownExportColumns}
               fileBase="funnel-breakdown"
               dateFrom={range.date_from}
@@ -550,6 +580,7 @@ export default function FunnelPage() {
             <ManagedColumnHeader
               manager={breakdownColumns}
               ns="dashboard"
+              isSortable={(col) => col.id !== "dimension"}
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
             />
             <TableBody>
@@ -564,7 +595,7 @@ export default function FunnelPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : breakdownRows.length === 0 ? (
+              ) : sortedBreakdownRows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={breakdownColumns.visibleColumns.length}
@@ -574,7 +605,7 @@ export default function FunnelPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                breakdownRows.map((row) => (
+                sortedBreakdownRows.map((row) => (
                   <TableRow
                     key={row.rowKey}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

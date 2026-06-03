@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  CalendarRange,
   CreditCard,
   ListChecks,
   MapPin,
@@ -8,6 +9,7 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Tag,
+  Users,
   X,
 } from "lucide-react";
 import { type ReactNode } from "react";
@@ -91,9 +93,23 @@ export function GlobalFilterBar({
     staleTime: 60 * 60 * 1000,
     enabled: fields.includes("payment_methods"),
   });
+  const gendersQ = useQuery({
+    queryKey: ["filters", "genders"],
+    queryFn: () => adminApi.filterGenders(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("genders"),
+  });
+  const ageGroupsQ = useQuery({
+    queryKey: ["filters", "age_groups"],
+    queryFn: () => adminApi.filterAgeGroups(),
+    staleTime: 60 * 60 * 1000,
+    enabled: fields.includes("age_groups"),
+  });
 
   const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
   const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
+  const renderGender = (o: string) =>
+    t(`dashboard:customers.gender_${o}`, { defaultValue: o });
 
   const total = countActiveFilters(store);
 
@@ -193,6 +209,27 @@ export function GlobalFilterBar({
           loading={paymentMethodsQ.isPending}
           renderOption={renderPayment}
           onChange={store.setSelectedPaymentMethods}
+        />
+      )}
+      {fields.includes("genders") && (
+        <FilterMultiSelect
+          label={t("filters:gender")}
+          icon={Users}
+          options={gendersQ.data ?? []}
+          selected={store.selected_genders}
+          loading={gendersQ.isPending}
+          renderOption={renderGender}
+          onChange={store.setSelectedGenders}
+        />
+      )}
+      {fields.includes("age_groups") && (
+        <FilterMultiSelect
+          label={t("filters:age_group")}
+          icon={CalendarRange}
+          options={ageGroupsQ.data ?? []}
+          selected={store.selected_age_groups}
+          loading={ageGroupsQ.isPending}
+          onChange={store.setSelectedAgeGroups}
         />
       )}
 

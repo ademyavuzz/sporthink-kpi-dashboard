@@ -8,24 +8,35 @@ import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
 import { KPICard, KPICardSkeleton } from "@/components/feature/KPICard";
 import { BarChart } from "@/components/feature/charts/BarChart";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { formatAxisCurrency, formatCount, formatCurrency, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 import type { TopProductRow } from "@/types/dashboard";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
 /**
  * Urun Performansi sayfasi. Satilan urun KPI'si, kategori/marka bazli ciro
- * kirilimleri ve en cok satan urunler tablosu (kolon yonetimi + export).
+ * kirilimleri ve en cok satan urunler tablosu (kolon yonetimi + siralama +
+ * export).
  *
- * Not: Backend `/dashboard/products` endpoint'i yalnizca tarih araligi (ve
- * comparison_mode) kabul eder; kanal/cihaz/kategori vb. filtre desteklemez.
- * Bu nedenle bu sayfada GlobalFilterBar gosterilmez (ise yaramayan filtre
- * sunmamak icin) — sadece tarih araligi ile filtrelenir.
+ * Filtre & cross-filter:
+ *  - Tarih araligi: DashboardHeader (sayfa-local state).
+ *  - Kategori/Marka: `useFiltersStore` (cross-page) → backend cross-filter.
+ *    Backend `/dashboard/products` bu iki boyut filtresini destekledigi icin
+ *    GlobalFilterBar bunlarla sinirlidir (ise yaramayan filtre yok).
+ *  - Kategori/marka barina tikla → o degere filtre (tekrar tikla → kaldir);
+ *    query otomatik refetch olur.
  */
 
 /** En cok satan urunler tablosu kolon tanimlari (id = stabil localStorage anahtari). */
@@ -128,18 +139,48 @@ const PRODUCT_COLUMNS: ProductColumn[] = [
   },
 ];
 
+/**
+ * Tablo siralamasi icin kolon id -> ham deger cikaricisi. `rank` yapisal
+ * kolondur; siralanmaz (ManagedColumnHeader'da isSortable ile haric tutulur,
+ * burada da yer almaz — sirayi zaten siralama belirler). Para string'i
+ * toNumber ile sayiya cevrilir; metin kolonlari (sku, urun, marka) string
+ * olarak gecer ve useSortedRows icinde tr-TR locale ile karsilastirilir.
+ * NULL'lar daima sona.
+ */
+const PRODUCT_SORT_ACCESSORS: SortAccessors<TopProductRow> = {
+  sku: (p) => p.sku,
+  product: (p) => p.product_name,
+  brand: (p) => p.brand,
+  units: (p) => p.units_sold,
+  revenue: (p) => toNumber(p.revenue),
+};
+
 export default function ProductsPage() {
   const { t } = useTranslation("dashboard");
   const [range, setRange] = useDashboardRange();
 
+  const categories = useFiltersStore((s) => s.selected_categories);
+  const brands = useFiltersStore((s) => s.selected_brands);
+  const setSelectedCategories = useFiltersStore((s) => s.setSelectedCategories);
+  const setSelectedBrands = useFiltersStore((s) => s.setSelectedBrands);
+
   const productColumns = useColumnManager("products-top-table", PRODUCT_COLUMNS);
 
   const q = useQuery({
-    queryKey: ["dashboard", "products", range.date_from, range.date_to],
+    queryKey: [
+      "dashboard",
+      "products",
+      range.date_from,
+      range.date_to,
+      categories,
+      brands,
+    ],
     queryFn: () =>
       dashboardApi.products({
         date_from: range.date_from,
         date_to: range.date_to,
+        categories: categories.length ? categories : undefined,
+        brands: brands.length ? brands : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   });
@@ -153,15 +194,36 @@ export default function ProductsPage() {
     [topProducts],
   );
 
+  // Render ve disa aktarmadan ONCE sirala. Varsayilan (sortColumnId=null)
+  // backend sirasini korur.
+  const sortedProducts = useSortedRows(
+    topProducts,
+    PRODUCT_SORT_ACCESSORS,
+    productColumns.sortColumnId,
+    productColumns.sortDir,
+  );
+
   const productExportColumns = useMemo(
     () =>
       productColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
         accessor: (p: TopProductRow) =>
-          col.exportValue(p, topProducts.indexOf(p) + 1),
+          col.exportValue(p, sortedProducts.indexOf(p) + 1),
       })),
-    [productColumns.visibleColumns, topProducts, t],
+    [productColumns.visibleColumns, sortedProducts, t],
   );
+
+  /** Kategori barina tikla → kategori cross-filter (tekrar tikla → kaldir). */
+  const handleCategoryClick = (label: string) => {
+    setSelectedCategories(
+      categories.length === 1 && categories[0] === label ? [] : [label],
+    );
+  };
+
+  /** Marka barina tikla → marka cross-filter (tekrar tikla → kaldir). */
+  const handleBrandClick = (label: string) => {
+    setSelectedBrands(brands.length === 1 && brands[0] === label ? [] : [label]);
+  };
 
   return (
     <PageShell>
@@ -171,6 +233,7 @@ export default function ProductsPage() {
           range={range}
           onChangeRange={setRange}
         />
+        <GlobalFilterBar fields={["categories", "brands"]} showRanges />
       </div>
 
       {/* KPI grid */}
@@ -206,6 +269,7 @@ export default function ProductsPage() {
                 : []
             }
             valueFormatter={formatAxisCurrency}
+            onSelect={handleCategoryClick}
           />
         </ChartCard>
 
@@ -231,6 +295,7 @@ export default function ProductsPage() {
                 : []
             }
             valueFormatter={formatAxisCurrency}
+            onSelect={handleBrandClick}
           />
         </ChartCard>
       </div>
@@ -244,7 +309,7 @@ export default function ProductsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={topProducts}
+              rows={sortedProducts}
               columns={productExportColumns}
               fileBase="products-top"
               dateFrom={range.date_from}
@@ -265,6 +330,7 @@ export default function ProductsPage() {
             <ManagedColumnHeader
               manager={productColumns}
               ns="dashboard"
+              isSortable={(col) => col.id !== "rank"}
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
             />
             <TableBody>
@@ -279,7 +345,7 @@ export default function ProductsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : topProducts.length === 0 ? (
+              ) : sortedProducts.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={productColumns.visibleColumns.length}
@@ -289,7 +355,7 @@ export default function ProductsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                topProducts.map((p, i) => {
+                sortedProducts.map((p, i) => {
                   const rev = toNumber(p.revenue) ?? 0;
                   const barPct = (rev / maxRevenue) * 100;
                   return (

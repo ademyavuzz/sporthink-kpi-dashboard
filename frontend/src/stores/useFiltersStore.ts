@@ -39,6 +39,9 @@ export interface FiltersState {
   selected_brands: string[];
   selected_statuses: string[];
   selected_payment_methods: string[];
+  // Müşteri/kohort demografi boyut filtreleri (backend: customers/cohort)
+  selected_genders: string[];
+  selected_age_groups: string[];
   // Gelişmiş range filtreler
   revenue_range: RangeFilter;
   orders_range: RangeFilter;
@@ -60,6 +63,8 @@ export interface FiltersState {
   setSelectedBrands: (brands: string[]) => void;
   setSelectedStatuses: (statuses: string[]) => void;
   setSelectedPaymentMethods: (paymentMethods: string[]) => void;
+  setSelectedGenders: (genders: string[]) => void;
+  setSelectedAgeGroups: (ageGroups: string[]) => void;
   setRevenueRange: (r: RangeFilter) => void;
   setOrdersRange: (r: RangeFilter) => void;
   setRoasRange: (r: RangeFilter) => void;
@@ -88,6 +93,8 @@ export const useFiltersStore = create<FiltersState>()(
       selected_brands: [],
       selected_statuses: [],
       selected_payment_methods: [],
+      selected_genders: [],
+      selected_age_groups: [],
       revenue_range: { ..._emptyRange },
       orders_range: { ..._emptyRange },
       roas_range: { ..._emptyRange },
@@ -128,6 +135,8 @@ export const useFiltersStore = create<FiltersState>()(
       setSelectedStatuses: (statuses) => set({ selected_statuses: statuses }),
       setSelectedPaymentMethods: (paymentMethods) =>
         set({ selected_payment_methods: paymentMethods }),
+      setSelectedGenders: (genders) => set({ selected_genders: genders }),
+      setSelectedAgeGroups: (ageGroups) => set({ selected_age_groups: ageGroups }),
       setRevenueRange: (r) => set({ revenue_range: r }),
       setOrdersRange: (r) => set({ orders_range: r }),
       setRoasRange: (r) => set({ roas_range: r }),
@@ -142,6 +151,8 @@ export const useFiltersStore = create<FiltersState>()(
           selected_brands: [],
           selected_statuses: [],
           selected_payment_methods: [],
+          selected_genders: [],
+          selected_age_groups: [],
           revenue_range: { ..._emptyRange },
           orders_range: { ..._emptyRange },
           roas_range: { ..._emptyRange },
@@ -166,6 +177,8 @@ export function countActiveFilters(s: FiltersState): number {
   n += s.selected_brands.length > 0 ? 1 : 0;
   n += s.selected_statuses.length > 0 ? 1 : 0;
   n += s.selected_payment_methods.length > 0 ? 1 : 0;
+  n += s.selected_genders.length > 0 ? 1 : 0;
+  n += s.selected_age_groups.length > 0 ? 1 : 0;
   n += s.revenue_range.min !== null || s.revenue_range.max !== null ? 1 : 0;
   n += s.orders_range.min !== null || s.orders_range.max !== null ? 1 : 0;
   n += s.roas_range.min !== null || s.roas_range.max !== null ? 1 : 0;

@@ -14,7 +14,12 @@ import {
   MetricToggles,
   type MetricOption,
 } from "@/components/feature/charts/MetricToggles";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  useSortedRows,
+  type SortAccessors,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
@@ -196,13 +201,41 @@ export default function MetaAdsPage() {
   const isLoading = q.isPending;
   const campaigns = useMemo(() => data?.campaigns ?? [], [data]);
 
+  // Kolon id -> siralama deger cikarici. "rank" yapisal kolon oldugu icin
+  // siralanmaz (sirayi zaten siralama belirler). Para/yuzde string'leri toNumber
+  // ile sayiya cevrilir; bos isimler null doner (NULL'lar her zaman sona gider).
+  const campaignSortAccessors = useMemo<SortAccessors<CampaignMetric>>(
+    () => ({
+      campaign: (c) => c.campaign_name ?? null,
+      impressions: (c) => c.impressions,
+      clicks: (c) => c.clicks,
+      ctr: (c) => toNumber(c.ctr),
+      cpc: (c) => toNumber(c.cpc),
+      spend: (c) => toNumber(c.spend),
+      conversions: (c) => toNumber(c.conversions),
+      revenue: (c) => toNumber(c.conversions_value),
+      roas: (c) => toNumber(c.roas),
+    }),
+    [],
+  );
+
+  // Render ve disa aktarmadan ONCE sirala. Varsayilan (sortColumnId=null)
+  // backend sirasini korur.
+  const sortedCampaigns = useSortedRows(
+    campaigns,
+    campaignSortAccessors,
+    campaignColumns.sortColumnId,
+    campaignColumns.sortDir,
+  );
+
   const campaignExportColumns = useMemo(
     () =>
       campaignColumns.visibleColumns.map((col) => ({
         header: t(col.labelKey),
-        accessor: (row: CampaignMetric) => col.exportValue(row, campaigns.indexOf(row)),
+        accessor: (row: CampaignMetric) =>
+          col.exportValue(row, sortedCampaigns.indexOf(row)),
       })),
-    [campaignColumns.visibleColumns, campaigns, t],
+    [campaignColumns.visibleColumns, sortedCampaigns, t],
   );
 
   // Harcamaya gore en iyi 8 kampanya (bar grafik).
@@ -358,7 +391,7 @@ export default function MetaAdsPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={campaigns}
+              rows={sortedCampaigns}
               columns={campaignExportColumns}
               fileBase="meta-ads-campaigns"
               dateFrom={range.date_from}
@@ -379,6 +412,7 @@ export default function MetaAdsPage() {
             <ManagedColumnHeader
               manager={campaignColumns}
               ns="dashboard"
+              isSortable={(col) => col.id !== "rank"}
               headClassName={(col) => (col.numeric ? "text-right" : undefined)}
             />
             <TableBody>
@@ -393,7 +427,7 @@ export default function MetaAdsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : campaigns.length === 0 ? (
+              ) : sortedCampaigns.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={campaignColumns.visibleColumns.length}
@@ -403,7 +437,7 @@ export default function MetaAdsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                campaigns.map((c, idx) => (
+                sortedCampaigns.map((c, idx) => (
                   <TableRow
                     key={c.campaign_id}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

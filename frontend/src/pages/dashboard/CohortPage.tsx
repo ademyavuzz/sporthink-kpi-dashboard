@@ -7,13 +7,20 @@ import { useTranslation } from "react-i18next";
 import { ChartCard } from "@/components/feature/ChartCard";
 import { ExportMenu } from "@/components/feature/ExportMenu";
 import { BarChart } from "@/components/feature/charts/BarChart";
-import { ColumnSettingsMenu, ManagedColumnHeader } from "@/components/feature/table";
+import { GlobalFilterBar } from "@/components/feature/filters/GlobalFilterBar";
+import {
+  ColumnSettingsMenu,
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { dayjs } from "@/lib/dayjs";
 import { formatCount, formatPercent, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useFiltersStore } from "@/stores/useFiltersStore";
 
 import { DashboardHeader, PageShell, useDashboardRange } from "./_shared";
 
@@ -123,10 +130,12 @@ function RetentionCell({ value }: { value: number | null }) {
 }
 
 /**
- * Cohort / Retention sayfasi. Backend /dashboard/cohort endpoint'i yalnizca
- * date_from/date_to kabul eder (cross-filter param yok), bu yuzden bu sayfada
- * GlobalFilterBar gosterilmez. Retention heatmap'i, cohort buyukluk grafigi ve
- * kolon-ozellestirilebilir + disa aktarilabilir cohort tablosu sunar.
+ * Cohort / Retention sayfasi. Backend /dashboard/cohort endpoint'i
+ * date_from/date_to + genders/age_groups/cities filtrelerini kabul eder; bu
+ * yuzden GlobalFilterBar bu uc alanla (ve gelismis aralik paneliyle) gosterilir,
+ * secili degerler query'ye gecirilir. Retention heatmap'i, cohort buyukluk
+ * grafigi ve kolon-siralanabilir / -ozellestirilebilir + disa aktarilabilir
+ * cohort tablosu sunar. Cross-filter cohort icin anlamli olmadigindan eklenmez.
  */
 export default function CohortPage() {
   const { t } = useTranslation("dashboard");
@@ -134,12 +143,27 @@ export default function CohortPage() {
 
   const cohortColumns = useColumnManager("cohort-table", COHORT_COLUMNS);
 
+  const genders = useFiltersStore((s) => s.selected_genders);
+  const ageGroups = useFiltersStore((s) => s.selected_age_groups);
+  const cities = useFiltersStore((s) => s.selected_cities);
+
   const q = useQuery({
-    queryKey: ["dashboard", "cohort", range.date_from, range.date_to],
+    queryKey: [
+      "dashboard",
+      "cohort",
+      range.date_from,
+      range.date_to,
+      genders,
+      ageGroups,
+      cities,
+    ],
     queryFn: () =>
       dashboardApi.cohort({
         date_from: range.date_from,
         date_to: range.date_to,
+        genders: genders.length ? genders : undefined,
+        age_groups: ageGroups.length ? ageGroups : undefined,
+        cities: cities.length ? cities : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   });
@@ -164,6 +188,28 @@ export default function CohortPage() {
     );
   }, [cells]);
 
+  // Tablo kolon siralamasi: cohort ay (ISO string) + boyut/retention sayisal.
+  // Retention degerleri zaten sayi (toNumber ile cevrilmis) veya null. Varsayilan
+  // (sortColumnId=null) backend cohort-ay sirasini korur.
+  const sortAccessors = useMemo<SortAccessors<CohortRow>>(
+    () => ({
+      cohort: (r) => r.cohort_month,
+      size: (r) => r.size,
+      m1: (r) => offsetPct(r, 1),
+      m2: (r) => offsetPct(r, 2),
+      m3: (r) => offsetPct(r, 3),
+      m6: (r) => offsetPct(r, 6),
+    }),
+    [],
+  );
+
+  const sortedRows = useSortedRows(
+    rows,
+    sortAccessors,
+    cohortColumns.sortColumnId,
+    cohortColumns.sortDir,
+  );
+
   const exportColumns = useMemo(
     () =>
       cohortColumns.visibleColumns.map((col) => ({
@@ -182,8 +228,9 @@ export default function CohortPage() {
 
   return (
     <PageShell>
-      <div className="sticky top-0 z-20 -mx-1 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 bg-background/85 px-1 pb-3 pt-1 backdrop-blur">
         <DashboardHeader title={t("cohort.title")} range={range} onChangeRange={setRange} />
+        <GlobalFilterBar fields={["genders", "age_groups", "cities"]} showRanges />
       </div>
 
       {/* Retention heatmap */}
@@ -295,7 +342,7 @@ export default function CohortPage() {
         action={
           <div className="flex items-center gap-2">
             <ExportMenu
-              rows={rows}
+              rows={sortedRows}
               columns={exportColumns}
               fileBase="cohort"
               dateFrom={range.date_from}
@@ -330,7 +377,7 @@ export default function CohortPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : rows.length === 0 ? (
+              ) : sortedRows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={cohortColumns.visibleColumns.length}
@@ -340,7 +387,7 @@ export default function CohortPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
+                sortedRows.map((row) => (
                   <TableRow
                     key={row.cohort_month}
                     className="border-b border-border/60 transition-colors hover:bg-primary/[0.04]"

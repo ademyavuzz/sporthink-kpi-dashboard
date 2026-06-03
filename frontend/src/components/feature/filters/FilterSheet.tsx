@@ -25,7 +25,9 @@ export type FilterField =
   | "categories"
   | "brands"
   | "statuses"
-  | "payment_methods";
+  | "payment_methods"
+  | "genders"
+  | "age_groups";
 
 const RANGE_KEYS = ["revenue", "orders", "roas", "conversion"] as const;
 type RangeKey = (typeof RANGE_KEYS)[number];
@@ -50,6 +52,8 @@ interface Draft {
   brands: string[];
   statuses: string[];
   payment_methods: string[];
+  genders: string[];
+  age_groups: string[];
   ranges: Record<RangeKey, RangeFilter>;
 }
 
@@ -106,9 +110,23 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     staleTime: 60 * 60 * 1000,
     enabled: open && fields.includes("payment_methods"),
   });
+  const gendersQ = useQuery({
+    queryKey: ["filters", "genders"],
+    queryFn: () => adminApi.filterGenders(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("genders"),
+  });
+  const ageGroupsQ = useQuery({
+    queryKey: ["filters", "age_groups"],
+    queryFn: () => adminApi.filterAgeGroups(),
+    staleTime: 60 * 60 * 1000,
+    enabled: open && fields.includes("age_groups"),
+  });
 
   const renderStatus = (o: string) => t(`dashboard:ecom.status_${o}`, { defaultValue: o });
   const renderPayment = (o: string) => t(`dashboard:ecom.payment_${o}`, { defaultValue: o });
+  const renderGender = (o: string) =>
+    t(`dashboard:customers.gender_${o}`, { defaultValue: o });
 
   const snapshot = (): Draft => ({
     channels: store.selected_channels,
@@ -118,6 +136,8 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     brands: store.selected_brands,
     statuses: store.selected_statuses,
     payment_methods: store.selected_payment_methods,
+    genders: store.selected_genders,
+    age_groups: store.selected_age_groups,
     ranges: {
       revenue: { ...store.revenue_range },
       orders: { ...store.orders_range },
@@ -148,6 +168,8 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
     (draft.brands.length ? 1 : 0) +
     (draft.statuses.length ? 1 : 0) +
     (draft.payment_methods.length ? 1 : 0) +
+    (draft.genders.length ? 1 : 0) +
+    (draft.age_groups.length ? 1 : 0) +
     (showRanges
       ? RANGE_KEYS.filter((k) => draft.ranges[k].min !== null || draft.ranges[k].max !== null).length
       : 0);
@@ -161,6 +183,8 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       selected_brands: draft.brands,
       selected_statuses: draft.statuses,
       selected_payment_methods: draft.payment_methods,
+      selected_genders: draft.genders,
+      selected_age_groups: draft.age_groups,
       ...(showRanges
         ? {
             revenue_range: draft.ranges.revenue,
@@ -182,6 +206,8 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
       brands: [],
       statuses: [],
       payment_methods: [],
+      genders: [],
+      age_groups: [],
       ranges: {
         revenue: { min: null, max: null },
         orders: { min: null, max: null },
@@ -287,6 +313,27 @@ export function FilterSheet({ fields, showRanges = false, trigger }: FilterSheet
                   loading={paymentMethodsQ.isPending}
                   renderOption={renderPayment}
                   onChange={(v) => setDraft((d) => ({ ...d, payment_methods: v }))}
+                />
+              )}
+              {fields.includes("genders") && (
+                <FilterMultiSelect
+                  label={t("filters:gender")}
+                  className="w-full"
+                  options={gendersQ.data ?? []}
+                  selected={draft.genders}
+                  loading={gendersQ.isPending}
+                  renderOption={renderGender}
+                  onChange={(v) => setDraft((d) => ({ ...d, genders: v }))}
+                />
+              )}
+              {fields.includes("age_groups") && (
+                <FilterMultiSelect
+                  label={t("filters:age_group")}
+                  className="w-full"
+                  options={ageGroupsQ.data ?? []}
+                  selected={draft.age_groups}
+                  loading={ageGroupsQ.isPending}
+                  onChange={(v) => setDraft((d) => ({ ...d, age_groups: v }))}
                 />
               )}
             </div>

@@ -11,6 +11,8 @@
   "brand": "Brand",
   "status": "Order Status",
   "payment_method": "Payment Method",
+  "gender": "Gender",
+  "age_group": "Age Group",
   "revenue_range": "Revenue Range",
   "orders_range": "Orders Range",
   "roas_range": "ROAS Range",

@@ -328,6 +328,8 @@ export interface EcommerceQuery {
   brands?: string[];
   statuses?: string[];
   payment_methods?: string[];
+  cities?: string[];
+  devices?: string[];
   orders_limit?: number;
 }
 
@@ -526,4 +528,32 @@ export interface DashboardQuery {
   /** Cross-filter — kanal/cihaz çoklu seçim. */
   channels?: string[];
   devices?: string[];
+}
+
+/** Ürünler endpoint'i — kategori/marka boyut filtreleri (backend: products). */
+export interface ProductsQuery {
+  date_from: string;
+  date_to: string;
+  comparison_mode?: ComparisonMode;
+  categories?: string[];
+  brands?: string[];
+}
+
+/** Müşteriler endpoint'i — demografi boyut filtreleri (backend: customers). */
+export interface CustomersQuery {
+  date_from: string;
+  date_to: string;
+  comparison_mode?: ComparisonMode;
+  genders?: string[];
+  age_groups?: string[];
+  cities?: string[];
+}
+
+/** Kohort endpoint'i — demografi boyut filtreleri (backend: cohort). */
+export interface CohortQuery {
+  date_from: string;
+  date_to: string;
+  genders?: string[];
+  age_groups?: string[];
+  cities?: string[];
 }

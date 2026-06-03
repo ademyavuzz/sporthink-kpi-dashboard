@@ -4,7 +4,9 @@ import type {
   CampaignAnalysisResponse,
   CampaignDetailResponse,
   ChannelAnalysisResponse,
+  CohortQuery,
   CohortResponse,
+  CustomersQuery,
   CustomersResponse,
   DashboardQuery,
   EcommerceQuery,
@@ -14,6 +16,7 @@ import type {
   MetaAdsResponse,
   OrderDetailResponse,
   OverviewResponse,
+  ProductsQuery,
   ProductsResponse,
   TrafficQuery,
   TrafficResponse,
@@ -79,6 +82,8 @@ export const dashboardApi = {
     p.brands?.forEach((b) => params.append("brands", b));
     p.statuses?.forEach((s) => params.append("statuses", s));
     p.payment_methods?.forEach((m) => params.append("payment_methods", m));
+    p.cities?.forEach((c) => params.append("cities", c));
+    p.devices?.forEach((d) => params.append("devices", d));
     if (p.orders_limit != null) params.set("orders_limit", String(p.orders_limit));
     const r = await apiClient.get<ApiEnvelope<EcommerceResponse>>(
       `/dashboard/ecom?${params.toString()}`,
@@ -118,19 +123,29 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async cohort(p: Pick<DashboardQuery, "date_from" | "date_to">): Promise<CohortResponse> {
+  async cohort(p: CohortQuery): Promise<CohortResponse> {
     const params = new URLSearchParams({
       date_from: p.date_from,
       date_to: p.date_to,
     });
+    p.genders?.forEach((g) => params.append("genders", g));
+    p.age_groups?.forEach((a) => params.append("age_groups", a));
+    p.cities?.forEach((c) => params.append("cities", c));
     const r = await apiClient.get<ApiEnvelope<CohortResponse>>(
       `/dashboard/cohort?${params.toString()}`,
     );
     return unwrap(r);
   },
-  async products(p: DashboardQuery): Promise<ProductsResponse> {
+  async products(p: ProductsQuery): Promise<ProductsResponse> {
+    const params = new URLSearchParams({
+      date_from: p.date_from,
+      date_to: p.date_to,
+    });
+    if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+    p.categories?.forEach((c) => params.append("categories", c));
+    p.brands?.forEach((b) => params.append("brands", b));
     const r = await apiClient.get<ApiEnvelope<ProductsResponse>>(
-      `/dashboard/products?${qs(p)}`,
+      `/dashboard/products?${params.toString()}`,
     );
     return unwrap(r);
   },
@@ -174,11 +189,15 @@ export const dashboardApi = {
     );
     return unwrap(r);
   },
-  async customers(p: Pick<DashboardQuery, "date_from" | "date_to">): Promise<CustomersResponse> {
+  async customers(p: CustomersQuery): Promise<CustomersResponse> {
     const params = new URLSearchParams({
       date_from: p.date_from,
       date_to: p.date_to,
     });
+    if (p.comparison_mode) params.set("comparison_mode", p.comparison_mode);
+    p.genders?.forEach((g) => params.append("genders", g));
+    p.age_groups?.forEach((a) => params.append("age_groups", a));
+    p.cities?.forEach((c) => params.append("cities", c));
     const r = await apiClient.get<ApiEnvelope<CustomersResponse>>(
       `/dashboard/customers?${params.toString()}`,
     );

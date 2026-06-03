@@ -12,9 +12,15 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/feature/ChartCard";
+import {
+  ManagedColumnHeader,
+  type SortAccessors,
+  useSortedRows,
+} from "@/components/feature/table";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,14 +42,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { type ColumnDef, useColumnManager } from "@/hooks/useColumnManager";
 import { ApiError } from "@/lib/api/client";
 import { reportsApi } from "@/lib/api/reports";
 import { dayjs } from "@/lib/dayjs";
@@ -127,6 +127,18 @@ const STATUS_TONE: Record<
     Icon: XCircle,
   },
 };
+
+/**
+ * Gecmis raporlar tablosu kolon tanimlari (id = stabil localStorage anahtari).
+ * Govde hucresi `cell` ile render edilir; baslik siralamasi paylasilan
+ * `ManagedColumnHeader` + `useColumnManager` ile yonetilir.
+ */
+interface ReportColumn extends ColumnDef {
+  /** Saga hizali (sayisal) kolon mu? */
+  numeric?: boolean;
+  /** Tek satir icin hucre icerigini render eder. */
+  cell: (row: ReportListItem) => ReactNode;
+}
 
 export default function ReportsPage() {
   const { t, i18n } = useTranslation(["reports", "common"]);
@@ -277,7 +289,168 @@ export default function ReportsPage() {
     setLanguage(isTr ? "tr" : "en");
   }, [isTr]);
 
-  const reports = listQuery.data ?? [];
+  const reports = useMemo(() => listQuery.data ?? [], [listQuery.data]);
+
+  // Gecmis raporlar tablosu kolonlari. Hucre render'i mevcut zengin gosterimi
+  // korur; yalnizca baslik-tikla siralama eklenir. "sections" ve "actions"
+  // siralanabilir degildir (yapisal/aksiyon kolonlari).
+  const historyColumns = useMemo<ReportColumn[]>(
+    () => [
+      {
+        id: "name",
+        labelKey: "history.col_name",
+        required: true,
+        cell: (r) => (
+          <>
+            <span className="font-medium text-foreground">{r.name}</span>
+            {r.error_message && r.status === "failed" && (
+              <div className="mt-0.5 text-xs text-error-600 dark:text-error-500">
+                {r.error_message}
+              </div>
+            )}
+          </>
+        ),
+      },
+      {
+        id: "language",
+        labelKey: "create.language",
+        cell: (r) => (
+          <span className="inline-flex items-center rounded border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-text-dim">
+            {t(`reports:lang_badge.${r.language === "en" ? "en" : "tr"}`)}
+          </span>
+        ),
+      },
+      {
+        id: "period",
+        labelKey: "history.col_period",
+        cell: (r) => (
+          <span className="text-sm tabular-nums text-text-muted">
+            {dayjs(r.date_from).format("DD.MM.YYYY")}
+            <span className="mx-1 text-text-dim">-</span>
+            {dayjs(r.date_to).format("DD.MM.YYYY")}
+          </span>
+        ),
+      },
+      {
+        id: "sections",
+        labelKey: "history.col_sections",
+        cell: (r) => (
+          <div className="flex flex-wrap gap-1">
+            {r.sections.map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-text-muted"
+              >
+                {sectionLabels.get(s)?.label ?? t(`reports:section.${s}`)}
+              </span>
+            ))}
+          </div>
+        ),
+      },
+      {
+        id: "status",
+        labelKey: "history.col_status",
+        cell: (r) => {
+          const tone = STATUS_TONE[r.status];
+          const StatusIcon = tone.Icon;
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                tone.className,
+              )}
+            >
+              <StatusIcon
+                className={cn(
+                  "size-3",
+                  r.status === "generating" && "animate-spin",
+                )}
+              />
+              {t(`reports:status.${r.status}`)}
+            </span>
+          );
+        },
+      },
+      {
+        id: "size",
+        labelKey: "history.col_size",
+        numeric: true,
+        cell: (r) => (
+          <span className="text-sm tabular-nums text-text-muted">
+            {formatBytes(r.file_size_bytes)}
+          </span>
+        ),
+      },
+      {
+        id: "created_at",
+        labelKey: "history.col_created_at",
+        cell: (r) => (
+          <span className="text-sm text-text-muted">
+            {dayjs.utc(r.created_at).tz("Europe/Istanbul").format("DD.MM.YYYY HH:mm")}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        labelKey: "history.col_actions",
+        required: true,
+        numeric: true,
+        cell: (r) => (
+          <div className="flex justify-end gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={r.status !== "completed"}
+              onClick={() => void handleDownload(r)}
+              className="h-8 gap-1"
+            >
+              <Download className="size-3.5" />
+              {t("reports:history.download")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setPendingDelete(r)}
+              className="h-8 px-2 text-text-muted hover:text-error-600"
+              aria-label={t("reports:history.delete")}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // cell render'lari yalnizca t / sectionLabels'a baglidir; geri kalan
+    // bagimliliklar (handleDownload, setPendingDelete) stabildir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, sectionLabels],
+  );
+
+  const historyManager = useColumnManager("reports-history-table", historyColumns);
+
+  // Siralanabilir kolonlar icin ham deger cikaricilari. "sections"/"actions"
+  // yapisaldir; "size" sayisal, tarih/durum/ad/dil string olarak siralanir.
+  const historySortAccessors = useMemo<SortAccessors<ReportListItem>>(
+    () => ({
+      name: (r) => r.name,
+      language: (r) => r.language,
+      period: (r) => r.date_from,
+      status: (r) => r.status,
+      size: (r) => r.file_size_bytes,
+      created_at: (r) => r.created_at,
+    }),
+    [],
+  );
+
+  // Render ONCESI siralama (varsayilan: backend sirasi korunur).
+  const sortedReports = useSortedRows(
+    reports,
+    historySortAccessors,
+    historyManager.sortColumnId,
+    historyManager.sortDir,
+  );
 
   return (
     <div className="container mx-auto max-w-[1400px] space-y-5 px-6 py-6">
@@ -527,125 +700,27 @@ export default function ReportsPage() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-border bg-surface-2 hover:bg-surface-2">
-                    <TableHead className="px-4 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_name")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_period")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_sections")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_status")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_size")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_created_at")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-[11px] uppercase tracking-wider text-text-dim">
-                      {t("reports:history.col_actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
+                <ManagedColumnHeader
+                  manager={historyManager}
+                  ns="reports"
+                  headClassName={(col) => (col.numeric ? "text-right" : undefined)}
+                  isSortable={(col) =>
+                    col.id !== "sections" && col.id !== "actions"
+                  }
+                />
                 <TableBody>
-                  {reports.map((r) => {
-                    const tone = STATUS_TONE[r.status];
-                    const StatusIcon = tone.Icon;
-                    return (
-                      <TableRow key={r.id} className="border-b border-border">
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">
-                              {r.name}
-                            </span>
-                            <span className="inline-flex items-center rounded border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-text-dim">
-                              {t(
-                                `reports:lang_badge.${r.language === "en" ? "en" : "tr"}`,
-                              )}
-                            </span>
-                          </div>
-                          {r.error_message && r.status === "failed" && (
-                            <div className="mt-0.5 text-xs text-error-600 dark:text-error-500">
-                              {r.error_message}
-                            </div>
-                          )}
+                  {sortedReports.map((r) => (
+                    <TableRow key={r.id} className="border-b border-border">
+                      {historyManager.visibleColumns.map((col) => (
+                        <TableCell
+                          key={col.id}
+                          className={cn("px-3 py-3", col.numeric && "text-right")}
+                        >
+                          {col.cell(r)}
                         </TableCell>
-                        <TableCell className="px-3 py-3 text-sm tabular-nums text-text-muted">
-                          {dayjs(r.date_from).format("DD.MM.YYYY")}
-                          <span className="mx-1 text-text-dim">-</span>
-                          {dayjs(r.date_to).format("DD.MM.YYYY")}
-                        </TableCell>
-                        <TableCell className="px-3 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {r.sections.map((s) => (
-                              <span
-                                key={s}
-                                className="inline-flex items-center rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-text-muted"
-                              >
-                                {sectionLabels.get(s)?.label ??
-                                  t(`reports:section.${s}`)}
-                              </span>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3 py-3">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                              tone.className,
-                            )}
-                          >
-                            <StatusIcon
-                              className={cn(
-                                "size-3",
-                                r.status === "generating" && "animate-spin",
-                              )}
-                            />
-                            {t(`reports:status.${r.status}`)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-3 py-3 text-right text-sm tabular-nums text-text-muted">
-                          {formatBytes(r.file_size_bytes)}
-                        </TableCell>
-                        <TableCell className="px-3 py-3 text-sm text-text-muted">
-                          {dayjs
-                            .utc(r.created_at)
-                            .tz("Europe/Istanbul")
-                            .format("DD.MM.YYYY HH:mm")}
-                        </TableCell>
-                        <TableCell className="px-3 py-3">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={r.status !== "completed"}
-                              onClick={() => void handleDownload(r)}
-                              className="h-8 gap-1"
-                            >
-                              <Download className="size-3.5" />
-                              {t("reports:history.download")}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setPendingDelete(r)}
-                              className="h-8 px-2 text-text-muted hover:text-error-600"
-                              aria-label={t("reports:history.delete")}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

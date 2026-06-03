@@ -21,6 +21,12 @@ interface DonutChartProps {
   groupSmallSlices?: boolean;
   /** Slice veya legend tıklandığında label döner; aynı label tekrar tıklanırsa null geçer (toggle). */
   onSliceClick?: (label: string | null) => void;
+  /**
+   * BarChart ile aynı standart cross-filter imzası — bir dilime tıklanınca
+   * `label` (ham) ve `index` döner. "Diğer" dilimi ve toggle mantığı
+   * `onSliceClick`'e özgüdür; `onSelect` her dilim için tetiklenir.
+   */
+  onSelect?: (label: string, index: number) => void;
   /** Vurgulanacak label — diğer slice'lar soluk render edilir. */
   selectedLabel?: string | null;
 }
@@ -49,6 +55,7 @@ export function DonutChart({
   loading,
   groupSmallSlices = true,
   onSliceClick,
+  onSelect,
   selectedLabel,
 }: DonutChartProps) {
   const { t } = useTranslation("common");
@@ -98,7 +105,7 @@ export function DonutChart({
         parentHeightOffset: 0,
         // `events` anahtarı yalnızca handler varsa eklenir; `events: undefined`
         // ApexCharts 4'te render sırasında `beforeMount` okurken patlatıyor.
-        ...(onSliceClick && {
+        ...((onSliceClick || onSelect) && {
           events: {
             dataPointSelection: (
               _e,
@@ -107,7 +114,8 @@ export function DonutChart({
             ) => {
               const label = displayLabels[config.dataPointIndex];
               if (!label || label === otherLabel) return;
-              onSliceClick(selectedLabel === label ? null : label);
+              onSelect?.(label, config.dataPointIndex);
+              onSliceClick?.(selectedLabel === label ? null : label);
             },
           },
         }),
@@ -168,6 +176,7 @@ export function DonutChart({
       resolvedTotalLabel,
       fmt,
       onSliceClick,
+      onSelect,
       selectedLabel,
       otherLabel,
     ],
@@ -191,7 +200,7 @@ export function DonutChart({
     })
     .sort((a, b) => b.pct - a.pct);
 
-  const isClickable = !!onSliceClick;
+  const isClickable = !!onSliceClick || !!onSelect;
 
   return (
     // `@container` + container queries ile dar kartlarda (örn. 1/3 genişlikte
@@ -235,7 +244,10 @@ export function DonutChart({
                 )}
                 onClick={
                   isClickable && it.label !== otherLabel
-                    ? () => onSliceClick?.(active ? null : it.label)
+                    ? () => {
+                        onSelect?.(it.label, displayLabels.indexOf(it.label));
+                        onSliceClick?.(active ? null : it.label);
+                      }
                     : undefined
                 }
               >
