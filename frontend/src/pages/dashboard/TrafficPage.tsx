@@ -303,7 +303,7 @@ export default function TrafficPage() {
       </div>
 
       {/* Trafik KPI'lari */}
-      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 xl:grid-cols-4">
         {isLoading || !data
           ? Array.from({ length: 7 }).map((_, i) => <KPICardSkeleton key={i} compact />)
           : (

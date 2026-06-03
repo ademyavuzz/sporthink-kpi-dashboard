@@ -145,9 +145,8 @@ export function TurkeyMap({
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span className="inline-flex size-2.5 rounded-full bg-primary/25" />
             <span>{t("overview.geo_map_legend_low")}</span>
-            <span className="inline-flex size-2.5 rounded-full bg-primary" />
+            <span className="h-2 w-24 rounded-full bg-gradient-to-r from-primary/20 to-primary ring-1 ring-inset ring-border/60" />
             <span>{t("overview.geo_map_legend_high")}</span>
           </div>
         </div>
@@ -165,7 +164,7 @@ export function TurkeyMap({
                 const stat = cityStats.get(key);
                 const active = selectedKey === key;
                 const ratio = stat ? Math.sqrt(stat.revenue / maxRevenue) : 0;
-                const fillOpacity = active ? 0.92 : stat ? 0.2 + ratio * 0.58 : 0.08;
+                const fillOpacity = active ? 0.95 : stat ? 0.32 + ratio * 0.6 : 0.06;
                 return (
                   <path
                     key={mapCity.id}

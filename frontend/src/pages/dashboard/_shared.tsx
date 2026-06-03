@@ -123,7 +123,7 @@ export function PageShell({ children }: { children: ReactNode }) {
 export function RoasPill({ value }: { value: number | string | null }) {
   const num = value === null ? null : toNumber(value);
   if (num === null || !Number.isFinite(num)) {
-    return <span className="text-text-dim">—</span>;
+    return <span className="text-text-dim">-</span>;
   }
   const tone =
     num >= 4
