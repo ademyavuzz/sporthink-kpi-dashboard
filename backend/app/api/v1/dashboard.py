@@ -325,48 +325,113 @@ async def get_meta(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
+    campaigns: list[str] | None = Query(
+        None, description="Kampanya adı filtresi (çoklu, meta_ads.campaign_name)"
+    ),
+    objectives: list[str] | None = Query(
+        None, description="Hedef (objective) filtresi (çoklu, meta_ads.objective)"
+    ),
     _user: User = Depends(require_permission(Permission.META_ADS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[MetaAdsResponse]:
     _validate_range(date_from, date_to)
+
+    camp = campaigns or None
+    obj = objectives or None
+    has_filters = bool(camp or obj)
+
+    # Filtreler cache key'inin parçası; dolu iken ayrı entry. Filtre yoksa
+    # `extra_filters` eski {"cmp": ...} ile birebir aynı kalır → mevcut cache
+    # entry'leri ve sonuçlar değişmez (additive).
+    filter_key: dict[str, Any] = {"cmp": comparison_mode}
+    if camp:
+        filter_key["camp"] = sorted(camp)
+    if obj:
+        filter_key["obj"] = sorted(obj)
+
     key = cache_keys.kpi_dashboard(
         "meta",
         date_from=date_from,
         date_to=date_to,
-        extra_filters={"cmp": comparison_mode},
+        extra_filters=filter_key,
     )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=MetaAdsResponse.model_validate(hit))
 
     prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
-    kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.META]}
 
-    spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
-    impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
-    clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
-    ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
-    cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
-    cpm = await kpi_service.kpi_cpm(db, date_from=date_from, date_to=date_to, **kw)
-    conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
-    cpa = await kpi_service.kpi_cost_per_conversion(db, date_from=date_from, date_to=date_to, **kw)
-    roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
-    # Frequency only applies to Meta; doesn't take platforms filter (raw meta_ads).
-    freq = await kpi_service.kpi_frequency(
-        db,
-        date_from=date_from,
-        date_to=date_to,
-        prev_from=prev_from,
-        prev_to=prev_to,
-    )
-    campaigns = await kpi_service.campaign_performance(
+    if has_filters:
+        # Filtre VAR: base KPI / frequency / günlük seri ham `meta_ads` tablosundan
+        # segment WHERE ile, AYNI formüllerle (kpi_service içinde) hesaplanır.
+        base = await kpi_service.meta_base_kpis_filtered(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            prev_from=prev_from,
+            prev_to=prev_to,
+            campaign_names=camp,
+            objectives=obj,
+        )
+        spend = base["ad_spend"]
+        impr = base["impressions"]
+        clicks = base["clicks"]
+        ctr = base["ctr"]
+        cpc = base["cpc"]
+        cpm = base["cpm"]
+        conv = base["ad_conversions"]
+        cpa = base["cost_per_conversion"]
+        roas = base["roas"]
+        freq = await kpi_service.meta_frequency_filtered(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            prev_from=prev_from,
+            prev_to=prev_to,
+            campaign_names=camp,
+            objectives=obj,
+        )
+        daily = await kpi_service.meta_daily_series_filtered(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            campaign_names=camp,
+            objectives=obj,
+        )
+    else:
+        # Filtre YOK: mevcut aggregate yolu AYNEN (kod değişmemiş gibi).
+        kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.META]}
+
+        spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
+        impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
+        clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
+        ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
+        cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
+        cpm = await kpi_service.kpi_cpm(db, date_from=date_from, date_to=date_to, **kw)
+        conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
+        cpa = await kpi_service.kpi_cost_per_conversion(
+            db, date_from=date_from, date_to=date_to, **kw
+        )
+        roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
+        # Frequency only applies to Meta; doesn't take platforms filter (raw meta_ads).
+        freq = await kpi_service.kpi_frequency(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            prev_from=prev_from,
+            prev_to=prev_to,
+        )
+        daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
+
+    campaigns_table = await kpi_service.campaign_performance(
         db,
         period_start=date_from,
         period_end=date_to,
         platform=KPIPlatform.META,
         limit=50,
+        meta_campaign_names=camp,
+        meta_objectives=obj,
     )
-    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
 
     response = MetaAdsResponse(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
@@ -380,7 +445,7 @@ async def get_meta(
         cost_per_conversion=cpa,
         roas=roas,
         frequency=freq,
-        campaigns=campaigns,
+        campaigns=campaigns_table,
         daily_series=daily,
     )
     await cache.set_json(key, response.model_dump(mode="json"), ttl=cache_keys.TTL_KPI)
@@ -407,54 +472,142 @@ async def get_google(
     date_from: date = Query(...),
     date_to: date = Query(...),
     comparison_mode: ComparisonMode = Query("sequential"),
+    campaigns: list[str] | None = Query(
+        None, description="Kampanya adı filtresi (çoklu, google_ads.campaign_name)"
+    ),
+    devices: list[str] | None = Query(
+        None, description="Cihaz filtresi (çoklu, google_ads.device: mobile/desktop/tablet)"
+    ),
+    channel_types: list[str] | None = Query(
+        None,
+        description=(
+            "Kanal türü filtresi (çoklu, google_ads.advertising_channel_type: "
+            "search/shopping/performance_max/display)"
+        ),
+    ),
     _user: User = Depends(require_permission(Permission.GOOGLE_ADS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[GoogleAdsResponse]:
     _validate_range(date_from, date_to)
+
+    camp = campaigns or None
+    dev = devices or None
+    cht = channel_types or None
+    has_filters = bool(camp or dev or cht)
+
+    # Filtreler cache key'inin parçası; dolu iken ayrı entry. Filtre yoksa
+    # `extra_filters` eski {"cmp": ...} ile birebir aynı kalır → mevcut cache
+    # entry'leri ve sonuçlar değişmez (additive).
+    filter_key: dict[str, Any] = {"cmp": comparison_mode}
+    if camp:
+        filter_key["camp"] = sorted(camp)
+    if dev:
+        filter_key["dev"] = sorted(dev)
+    if cht:
+        filter_key["cht"] = sorted(cht)
+
     key = cache_keys.kpi_dashboard(
         "google",
         date_from=date_from,
         date_to=date_to,
-        extra_filters={"cmp": comparison_mode},
+        extra_filters=filter_key,
     )
     hit = await cache.get_json(key)
     if hit is not None:
         return SuccessEnvelope(data=GoogleAdsResponse.model_validate(hit))
 
     prev_from, prev_to = kpi_service.compute_comparison_period(date_from, date_to, comparison_mode)
-    kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.GOOGLE]}
 
-    spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
-    impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
-    clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
-    ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
-    cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
-    cpm = await kpi_service.kpi_cpm(db, date_from=date_from, date_to=date_to, **kw)
-    conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
-    cpa = await kpi_service.kpi_cost_per_conversion(db, date_from=date_from, date_to=date_to, **kw)
-    roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
+    if has_filters:
+        # Filtre VAR: base KPI ve günlük seri ham `google_ads` tablosundan
+        # segment WHERE ile, AYNI formüllerle (kpi_service içinde) hesaplanır.
+        base = await kpi_service.google_base_kpis_filtered(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            prev_from=prev_from,
+            prev_to=prev_to,
+            campaign_names=camp,
+            devices=dev,
+            channel_types=cht,
+        )
+        spend = base["ad_spend"]
+        impr = base["impressions"]
+        clicks = base["clicks"]
+        ctr = base["ctr"]
+        cpc = base["cpc"]
+        cpm = base["cpm"]
+        conv = base["ad_conversions"]
+        cpa = base["cost_per_conversion"]
+        roas = base["roas"]
+        daily = await kpi_service.google_daily_series_filtered(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            campaign_names=camp,
+            devices=dev,
+            channel_types=cht,
+        )
+    else:
+        # Filtre YOK: mevcut aggregate yolu AYNEN (kod değişmemiş gibi).
+        kw = {"prev_from": prev_from, "prev_to": prev_to, "platforms": [KPIPlatform.GOOGLE]}
+
+        spend = await kpi_service.kpi_ad_spend(db, date_from=date_from, date_to=date_to, **kw)
+        impr = await kpi_service.kpi_impressions(db, date_from=date_from, date_to=date_to, **kw)
+        clicks = await kpi_service.kpi_clicks(db, date_from=date_from, date_to=date_to, **kw)
+        ctr = await kpi_service.kpi_ctr(db, date_from=date_from, date_to=date_to, **kw)
+        cpc = await kpi_service.kpi_cpc(db, date_from=date_from, date_to=date_to, **kw)
+        cpm = await kpi_service.kpi_cpm(db, date_from=date_from, date_to=date_to, **kw)
+        conv = await kpi_service.kpi_ad_conversions(db, date_from=date_from, date_to=date_to, **kw)
+        cpa = await kpi_service.kpi_cost_per_conversion(
+            db, date_from=date_from, date_to=date_to, **kw
+        )
+        roas = await kpi_service.kpi_roas(db, date_from=date_from, date_to=date_to, **kw)
+        daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
+
     campaigns_base = await kpi_service.campaign_performance(
         db,
         period_start=date_from,
         period_end=date_to,
         platform=KPIPlatform.GOOGLE,
         limit=200,
+        google_campaign_names=camp,
+        google_devices=dev,
+        google_channel_types=cht,
     )
-    campaigns = [GoogleCampaignMetric(**c.model_dump(), channel_type=None) for c in campaigns_base]
-    top_by_roas = sorted(campaigns, key=lambda c: c.roas or 0, reverse=True)[:10]
+    campaigns_table = [
+        GoogleCampaignMetric(**c.model_dump(), channel_type=None) for c in campaigns_base
+    ]
+    top_by_roas = sorted(campaigns_table, key=lambda c: c.roas or 0, reverse=True)[:10]
     channel_breakdown_raw = await kpi_service.google_channel_breakdown(
-        db, date_from=date_from, date_to=date_to
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        campaign_names=camp,
+        devices=dev,
+        channel_types=cht,
     )
     channel_breakdown = [GoogleChannelTypeBreakdown(**row) for row in channel_breakdown_raw]
     keywords_raw = await kpi_service.google_top_keywords(
-        db, date_from=date_from, date_to=date_to, limit=20
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        limit=20,
+        campaign_names=camp,
+        devices=dev,
+        channel_types=cht,
     )
     keywords = [GoogleKeywordRow(**row) for row in keywords_raw]
     products_raw = await kpi_service.google_top_products(
-        db, date_from=date_from, date_to=date_to, limit=20
+        db,
+        date_from=date_from,
+        date_to=date_to,
+        limit=20,
+        campaign_names=camp,
+        devices=dev,
+        channel_types=cht,
     )
     products = [GoogleProductRow(**row) for row in products_raw]
-    daily = await kpi_service.daily_revenue_series(db, date_from=date_from, date_to=date_to)
 
     response = GoogleAdsResponse(
         date_range=_date_range_with_comparison(date_from, date_to, comparison_mode),
@@ -467,7 +620,7 @@ async def get_google(
         ad_conversions=conv,
         cost_per_conversion=cpa,
         roas=roas,
-        campaigns=campaigns,
+        campaigns=campaigns_table,
         top_campaigns_by_roas=top_by_roas,
         channel_breakdown=channel_breakdown,
         keywords=keywords,

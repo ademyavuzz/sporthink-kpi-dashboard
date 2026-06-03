@@ -756,6 +756,348 @@ async def kpi_frequency(
 
 
 # ---------------------------------------------------------------------- #
+# 9.4-EK Segment filtreli reklam KPI'ları (ham tablodan)
+# ---------------------------------------------------------------------- #
+#
+# Filtre VERİLDİĞİNDE Meta/Google reklam KPI'ları aggregation tablosu yerine
+# ham `meta_ads` / `google_ads` tablolarından, AYNI formüllerle hesaplanır
+# (`docs/09` §9.4 formülleri burada da uygulanır — formül `kpi_service.py`
+# dışına çıkmaz). Filtre YOKKEN bu fonksiyonlar çağrılmaz; aggregation tabanlı
+# `kpi_*` yolu birebir korunur (additive).
+#
+# Ham tablo aggregation ile tutarlıdır (SUM(spend) ham = aggregate toplamı);
+# bu yüzden ham tablodan filtreli toplam doğru alt-küme verir.
+
+
+def _meta_ads_conditions(
+    *,
+    date_from: date,
+    date_to: date,
+    campaign_names: list[str] | None,
+    objectives: list[str] | None,
+) -> list[Any]:
+    """`meta_ads` segment filtreleri için ortak WHERE koşulları."""
+    from app.models import MetaAds
+
+    conditions: list[Any] = [
+        MetaAds.date_start >= date_from,
+        MetaAds.date_start <= date_to,
+    ]
+    if campaign_names:
+        conditions.append(MetaAds.campaign_name.in_(campaign_names))
+    if objectives:
+        conditions.append(MetaAds.objective.in_(objectives))
+    return conditions
+
+
+def _google_ads_conditions(
+    *,
+    date_from: date,
+    date_to: date,
+    campaign_names: list[str] | None,
+    devices: list[str] | None,
+    channel_types: list[str] | None,
+) -> list[Any]:
+    """`google_ads` segment filtreleri için ortak WHERE koşulları."""
+    from app.models import GoogleAds
+
+    conditions: list[Any] = [
+        GoogleAds.date >= date_from,
+        GoogleAds.date <= date_to,
+    ]
+    if campaign_names:
+        conditions.append(GoogleAds.campaign_name.in_(campaign_names))
+    if devices:
+        conditions.append(GoogleAds.device.in_(devices))
+    if channel_types:
+        conditions.append(GoogleAds.advertising_channel_type.in_(channel_types))
+    return conditions
+
+
+def _build_ad_kpis_from_sums(
+    *,
+    cur: dict[str, Decimal],
+    prev: dict[str, Decimal],
+) -> dict[str, KPIResult]:
+    """Ham SUM'lardan reklam KPI seti — `docs/09` §9.4 formülleriyle birebir aynı.
+
+    `cur`/`prev`: {spend, impressions, clicks, ad_conversions, ad_revenue} ham
+    toplamları (current ve comparison dönemleri). Aggregation tabanlı
+    `kpi_*` fonksiyonlarıyla aynı bölme/yuvarlama kurallarını uygular.
+    """
+
+    def _spend(d: dict[str, Decimal]) -> Decimal:
+        return d["spend"]
+
+    def _ctr(d: dict[str, Decimal]) -> Decimal | None:
+        v = _safe_div(d["clicks"], d["impressions"])
+        return _quantize(v * 100, "0.0001") if v is not None else None
+
+    def _cpc(d: dict[str, Decimal]) -> Decimal | None:
+        return _quantize(_safe_div(d["spend"], d["clicks"]), "0.0001")
+
+    def _cpm(d: dict[str, Decimal]) -> Decimal | None:
+        v = _safe_div(d["spend"], d["impressions"])
+        return _quantize(v * 1000, "0.0001") if v is not None else None
+
+    def _cpa(d: dict[str, Decimal]) -> Decimal | None:
+        return _quantize(_safe_div(d["spend"], d["ad_conversions"]))
+
+    def _roas(d: dict[str, Decimal]) -> Decimal | None:
+        return _quantize(_safe_div(d["ad_revenue"], d["spend"]), "0.0001")
+
+    return {
+        "ad_spend": _build_result("ad_spend", _quantize(_spend(cur)), _quantize(_spend(prev))),
+        "impressions": _build_result("impressions", cur["impressions"], prev["impressions"]),
+        "clicks": _build_result("clicks", cur["clicks"], prev["clicks"]),
+        "ctr": _build_result("ctr", _ctr(cur), _ctr(prev)),
+        "cpc": _build_result("cpc", _cpc(cur), _cpc(prev)),
+        "cpm": _build_result("cpm", _cpm(cur), _cpm(prev)),
+        "ad_conversions": _build_result(
+            "ad_conversions",
+            _quantize(cur["ad_conversions"]),
+            _quantize(prev["ad_conversions"]),
+        ),
+        "cost_per_conversion": _build_result("cost_per_conversion", _cpa(cur), _cpa(prev)),
+        "roas": _build_result("roas", _roas(cur), _roas(prev)),
+    }
+
+
+async def meta_base_kpis_filtered(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    prev_from: date,
+    prev_to: date,
+    campaign_names: list[str] | None = None,
+    objectives: list[str] | None = None,
+) -> dict[str, KPIResult]:
+    """Meta reklam KPI'ları — `meta_ads` ham tablodan segment filtreli.
+
+    `docs/09` §9.4: spend, impressions, clicks, ctr, cpc, cpm, ad_conversions,
+    cost_per_conversion, roas. ROAS ad_revenue = `action_values_purchase`.
+    Aggregation tabanlı `kpi_*` fonksiyonlarıyla aynı formül; tek fark veri
+    kaynağı (ham tablo) ve segment WHERE filtreleri.
+    """
+    from app.models import MetaAds
+
+    async def _sums(d_from: date, d_to: date) -> dict[str, Decimal]:
+        stmt = select(
+            func.coalesce(func.sum(MetaAds.spend), 0),
+            func.coalesce(func.sum(MetaAds.impressions), 0),
+            func.coalesce(func.sum(MetaAds.clicks), 0),
+            func.coalesce(func.sum(MetaAds.actions_purchase), 0),
+            func.coalesce(func.sum(MetaAds.action_values_purchase), 0),
+        ).where(
+            and_(
+                *_meta_ads_conditions(
+                    date_from=d_from,
+                    date_to=d_to,
+                    campaign_names=campaign_names,
+                    objectives=objectives,
+                )
+            )
+        )
+        row = (await db.execute(stmt)).one()
+        return {
+            "spend": Decimal(str(row[0])),
+            "impressions": Decimal(int(row[1])),
+            "clicks": Decimal(int(row[2])),
+            "ad_conversions": Decimal(str(row[3])),
+            "ad_revenue": Decimal(str(row[4])),
+        }
+
+    cur = await _sums(date_from, date_to)
+    prev = await _sums(prev_from, prev_to)
+    return _build_ad_kpis_from_sums(cur=cur, prev=prev)
+
+
+async def meta_frequency_filtered(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    prev_from: date,
+    prev_to: date,
+    campaign_names: list[str] | None = None,
+    objectives: list[str] | None = None,
+) -> KPIResult:
+    """Reklam Frekansı (§9.4.10) — segment filtreli `impressions/reach`."""
+    from app.models import MetaAds
+
+    async def _freq(d_from: date, d_to: date) -> Decimal | None:
+        stmt = select(
+            func.coalesce(func.sum(MetaAds.impressions), 0),
+            func.coalesce(func.sum(MetaAds.reach), 0),
+        ).where(
+            and_(
+                *_meta_ads_conditions(
+                    date_from=d_from,
+                    date_to=d_to,
+                    campaign_names=campaign_names,
+                    objectives=objectives,
+                )
+            )
+        )
+        row = (await db.execute(stmt)).one()
+        return _quantize(_safe_div(Decimal(row[0]), Decimal(row[1])), "0.0001")
+
+    return _build_result(
+        "frequency", await _freq(date_from, date_to), await _freq(prev_from, prev_to)
+    )
+
+
+async def meta_daily_series_filtered(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    campaign_names: list[str] | None = None,
+    objectives: list[str] | None = None,
+) -> list[DailySeriesPoint]:
+    """Meta günlük seri — `meta_ads` ham tablodan filtreli spend + ad_revenue.
+
+    `revenue` = `action_values_purchase` (reklam geliri), `spend` = `spend`.
+    `orders`/`sessions` reklam tablosundan türetilemez (ecommerce/ga4 alanları);
+    segment filtresi bunlara uygulanamayacağı için 0 bırakılır — `daily_series`
+    yalnızca spend/ad_revenue trendini gösterir (frontend bu iki seriyi çizer).
+    """
+    from app.models import MetaAds
+
+    stmt = (
+        select(
+            MetaAds.date_start.label("d"),
+            func.coalesce(func.sum(MetaAds.spend), 0).label("spend"),
+            func.coalesce(func.sum(MetaAds.action_values_purchase), 0).label("revenue"),
+        )
+        .where(
+            and_(
+                *_meta_ads_conditions(
+                    date_from=date_from,
+                    date_to=date_to,
+                    campaign_names=campaign_names,
+                    objectives=objectives,
+                )
+            )
+        )
+        .group_by(MetaAds.date_start)
+        .order_by(MetaAds.date_start)
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        DailySeriesPoint(
+            date=r.d,
+            revenue=_quantize(Decimal(str(r.revenue))) or Decimal(0),
+            orders=0,
+            sessions=0,
+            spend=_quantize(Decimal(str(r.spend))) or Decimal(0),
+        )
+        for r in rows
+    ]
+
+
+async def google_base_kpis_filtered(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    prev_from: date,
+    prev_to: date,
+    campaign_names: list[str] | None = None,
+    devices: list[str] | None = None,
+    channel_types: list[str] | None = None,
+) -> dict[str, KPIResult]:
+    """Google reklam KPI'ları — `google_ads` ham tablodan segment filtreli.
+
+    `docs/09` §9.4 formülleriyle aynı. Google'da spend = `cost`, ad_revenue =
+    `conversions_value`, ad_conversions = `conversions`. Aggregation tabanlı
+    yolla aynı bölme/yuvarlama; tek fark veri kaynağı ve segment WHERE.
+    """
+    from app.models import GoogleAds
+
+    async def _sums(d_from: date, d_to: date) -> dict[str, Decimal]:
+        stmt = select(
+            func.coalesce(func.sum(GoogleAds.cost), 0),
+            func.coalesce(func.sum(GoogleAds.impressions), 0),
+            func.coalesce(func.sum(GoogleAds.clicks), 0),
+            func.coalesce(func.sum(GoogleAds.conversions), 0),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0),
+        ).where(
+            and_(
+                *_google_ads_conditions(
+                    date_from=d_from,
+                    date_to=d_to,
+                    campaign_names=campaign_names,
+                    devices=devices,
+                    channel_types=channel_types,
+                )
+            )
+        )
+        row = (await db.execute(stmt)).one()
+        return {
+            "spend": Decimal(str(row[0])),
+            "impressions": Decimal(int(row[1])),
+            "clicks": Decimal(int(row[2])),
+            "ad_conversions": Decimal(str(row[3])),
+            "ad_revenue": Decimal(str(row[4])),
+        }
+
+    cur = await _sums(date_from, date_to)
+    prev = await _sums(prev_from, prev_to)
+    return _build_ad_kpis_from_sums(cur=cur, prev=prev)
+
+
+async def google_daily_series_filtered(
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    campaign_names: list[str] | None = None,
+    devices: list[str] | None = None,
+    channel_types: list[str] | None = None,
+) -> list[DailySeriesPoint]:
+    """Google günlük seri — `google_ads` ham tablodan filtreli spend + ad_revenue.
+
+    `revenue` = `conversions_value`, `spend` = `cost`. `orders`/`sessions`
+    reklam tablosundan türetilemez; 0 bırakılır (bkz. meta eşdeğeri).
+    """
+    from app.models import GoogleAds
+
+    stmt = (
+        select(
+            GoogleAds.date.label("d"),
+            func.coalesce(func.sum(GoogleAds.cost), 0).label("spend"),
+            func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("revenue"),
+        )
+        .where(
+            and_(
+                *_google_ads_conditions(
+                    date_from=date_from,
+                    date_to=date_to,
+                    campaign_names=campaign_names,
+                    devices=devices,
+                    channel_types=channel_types,
+                )
+            )
+        )
+        .group_by(GoogleAds.date)
+        .order_by(GoogleAds.date)
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        DailySeriesPoint(
+            date=r.d,
+            revenue=_quantize(Decimal(str(r.revenue))) or Decimal(0),
+            orders=0,
+            sessions=0,
+            spend=_quantize(Decimal(str(r.spend))) or Decimal(0),
+        )
+        for r in rows
+    ]
+
+
+# ---------------------------------------------------------------------- #
 # 9.5 Satış KPI'ları (8)
 # ---------------------------------------------------------------------- #
 
@@ -1394,6 +1736,11 @@ async def campaign_performance(
     platform: KPIPlatform | None = None,
     limit: int = 50,
     order_by: str = "spend",
+    meta_campaign_names: list[str] | None = None,
+    meta_objectives: list[str] | None = None,
+    google_campaign_names: list[str] | None = None,
+    google_devices: list[str] | None = None,
+    google_channel_types: list[str] | None = None,
 ) -> list[CampaignMetric]:
     """Kampanya × performance metrics (§9.6.3).
 
@@ -1404,12 +1751,25 @@ async def campaign_performance(
 
     `campaign_pk_id` data writer FK resolution sırasında doldurulur; populate
     edilmemiş satırlar agregata dahil edilmez.
+
+    Segment filtreleri (`meta_*` / `google_*`) opsiyoneldir ve **additive**: hepsi
+    None iken WHERE koşulu değişmez, sonuç eskisiyle birebir aynıdır. Verildiğinde
+    ilgili platformun ham satırları filtrelenir.
     """
     from app.models import GoogleAds, MetaAds
 
     metrics: list[CampaignMetric] = []
 
     if platform is None or platform == KPIPlatform.META:
+        meta_conditions = [
+            MetaAds.date_start >= period_start,
+            MetaAds.date_start <= period_end,
+            MetaAds.campaign_pk_id.is_not(None),
+        ]
+        if meta_campaign_names:
+            meta_conditions.append(MetaAds.campaign_name.in_(meta_campaign_names))
+        if meta_objectives:
+            meta_conditions.append(MetaAds.objective.in_(meta_objectives))
         meta_stmt = (
             select(
                 MetaAds.campaign_pk_id.label("pk_id"),
@@ -1423,19 +1783,24 @@ async def campaign_performance(
                     "conversions_value"
                 ),
             )
-            .where(
-                and_(
-                    MetaAds.date_start >= period_start,
-                    MetaAds.date_start <= period_end,
-                    MetaAds.campaign_pk_id.is_not(None),
-                )
-            )
+            .where(and_(*meta_conditions))
             .group_by(MetaAds.campaign_pk_id)
         )
         for row in (await db.execute(meta_stmt)).all():
             metrics.append(_build_campaign_metric(row, "meta"))
 
     if platform is None or platform == KPIPlatform.GOOGLE:
+        google_conditions = [
+            GoogleAds.date >= period_start,
+            GoogleAds.date <= period_end,
+            GoogleAds.campaign_pk_id.is_not(None),
+        ]
+        if google_campaign_names:
+            google_conditions.append(GoogleAds.campaign_name.in_(google_campaign_names))
+        if google_devices:
+            google_conditions.append(GoogleAds.device.in_(google_devices))
+        if google_channel_types:
+            google_conditions.append(GoogleAds.advertising_channel_type.in_(google_channel_types))
         google_stmt = (
             select(
                 GoogleAds.campaign_pk_id.label("pk_id"),
@@ -1447,13 +1812,7 @@ async def campaign_performance(
                 func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
                 func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
             )
-            .where(
-                and_(
-                    GoogleAds.date >= period_start,
-                    GoogleAds.date <= period_end,
-                    GoogleAds.campaign_pk_id.is_not(None),
-                )
-            )
+            .where(and_(*google_conditions))
             .group_by(GoogleAds.campaign_pk_id)
         )
         for row in (await db.execute(google_stmt)).all():
@@ -1475,7 +1834,13 @@ async def campaign_performance(
 
 
 async def google_channel_breakdown(
-    db: AsyncSession, *, date_from: date, date_to: date
+    db: AsyncSession,
+    *,
+    date_from: date,
+    date_to: date,
+    campaign_names: list[str] | None = None,
+    devices: list[str] | None = None,
+    channel_types: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Google Ads `advertising_channel_type` (search/shopping/pmax/display/video)
     bazında harcama, gösterim, tıklama ve dönüşüm dağılımı.
@@ -1483,6 +1848,8 @@ async def google_channel_breakdown(
     `dashboard.py` bu veriyi `GoogleChannelTypeBreakdown` schema'sına paketler.
     NULL `advertising_channel_type` satırları "unknown" anahtarı altında toplanır
     (frontend bunu "Diğer/Tanımsız" olarak gösterir).
+
+    Segment filtreleri additive: hepsi None iken WHERE eskisiyle birebir aynıdır.
     """
     from app.models import GoogleAds
 
@@ -1495,7 +1862,17 @@ async def google_channel_breakdown(
             func.coalesce(func.sum(GoogleAds.conversions), 0).label("conversions"),
             func.coalesce(func.sum(GoogleAds.conversions_value), 0).label("conversions_value"),
         )
-        .where(and_(GoogleAds.date >= date_from, GoogleAds.date <= date_to))
+        .where(
+            and_(
+                *_google_ads_conditions(
+                    date_from=date_from,
+                    date_to=date_to,
+                    campaign_names=campaign_names,
+                    devices=devices,
+                    channel_types=channel_types,
+                )
+            )
+        )
         .group_by(GoogleAds.advertising_channel_type)
         .order_by(func.coalesce(func.sum(GoogleAds.cost), 0).desc())
     )
@@ -1521,11 +1898,16 @@ async def google_top_keywords(
     date_from: date,
     date_to: date,
     limit: int = 20,
+    campaign_names: list[str] | None = None,
+    devices: list[str] | None = None,
+    channel_types: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Google Ads en performanslı `limit` anahtar kelime — Search kampanyaları.
 
     Boş/NULL `keyword_text` satırları (Shopping, PMax) hariç tutulur. Harcamaya
     göre sıralanır. CTR yüzde (0-100), CPC ve ROAS sıfır bölme korumalı.
+
+    Segment filtreleri additive: hepsi None iken WHERE eskisiyle birebir aynıdır.
     """
     from app.models import GoogleAds
 
@@ -1541,8 +1923,13 @@ async def google_top_keywords(
         )
         .where(
             and_(
-                GoogleAds.date >= date_from,
-                GoogleAds.date <= date_to,
+                *_google_ads_conditions(
+                    date_from=date_from,
+                    date_to=date_to,
+                    campaign_names=campaign_names,
+                    devices=devices,
+                    channel_types=channel_types,
+                ),
                 GoogleAds.keyword_text.is_not(None),
                 GoogleAds.keyword_text != "",
             )
@@ -1587,11 +1974,16 @@ async def google_top_products(
     date_from: date,
     date_to: date,
     limit: int = 20,
+    campaign_names: list[str] | None = None,
+    devices: list[str] | None = None,
+    channel_types: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Google Ads en performanslı `limit` ürün — Shopping ve Performance Max.
 
     Boş/NULL `product_item_id` satırları (Search) hariç tutulur. Harcamaya göre
     sıralanır. ROAS sıfır bölme korumalı.
+
+    Segment filtreleri additive: hepsi None iken WHERE eskisiyle birebir aynıdır.
     """
     from app.models import GoogleAds
 
@@ -1607,8 +1999,13 @@ async def google_top_products(
         )
         .where(
             and_(
-                GoogleAds.date >= date_from,
-                GoogleAds.date <= date_to,
+                *_google_ads_conditions(
+                    date_from=date_from,
+                    date_to=date_to,
+                    campaign_names=campaign_names,
+                    devices=devices,
+                    channel_types=channel_types,
+                ),
                 GoogleAds.product_item_id.is_not(None),
                 GoogleAds.product_item_id != "",
             )

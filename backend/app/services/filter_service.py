@@ -5,8 +5,9 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import GA4Traffic, KPIDailyAggregate, Order, Product
+from app.models import GA4Traffic, GoogleAds, KPIDailyAggregate, MetaAds, Order, Product
 from app.models.customer import CustomerAgeGroup, CustomerGender
+from app.models.google_ads import GoogleAdvertisingChannelType, GoogleDevice
 from app.models.order import OrderPaymentMethod, OrderStatus
 
 
@@ -83,3 +84,46 @@ def customer_genders() -> list[str]:
 def customer_age_groups() -> list[str]:
     """Sabit enum — müşteri yaş grubu seçenekleri (artan)."""
     return [a.value for a in CustomerAgeGroup]
+
+
+async def distinct_meta_campaigns(db: AsyncSession) -> list[str]:
+    """`meta_ads` ham tablodaki distinct kampanya adları (alfabetik)."""
+    stmt = (
+        select(MetaAds.campaign_name)
+        .where(MetaAds.campaign_name.isnot(None))
+        .distinct()
+        .order_by(MetaAds.campaign_name)
+    )
+    return [r[0] for r in (await db.execute(stmt)).all() if r[0]]
+
+
+async def distinct_meta_objectives(db: AsyncSession) -> list[str]:
+    """`meta_ads` ham tablodaki distinct hedef (objective) değerleri (alfabetik)."""
+    stmt = (
+        select(MetaAds.objective)
+        .where(MetaAds.objective.isnot(None))
+        .distinct()
+        .order_by(MetaAds.objective)
+    )
+    return [r[0] for r in (await db.execute(stmt)).all() if r[0]]
+
+
+async def distinct_google_campaigns(db: AsyncSession) -> list[str]:
+    """`google_ads` ham tablodaki distinct kampanya adları (alfabetik)."""
+    stmt = (
+        select(GoogleAds.campaign_name)
+        .where(GoogleAds.campaign_name.isnot(None))
+        .distinct()
+        .order_by(GoogleAds.campaign_name)
+    )
+    return [r[0] for r in (await db.execute(stmt)).all() if r[0]]
+
+
+def google_devices() -> list[str]:
+    """Sabit enum — Google Ads cihaz seçenekleri."""
+    return [d.value for d in GoogleDevice]
+
+
+def google_channel_types() -> list[str]:
+    """Sabit enum — Google Ads kanal türü (advertising_channel_type) seçenekleri."""
+    return [c.value for c in GoogleAdvertisingChannelType]

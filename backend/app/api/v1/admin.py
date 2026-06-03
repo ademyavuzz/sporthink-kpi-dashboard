@@ -211,6 +211,92 @@ async def get_filter_age_groups(
     return SuccessEnvelope(data=filter_service.customer_age_groups())
 
 
+@router.get(
+    "/filters/meta-campaigns",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Meta kampanya listesini getir",
+    description="Meta Ads sayfası filtresi için benzersiz kampanya adlarını döner.",
+)
+async def get_filter_meta_campaigns(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[list[str]]:
+    cached = await cache.get_json(cache_keys.filter_meta_campaigns())
+    if cached is not None:
+        return SuccessEnvelope(data=cached)
+    items = await filter_service.distinct_meta_campaigns(db)
+    await cache.set_json(cache_keys.filter_meta_campaigns(), items, ttl=cache_keys.TTL_FILTERS)
+    return SuccessEnvelope(data=items)
+
+
+@router.get(
+    "/filters/meta-objectives",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Meta hedef (objective) listesini getir",
+    description="Meta Ads sayfası filtresi için benzersiz hedef (objective) değerlerini döner.",
+)
+async def get_filter_meta_objectives(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[list[str]]:
+    cached = await cache.get_json(cache_keys.filter_meta_objectives())
+    if cached is not None:
+        return SuccessEnvelope(data=cached)
+    items = await filter_service.distinct_meta_objectives(db)
+    await cache.set_json(cache_keys.filter_meta_objectives(), items, ttl=cache_keys.TTL_FILTERS)
+    return SuccessEnvelope(data=items)
+
+
+@router.get(
+    "/filters/google-campaigns",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Google kampanya listesini getir",
+    description="Google Ads sayfası filtresi için benzersiz kampanya adlarını döner.",
+)
+async def get_filter_google_campaigns(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessEnvelope[list[str]]:
+    cached = await cache.get_json(cache_keys.filter_google_campaigns())
+    if cached is not None:
+        return SuccessEnvelope(data=cached)
+    items = await filter_service.distinct_google_campaigns(db)
+    await cache.set_json(cache_keys.filter_google_campaigns(), items, ttl=cache_keys.TTL_FILTERS)
+    return SuccessEnvelope(data=items)
+
+
+@router.get(
+    "/filters/google-devices",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Google cihaz listesini getir",
+    description="Google Ads sayfası filtresi için cihaz seçeneklerini döner (statik enum).",
+)
+async def get_filter_google_devices(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.google_devices())
+
+
+@router.get(
+    "/filters/google-channel-types",
+    response_model=SuccessEnvelope[list[str]],
+    tags=["filters"],
+    summary="Google kanal türü listesini getir",
+    description=(
+        "Google Ads sayfası filtresi için kanal türü (advertising_channel_type) "
+        "seçeneklerini döner (statik enum)."
+    ),
+)
+async def get_filter_google_channel_types(
+    _user: User = Depends(require_permission(Permission.DASHBOARD_VIEW)),
+) -> SuccessEnvelope[list[str]]:
+    return SuccessEnvelope(data=filter_service.google_channel_types())
+
+
 # ---------------------------------------------------------------------- #
 # /admin/aggregations/rebuild
 # ---------------------------------------------------------------------- #

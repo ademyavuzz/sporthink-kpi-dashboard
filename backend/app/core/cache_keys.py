@@ -131,6 +131,18 @@ def filter_order_statuses() -> str:
     return "filters:order_statuses"
 
 
+def filter_meta_campaigns() -> str:
+    return "filters:meta_campaigns"
+
+
+def filter_meta_objectives() -> str:
+    return "filters:meta_objectives"
+
+
+def filter_google_campaigns() -> str:
+    return "filters:google_campaigns"
+
+
 # --- Statik ---
 
 
