@@ -46,6 +46,21 @@ export function BarChart({
   const showLabel = showValueLabel ?? horizontal;
   const useDistributedColors = !stacked && horizontal && series.length === 1;
 
+  // Yatay bar deger ekseni: tam para etiketleri (₺10.000, ₺20.000 ...) cok tick
+  // ile ust uste biniyordu. Kompakt (₺58 B) + az tick ile okunur hale getir.
+  const isCurrencyValue = useMemo(
+    () => !!valueFormatter && valueFormatter(1).includes("₺"),
+    [valueFormatter],
+  );
+  const compactAxis = useMemo(
+    () =>
+      new Intl.NumberFormat("tr-TR", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }),
+    [],
+  );
+
   // Uzun label'ları truncate (yatay bar'da y axis label'ı 28 karakter sınırı)
   const truncatedCategories = useMemo(
     () =>
@@ -114,12 +129,18 @@ export function BarChart({
       xaxis: {
         ...base.xaxis,
         categories: truncatedCategories,
+        tickAmount: horizontal ? 4 : undefined,
         labels: {
           ...((base.xaxis as { labels?: object })?.labels ?? {}),
-          formatter:
-            horizontal && valueFormatter
-              ? (val: string) => valueFormatter(Number(val))
-              : undefined,
+          formatter: horizontal
+            ? (val: string) => {
+                const n = Number(val);
+                if (!Number.isFinite(n)) return val;
+                return isCurrencyValue
+                  ? `₺${compactAxis.format(n)}`
+                  : compactAxis.format(n);
+              }
+            : undefined,
           rotate: horizontal ? 0 : -25,
           rotateAlways: !horizontal && categories.some((c) => c.length > 8),
           hideOverlappingLabels: true,
@@ -167,6 +188,8 @@ export function BarChart({
       stacked,
       useDistributedColors,
       onSelect,
+      isCurrencyValue,
+      compactAxis,
     ],
   );
 

@@ -28,6 +28,11 @@ interface LineChartProps {
   /** Birden fazla y-axis (örn. revenue ₺ + sipariş adet). */
   multiAxis?: boolean;
   loading?: boolean;
+  /**
+   * ApexCharts'ın yerleşik legend'ini göster. Dışarıda MetricToggles gibi bir
+   * seri seçici varsa `false` verilir (çift legend olmasın). Varsayılan `true`.
+   */
+  showLegend?: boolean;
 }
 
 /**
@@ -46,6 +51,7 @@ export function LineChart({
   yFormatter,
   multiAxis,
   loading,
+  showLegend = true,
 }: LineChartProps) {
   const base = useChartTheme();
 
@@ -88,6 +94,7 @@ export function LineChart({
         toolbar: { show: false },
         parentHeightOffset: 0,
       },
+      legend: { ...base.legend, show: showLegend },
       colors,
       xaxis: {
         ...base.xaxis,
@@ -126,7 +133,7 @@ export function LineChart({
             : undefined,
       },
     };
-  }, [base, height, multiAxis, series, yFormatter]);
+  }, [base, height, multiAxis, series, yFormatter, showLegend]);
 
   if (loading) return <ChartLoading height={height} />;
 

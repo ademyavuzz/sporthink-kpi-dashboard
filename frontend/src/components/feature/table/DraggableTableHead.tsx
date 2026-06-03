@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { useRef, useState } from "react";
 import type { DragEvent, PointerEvent, ReactNode } from "react";
 
@@ -150,17 +150,18 @@ export function DraggableTableHead({
     }
   };
 
-  // Siralama icerigi: baslik + (varsa) yon ikonu, ortak sarmalayici.
+  // Sayisal (sag hizali) kolonlarda etiketin sag kenari, hucredeki sayinin sag
+  // kenariyla hizalansin diye siralama ikonu etiketten ONCE gelir; sol hizali
+  // kolonlarda SONRA. Eski grip ikonu kaldirildi: opacity-0 olsa da yer kapladigi
+  // icin baslik metnini saga itip "kayma" yaratiyordu. Surukle-birak yine tum
+  // baslik hucresinden (draggable) yapilir; cursor-grab affordance korunur.
+  const alignRight =
+    !!className && /text-right|justify-end|ml-auto/.test(className);
   const content = (
-    <span className="inline-flex items-center gap-1">
-      {!required && (
-        <GripVertical
-          aria-hidden
-          className="size-3 shrink-0 text-text-dim opacity-0 transition-opacity group-hover/col:opacity-100"
-        />
-      )}
+    <span className="inline-flex max-w-full items-center gap-1 align-middle">
+      {alignRight && canSort && <SortIcon active={sortActive} dir={sortDir} />}
       <span className="truncate">{children}</span>
-      {canSort && <SortIcon active={sortActive} dir={sortDir} />}
+      {!alignRight && canSort && <SortIcon active={sortActive} dir={sortDir} />}
     </span>
   );
 
