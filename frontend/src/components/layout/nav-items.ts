@@ -89,10 +89,3 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
 ] as const;
 
-/**
- * Geriye uyumluluk için flat liste — App.tsx ve mevcut filter mantığı bu
- * listeyi kullanmaya devam edebilir.
- */
-export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap(
-  (g) => g.items,
-);

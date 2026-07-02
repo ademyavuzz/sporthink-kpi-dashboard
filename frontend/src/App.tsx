@@ -1,10 +1,8 @@
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { ComingSoonPage } from "@/components/common/ComingSoonPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { NAV_ITEMS } from "@/components/layout/nav-items";
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
@@ -36,14 +34,11 @@ const NotFoundPage = lazy(() => import("@/pages/error/NotFoundPage"));
 /**
  * Router (frontend/CLAUDE.md §9).
  *
- * - `/login`, `/403`, `/404` → public (auth gerektirmez).
+ * - `/login`, `/forgot-password`, `/reset-password`, `/403`, `/404` → public.
  * - DashboardLayout altındaki tüm route'lar `<ProtectedRoute permission=...>`
  *   ile sarılır; izin yoksa /403'e redirect.
- * - `/` → kullanıcının erişebildiği ilk sayfaya redirect (Sidebar logic ile aynı).
- *
- * 11 nav item'ından sadece `overview` gerçek bir sayfaya bağlı; diğerleri
- * `ComingSoonPage` placeholder gösterir. Her biri yine de doğru permission
- * kontrolünden geçer — sonraki sprint'lerde içerik bu route'lara gelir.
+ * - Bildirimler ve Ayarlar (profil/güvenlik) izinsizdir — kişisel sayfalar
+ *   her oturum açan kullanıcıya açıktır.
  */
 export default function App() {
   return (
@@ -199,11 +194,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/*
-          Bildirimler ve Ayarlar (profil/güvenlik) izinsizdir — kişisel
-          sayfalar her oturum açan kullanıcıya açıktır. Sistem ayarları
-          (`settings.view`) sayfası ileride eklenirse ayrı route olarak gelir.
-        */}
         <Route
           path="/notifications"
           element={
@@ -225,39 +215,6 @@ export default function App() {
           <Route path="security" element={<SecurityPage />} />
         </Route>
 
-        {NAV_ITEMS.filter(
-          (n) =>
-            ![
-              "overview",
-              "traffic",
-              "meta_ads",
-              "google_ads",
-              "ecommerce",
-              "campaigns",
-              "funnel",
-              "cohort",
-              "products",
-              "customers",
-              "channel_analysis",
-              "import",
-              "reports",
-              "user_management",
-              "audit_logs",
-              "channel_mapping",
-              "notifications",
-              "settings",
-            ].includes(n.id),
-        ).map((n) => (
-          <Route
-            key={n.id}
-            path={n.path}
-            element={
-              <ProtectedRoute permission={n.permission}>
-                <ComingSoonPage navKey={n.id} />
-              </ProtectedRoute>
-            }
-          />
-        ))}
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

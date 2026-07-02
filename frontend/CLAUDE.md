@@ -80,10 +80,11 @@ frontend/
 │   └── styles/
 │       └── globals.css   # Tailwind directives + CSS variables (theme)
 │
-├── tests/                # Vitest testleri (component bazlı)
-├── vite.config.ts
+├── tests/e2e/            # Playwright E2E testleri (unit testler src/ içinde colocated)
+├── vite.config.ts        # Tailwind 4 Vite plugin burada (ayrı tailwind.config yok)
+├── vitest.config.ts
+├── playwright.config.ts
 ├── tsconfig.json
-├── tailwind.config.ts
 ├── eslint.config.js
 └── package.json
 ```
@@ -194,8 +195,9 @@ Mevcut store'lar (yenisi gerekiyorsa burada listele):
 | `useThemeStore` | `theme: 'light' \| 'dark'`, `toggleTheme()` |
 | `useLanguageStore` | `lang: 'tr' \| 'en'`, `setLanguage()` |
 | `useFiltersStore` | Global cross-page filtreler (date range, kanal) |
-| `useToastStore` | `notify(...)` (sonner wrapper) |
 | `useSidebarStore` | `collapsed: boolean` |
+
+Toast bildirimleri store değildir: `lib/notify.ts` (sonner wrapper) kullanılır.
 
 ```tsx
 // stores/useAuthStore.ts
@@ -279,7 +281,7 @@ export function LoginPage() {
 - Zod schema → backend Pydantic schema ile **alan adları ve kuralları senkron**. Sapma varsa backend doğrudur.
 - Hata mesajları **i18n key** (string değil), `t()` ile render.
 - Submit handler `async`. Loading state RHF'den (`formState.isSubmitting`), manuel state tutma.
-- Network hatası `try/catch` + toast (`useToastStore`).
+- Network hatası `try/catch` + toast (`lib/notify.ts`).
 
 ---
 
@@ -394,7 +396,7 @@ const { t } = useTranslation(['users', 'common']);
 
 1. `public/locales/tr/<namespace>.json`'a TR ekle.
 2. `public/locales/en/<namespace>.json`'a EN ekle (**aynı anda**).
-3. CI script'i (`scripts/check-i18n-keys.ts`) eksik karşılığı varsa fail eder.
+3. Otomatik CI kontrolü yok — TR/EN eşleşmesi review sırasında doğrulanır.
 
 ### 7.4 Pluralization
 
@@ -479,7 +481,7 @@ shadcn'in tüm component'leri bu token'ları kullanır. **Yeni token gerekiyorsa
 
 ### 8.3 Dark Mode
 
-- Strategy: **class-based** (`tailwind.config` → `darkMode: 'class'`).
+- Strategy: **class-based** — Tailwind 4 CSS-first: `styles/globals.css` içinde `@custom-variant dark (&:is(.dark *))`.
 - `useThemeStore` `theme` değiştiğinde `<html>` element'ine `.dark` class ekler/kaldırır.
 - localStorage'a persist (`prefers-color-scheme` ile başlangıç default).
 

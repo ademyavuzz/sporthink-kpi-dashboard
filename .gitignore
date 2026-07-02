@@ -45,6 +45,20 @@ sporthink_dummy_data/
 # Local reference files
 pdf-rapor-ornek.pdf
 
+# Akademik teslim dosyalari (bitirme projesi rapor/sunum materyali) —
+# koda ait degiller, repo'ya girmezler. Ekran goruntuleri docs/screenshots/
+# altinda tracked'dir; rapor/ tamamen lokaldir.
+/*.docx
+/*.pdf
+/*.pptx
+/*.xlsx
+rapor/
+docs/overview/sporthink-dokumantasyon.docx
+
+# Office / LibreOffice gecici ve kilit dosyalari
+.~lock.*#
+*.tmp
+
 # Playwright (E2E test artifacts)
 frontend/test-results/
 frontend/playwright-report/
