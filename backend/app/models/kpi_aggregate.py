@@ -8,7 +8,7 @@
 KPI sorguları **bu tablolar üzerinden** yapılır, raw `ga4_traffic`/`meta_ads`/
 `orders` üzerinden değil (`docs/09` §9.2.1 — iki katmanlı hesap).
 
-Aggregation rebuild import sonrası `tasks/normalize_tasks.py::rebuild_aggregations`
+Aggregation rebuild import sonrası `tasks/aggregation_tasks.py::rebuild_all_task`
 ile tetiklenir.
 """
 

@@ -8,29 +8,33 @@
 
 ## 1. Proje Kimliği
 
-**Sporthink Pazarlama ve E-Ticaret KPI Dashboard** — sporthink.com.tr için B2B internal SaaS. Pazarlama (GA4, Meta Ads, Google Ads) ve e-ticaret verilerini tek noktada toplayıp 31 KPI üzerinden görselleştirir. Tek geliştirici (Adem Yavuz), 11 hafta, Dokuz Eylül Üniversitesi YBS bitirme projesi. Production hedefi: Ubuntu 24.04 LTS VDS, ~50 eşzamanlı kullanıcı, 1+ yıllık veri.
+**Sporthink Pazarlama ve E-Ticaret KPI Dashboard** — sporthink.com.tr için B2B internal SaaS. Pazarlama (GA4, Meta Ads, Google Ads) ve e-ticaret verilerini tek noktada toplayıp 31 KPI üzerinden görselleştirir. Tek geliştirici (Adem Yavuz), Dokuz Eylül Üniversitesi YBS bitirme projesi. Production: Ubuntu 24.04 LTS VDS üzerinde canlı (deploy akışı: `DEPLOY.md`), ~50 eşzamanlı kullanıcı, 1+ yıllık veri.
 
 ---
 
 ## 2. Monorepo Haritası
 
 ```
-sporthink-dashboard/
-├── CLAUDE.md              ← BU DOSYA. Proje çapı kurallar.
-├── README.md              ← Tanıtım, kurulum, lisans.
+sporthink-kpi-dashboard/
+├── CLAUDE.md               ← BU DOSYA. Proje çapı kurallar.
+├── README.md               ← Tanıtım, kurulum, lisans.
+├── DEPLOY.md               ← Production VDS kurulum ve güncelleme rehberi.
+├── USER_GUIDE.md           ← Son kullanıcı kılavuzu.
+├── LICENSE                 ← Proprietary lisans (Sporthink iç kullanım).
 ├── docs/
-│   └── overview/          ← 16 markdown dokümantasyon (00-15). Tek doğru kaynak.
-├── backend/               ← FastAPI + Celery + MySQL. Kendi CLAUDE.md'si var.
-├── frontend/              ← React 19 + Vite + TS. Kendi CLAUDE.md'si var.
-├── nginx/                 ← Reverse proxy config (production).
-├── mysql/                 ← my.cnf ve init scriptleri.
-├── docker-compose.yml     ← Tüm stack tek dosyada.
-├── docker-compose.prod.yml ← Production override (volumes, env, replicas).
-├── .env.example           ← Tüm env değişkenlerinin TAM listesi.
-├── .github/
-│   └── workflows/         ← CI/CD pipeline'ları.
-└── .claude/
-    └── commands/          ← Slash komutlar (örn: /add-endpoint).
+│   ├── overview/           ← 16 markdown dokümantasyon (00-15).
+│   └── screenshots/        ← Uygulama ekran görüntüleri (README galerisi).
+├── .github/workflows/      ← CI: backend ruff + frontend lint/tsc/vitest.
+├── backend/                ← FastAPI + Celery + MySQL. Kendi CLAUDE.md'si var.
+├── frontend/               ← React 19 + Vite + TS. Kendi CLAUDE.md'si var.
+├── nginx/                  ← Reverse proxy config (production).
+├── mysql/                  ← my.cnf (production DB tuning).
+├── scripts/                ← deploy.sh + API smoke/CRUD check scriptleri.
+├── docker-compose.dev.yml  ← Geliştirme stack'i (hot reload). Temel dosya.
+├── docker-compose.prod.yml ← Production override (dev.yml ile birlikte kullanılır).
+├── docker-compose.demo.yml ← Demo ortamı.
+├── .env.example            ← Tüm env değişkenlerinin TAM listesi.
+└── .env.production.example ← Production env şablonu.
 ```
 
 **Üç klasör asla karışmaz:** `docs/` salt referans, `backend/` ve `frontend/` arasında kod paylaşımı YOK. Ortak şey gerekiyorsa OpenAPI üzerinden contract paylaşılır, kod kopyalanmaz.
@@ -71,7 +75,7 @@ Bu kurallar her katmanda, her dosyada, her PR'da geçerlidir. **İstisna yok.**
 ### 4.3 Dil ve Lokalizasyon
 - Default dil: **TR**, ikinci dil: **EN**.
 - Hiçbir kullanıcıya görünür string kodda hardcode edilmez. Hepsi i18n key.
-- Yeni key eklenirken TR ve EN aynı PR'da. CI eksik key varsa fail eder.
+- Yeni key eklenirken TR ve EN aynı PR'da eklenir (otomatik CI kontrolü yok; review sırasında doğrulanır).
 - Backend hata mesajları: `code` (sabit) + `message` (default İngilizce). Frontend `code`'a göre yerelleştirir.
 
 ### 4.4 Sayı ve Yüzde
@@ -91,7 +95,7 @@ Bu kurallar her katmanda, her dosyada, her PR'da geçerlidir. **İstisna yok.**
 |---|---|---|
 | 1 | `docs/`'taki rakamları, formülleri veya isimleri kodda paralel olarak tanımlamak | Tek doğru kaynak `docs/`. Sapmalar hata üretir. |
 | 2 | KPI formülünü `backend/app/services/kpi_service.py` dışında tanımlamak | Frontend KPI hesaplayamaz, sadece gösterir. |
-| 3 | 43 (kategori 1+2+3+4) izin string'ini herhangi bir yerde plain string olarak yazmak | İzinler tek noktada (`backend/app/core/permissions.py`) enum olarak tanımlı. |
+| 3 | 41 (kategori 1+2+3+4) izin string'ini herhangi bir yerde plain string olarak yazmak | İzinler tek noktada (`backend/app/core/permissions.py`) enum olarak tanımlı. |
 | 4 | Migration'ı elle yazmak veya elle SQL ile DB değiştirmek | Sadece `alembic revision --autogenerate` + review + `alembic upgrade head`. |
 | 5 | `.env` dosyasını commit etmek | `.gitignore`'da. Yeni env değişkeni eklendiğinde `.env.example` da güncellenir. |
 | 6 | Şifre, JWT secret, refresh token, SMTP key, kişisel veri log'a yazmak | KVKK ihlali + güvenlik riski. |
@@ -104,7 +108,12 @@ Bu kurallar her katmanda, her dosyada, her PR'da geçerlidir. **İstisna yok.**
 
 ## 6. Dokümantasyon Haritası — Görev → Hangi Dokümana Bak
 
-Bir görev geldiğinde **önce** ilgili `docs/` dosyasını oku. Doküman ile kod çelişirse doküman doğrudur, koddaki sapma bug'tır.
+Bir görev geldiğinde **önce** ilgili `docs/` dosyasını oku.
+
+> **Not (Temmuz 2026):** Proje dokümanların yazıldığı tarihten sonra epey evrildi;
+> kod dokümanların önünde olabilir. Doküman ile kod çelişirse **mevcut kod davranışı
+> esas alınır** ve doküman koda göre güncellenir. Dokümanlar hâlâ kavramsal referans
+> (formüller, veri modeli, mimari gerekçeler) için birincil kaynaktır.
 
 | Görev | Önce Oku | Sonra Bak |
 |---|---|---|
@@ -163,36 +172,40 @@ Bir feature/fix aşağıdakiler tamamlanmadan **merge edilemez**:
 ## 8. Sık Kullanılan Komutlar
 
 ```bash
+# Kısaltma: dev stack her zaman -f docker-compose.dev.yml ile çalışır
+alias dc="docker compose -f docker-compose.dev.yml"
+
 # Tüm stack'i ayağa kaldır (dev)
-docker compose up -d
-docker compose logs -f backend frontend
-docker compose down
+dc up -d
+dc logs -f backend frontend
+dc down
 
 # Backend sadece
-docker compose up -d backend mysql redis
+dc up -d backend mysql redis
 
 # Migration
-docker compose exec backend alembic revision --autogenerate -m "açıklama"
-docker compose exec backend alembic upgrade head
-docker compose exec backend alembic downgrade -1
+dc exec backend alembic revision --autogenerate -m "açıklama"
+dc exec backend alembic upgrade head
+dc exec backend alembic downgrade -1
 
-# Seed (Süper Admin + sample roller)
-docker compose exec backend python -m app.seed
+# Seed (Süper Admin + izin senkronu, idempotent)
+dc exec backend python -m app.seed
 
 # Test
-docker compose exec backend pytest
-docker compose exec backend pytest -m unit
-docker compose exec backend pytest --cov=app --cov-report=term-missing
+dc exec backend pytest
+dc exec backend pytest -m unit
+dc exec backend pytest --cov=app --cov-report=term-missing
 
 # Lint / Format
-docker compose exec backend ruff check .
-docker compose exec backend ruff format .
-docker compose exec frontend npm run lint
-docker compose exec frontend npm run typecheck
-docker compose exec frontend npm test
+dc exec backend ruff check .
+dc exec backend ruff format .
+dc exec frontend npm run lint
+dc exec frontend npx tsc --noEmit
+dc exec frontend npx vitest run
 
-# Frontend dev server (hot reload)
-docker compose exec frontend npm run dev
+# API smoke / CRUD kontrol scriptleri (çalışan stack'e karşı)
+python3 scripts/api_smoke_check.py
+python3 scripts/api_crud_check.py
 ```
 
 > **Yeni komut eklenirse:** Hem buraya hem `Makefile`'a (varsa) eklenir. Tek noktadan keşfedilebilir olmalı.
@@ -215,25 +228,24 @@ Claude Code, çalışılan dosyanın bulunduğu klasördeki CLAUDE.md'yi otomati
 - `backend/` altında bir dosyaya dokunduğunda → **`backend/CLAUDE.md` otomatik aktif**.
 - `frontend/` altında bir dosyaya dokunduğunda → **`frontend/CLAUDE.md` otomatik aktif**.
 - Iki tarafı birden değiştiren iş varsa (örn: yeni endpoint + sayfa) → **ikisi de manuel olarak referans al**.
-- `docker-compose.yml`, `nginx/`, `.github/workflows/` → kök CLAUDE.md (bu dosya) yeterli.
+- `docker-compose.*.yml`, `nginx/`, `scripts/`, `.github/workflows/` → kök CLAUDE.md (bu dosya) yeterli.
 
 ---
 
 ## 11. Acil Durum / Geri Alma
 
-Production deployment sonrası bir şey kırıldıysa:
+Production deployment sonrası bir şey kırıldıysa (deploy `scripts/deploy.sh` ile
+git-pull tabanlıdır, detay: `DEPLOY.md`):
 
 ```bash
-# 1. Önceki imaja dön
-ssh prod "cd /opt/sporthink && docker compose pull && \
-  docker tag sporthink-backend:previous sporthink-backend:latest && \
-  docker tag sporthink-frontend:previous sporthink-frontend:latest && \
-  docker compose up -d"
+# 1. Son bilinen iyi commit'e dön ve yeniden deploy et
+ssh prod-vds "cd /opt/sporthink && git log --oneline -5"   # kırılan commit'i bul
+ssh prod-vds "cd /opt/sporthink && git revert <bad-sha> --no-edit && ./scripts/deploy.sh --update"
+# (revert push edilemiyorsa: git reset --hard <good-sha> + deploy.sh --update)
 
 # 2. DB migration geri alınması gerekiyorsa
-docker compose exec backend alembic downgrade -1
-
-# 3. GitHub Actions üzerinden son green commit'i tekrar deploy et
+docker compose -f docker-compose.dev.yml -f docker-compose.prod.yml \
+  exec backend alembic downgrade -1
 ```
 
 **Migration geri almadan önce:** veri kaybına yol açacak migration ise `BACKUP` al. `alembic downgrade` data-destructive olabilir.
@@ -255,4 +267,4 @@ Agent kendi başına şunları **yapmamalıdır**:
 
 ---
 
-*Son güncelleme: Mayıs 2026 · v1.0*
+*Son güncelleme: Temmuz 2026 · v1.1 (repo gerçek durumuyla senkronlandı)*

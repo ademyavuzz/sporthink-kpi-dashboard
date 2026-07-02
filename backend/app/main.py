@@ -91,7 +91,7 @@ TAGS_METADATA = [
     {
         "name": "roles",
         "description": (
-            "Rol ve izin (RBAC) yonetimi: rol CRUD islemleri ve 43 iznin "
+            "Rol ve izin (RBAC) yonetimi: rol CRUD islemleri ve 41 iznin "
             "4 kategori altinda gruplu listesi."
         ),
     },

@@ -30,39 +30,44 @@ Detay: `docs/overview/02-tech-stack.md` §2.4–2.5
 ```
 backend/
 ├── app/
-│   ├── main.py              # FastAPI app, exception handler, middleware mount
+│   ├── main.py              # FastAPI app, OpenAPI meta, CORS, statik /uploads
 │   ├── config.py            # Pydantic Settings — TÜM env burada okunur
 │   ├── dependencies.py      # Global FastAPI deps (get_db, get_current_user)
+│   ├── seed.py              # Süper Admin + izin senkronu (idempotent)
+│   ├── celery_app.py        # Celery instance + task include listesi
 │   │
 │   ├── core/                # Çapraz kesen bileşenler
-│   │   ├── permissions.py   # 43 izin enum'u — TEK doğru kaynak
-│   │   ├── exceptions.py    # Custom exception class'ları
+│   │   ├── permissions.py   # 41 izin enum'u — TEK doğru kaynak
+│   │   ├── exceptions.py    # Custom exception class'ları + global handler
 │   │   ├── security.py      # JWT encode/decode, password hash
 │   │   └── cache_keys.py    # Tüm cache key formatları
 │   │
 │   ├── api/v1/              # Router'lar (HTTP layer)
 │   │   ├── auth.py          # /api/v1/auth/*
-│   │   ├── users.py         # /api/v1/users/*
-│   │   └── ...
+│   │   ├── dashboard.py     # /api/v1/dashboard/* + /filters/*
+│   │   ├── imports.py       # /api/v1/imports/*
+│   │   ├── reports.py       # /api/v1/reports/*
+│   │   ├── admin.py         # /api/v1/users, /roles, /audit-logs, /mappings...
+│   │   └── notifications.py # /api/v1/notifications/*
 │   │
-│   ├── services/            # İŞ MANTIĞI — uygulamanın beyni
+│   ├── services/            # İŞ MANTIĞI — kpi_service, import_service, ...
 │   ├── repositories/        # DB erişimi — sadece ORM sorguları
 │   ├── models/              # SQLAlchemy ORM (DB şekli)
 │   ├── schemas/             # Pydantic (API contract)
-│   ├── tasks/               # Celery görevleri
-│   ├── parsers/             # CSV/XLSX/JSON parser'lar
-│   ├── utils/               # Saf yardımcılar (state-less)
-│   └── middleware/          # CORS, rate limit, audit
+│   ├── tasks/               # Celery: aggregation_tasks, email_tasks, report_tasks
+│   ├── parsers/             # csv_parser + sources/ (10 kaynak config'i)
+│   ├── utils/               # Saf yardımcılar (şu an boş)
+│   └── middleware/          # (şu an boş — audit service katmanında yazılır)
 │
 ├── alembic/versions/        # Migration dosyaları
+├── db/init/                 # 01-baseline.sql (ilk kurulum şeması)
 ├── tests/
-│   ├── unit/                # Service ve util seviyesi (DB yok)
+│   ├── unit/                # Parser, format, KPI service (DB yok)
 │   ├── integration/         # Router seviyesi (test DB ile)
 │   └── conftest.py          # Fixture'lar
 │
-├── pyproject.toml
-├── ruff.toml
-├── Dockerfile
+├── pyproject.toml           # Ruff config dahil
+├── Dockerfile.dev
 └── .env.example
 ```
 
@@ -215,7 +220,7 @@ from app.core.permissions import Permission
 @Depends(require_permission(Permission.USERS_DELETE))
 ```
 
-Tüm 43 izin `app/core/permissions.py` içinde `Permission` enum'unda tanımlıdır. Yeni izin eklenirken:
+Tüm 41 izin `app/core/permissions.py` içinde `Permission` enum'unda tanımlıdır. Yeni izin eklenirken:
 1. `docs/overview/05-rbac-security.md` §5.5.4 güncellenir.
 2. `Permission` enum'una eklenir.
 3. Migration ile `permissions` tablosuna seed edilir.
@@ -438,12 +443,11 @@ async def get_kpi_summary(filters: KPIFilter) -> KPISummary:
 ### 10.1 Yeni Veri Kaynağı Eklenirse
 
 1. `docs/overview/08-import-system.md`'ye kaynak spesifikasyonu eklenir (kolonlar, format, frequency).
-2. `parsers/<source>_parser.py` yazılır.
-3. `services/normalize_service.py` içinde mapping tanımlanır.
-4. `services/import_service.py` içinde routing eklenir.
-5. `tasks/import_tasks.py` içinde Celery task'a hook'lanır.
-6. Aggregation update mantığı `tasks/normalize_tasks.py`'de tanımlanır.
-7. Test: en az 1 happy path + 1 malformed file + 1 partial duplicate.
+2. `parsers/sources/<source>.py` içinde `SourceConfig` (kolon spec'leri, dedup key, FK lookup) tanımlanır ve `parsers/sources/__init__.py` registry'sine eklenir.
+3. Yeni hedef tablo gerekiyorsa: `models/` + alembic migration.
+4. `services/import_service.py`: tablo→model eşlemesine eklenir; KPI aggregate'leri etkiliyorsa rebuild tetikleyen veri tipleri set'ine dahil edilir.
+5. Aggregation hesabı gerekiyorsa `services/aggregation_service.py`'de UPSERT mantığı genişletilir (Celery tarafı `tasks/aggregation_tasks.py::rebuild_all_task` üzerinden zaten çalışır).
+6. Test: en az 1 happy path + 1 malformed file + 1 partial duplicate.
 
 ### 10.2 Validation ve Hata Raporu
 
@@ -462,11 +466,11 @@ async def get_kpi_summary(filters: KPIFilter) -> KPISummary:
   ```
 - Hata listesi DB'ye kaydedilir (`import_errors` tablosu) ve frontend'e ilk 100'ü gösterilir.
 
-### 10.3 Auto-detect ve Manual Mapping
+### 10.3 Header Doğrulama ve Preview
 
-- `parsers/auto_detector.py` kolon header'larını fuzzy match ile tanır (utils/fuzzy_match.py).
-- Eşleşme < 0.8 confidence ise kullanıcıya manuel kolon mapping wizard'ı sunulur.
-- Onaylanan mapping `column_mappings` tablosuna kaydedilir, sonraki import'larda otomatik kullanılır.
+- Kolon eşleme fuzzy değil, **spec bazlıdır**: her kaynağın `SourceConfig`'i beklenen header listesini tanımlar.
+- `POST /imports/preview` yüklenen dosyanın header'larını spec ile diff'ler (eksik/fazla kolon) ve ilk satırların parse sonucunu döner; kullanıcı 4 adımlı wizard'da onaylayınca gerçek import çalışır.
+- Dedup, tip coercion ve FK resolve (`_resolve_fk_lookups`) import sırasında otomatik yapılır.
 
 ---
 
@@ -518,7 +522,7 @@ async def calculate_cart_abandonment_rate(
 
 Üç tablo: `kpi_daily_aggregates`, `kpi_monthly_aggregates`, `kpi_campaign_aggregates`.
 
-- Yeni veri import'undan sonra `tasks/normalize_tasks.py::rebuild_aggregations(date_range)` çağrılır.
+- Yeni veri import'undan sonra `tasks/aggregation_tasks.py::rebuild_all_task(date_from, date_to)` Celery ile enqueue edilir (sadece import'un kapsadığı tarih penceresi için).
 - Manual rebuild gerekirse: `POST /api/v1/admin/aggregations/rebuild` (sadece `settings.update` izniyle).
 - Tüm KPI sorgular **bu tablolar üzerinden** yapılır, raw tablolardan değil.
 
@@ -536,28 +540,30 @@ Frontend toggle ile seçer; backend `comparison_mode` query param ile alır.
 
 `docs/overview/05-rbac-security.md` §5.8
 
-### 12.1 Otomatik Loglanan Action'lar
+### 12.1 Nerede Yazılır
 
-`middleware/audit_middleware.py` aşağıdakileri otomatik loglar:
-- Auth: `login`, `login.failed`, `logout`, `password.reset`, `account.locked`
-- Mutating endpoints (POST, PATCH, DELETE) — endpoint adı + actor + target id
-
-### 12.2 Manuel Audit Log
-
-İş mantığı içinde anlamlı olay varsa `audit_service.log()` ile manuel yazılır:
+Audit log **service katmanında** yazılır (ayrı bir middleware yok): anlamlı her
+mutasyon (auth olayları, user/rol CRUD, import, export, kanal eşleme...) ilgili
+service fonksiyonu içinde `audit_log_repository.add()` ile kaydedilir.
 
 ```python
-await audit_service.log(
+from app.repositories import audit_log_repository
+
+await audit_log_repository.add(
     db,
     action="role.permission_changed",
-    actor_id=current_user.id,
-    target_type="role",
-    target_id=role.id,
+    user_id=current_user.id,
+    user_email=current_user.email,
+    resource_type="role",
+    resource_id=str(role.id),
     details={"added": [...], "removed": [...]},
 )
 ```
 
-### 12.3 Audit'e YAZILMAZ
+Yeni mutasyon endpoint'i eklerken audit kaydını unutma — mevcut service'lerdeki
+pattern'i takip et (örn. `user_management_service.py`).
+
+### 12.2 Audit'e YAZILMAZ
 
 - Şifre, token, secret değerleri (sadece "password.changed" event, plaintext değil)
 - Kişisel veri içeren payload (telefon, adres) → sadece field adı log'lanır, değer değil
@@ -610,8 +616,7 @@ class RateLimitError(SporthinkException):
 - **Service ve repository:** her zaman UTC `datetime` (timezone-aware, `datetime.now(timezone.utc)`).
 - **Pydantic schema:** `datetime` tipi (Pydantic ISO 8601 serialize eder).
 - **TZ dönüşümü:** sadece çok özel raporlama gerektiğinde backend'de (örn: günlük rapor — kullanıcının saatine göre "bugün" tanımı). Aksi halde **frontend dönüştürür**.
-- `date_utils.py`: yardımcılar (`now_utc()`, `to_utc(dt)`, `parse_iso(s)`).
-- **`datetime.now()` (naive) yasak** — daima `datetime.now(timezone.utc)`.
+- **`datetime.now()` (naive) yasak** — daima `datetime.now(UTC)`.
 
 ---
 
