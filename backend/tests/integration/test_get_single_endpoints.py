@@ -102,9 +102,7 @@ async def test_get_saved_view_404_for_nonexistent_or_other_user(
 # ─── /users/{id} ───────────────────────────────────────────────────────────
 
 
-async def test_get_user_happy(
-    client: AsyncClient, super_admin_credentials: dict[str, str]
-) -> None:
+async def test_get_user_happy(client: AsyncClient, super_admin_credentials: dict[str, str]) -> None:
     headers = await _auth_headers(client, super_admin_credentials)
     # Süper admin ID 1 — kendi kaydını çekiyoruz
     r = await client.get("/api/v1/users/1", headers=headers)
@@ -116,9 +114,7 @@ async def test_get_user_happy(
     assert body["data"]["role"]["is_system"] is True
 
 
-async def test_get_user_404(
-    client: AsyncClient, super_admin_credentials: dict[str, str]
-) -> None:
+async def test_get_user_404(client: AsyncClient, super_admin_credentials: dict[str, str]) -> None:
     headers = await _auth_headers(client, super_admin_credentials)
     r = await client.get("/api/v1/users/9999999", headers=headers)
     assert r.status_code == 404

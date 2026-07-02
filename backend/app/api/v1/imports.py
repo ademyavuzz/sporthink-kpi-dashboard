@@ -181,9 +181,7 @@ async def list_imports(
     _current_user: User = Depends(require_permission(Permission.IMPORTS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedEnvelope[ImportListItem]:
-    items, total = await import_service.list_imports_paginated(
-        db, page=page, page_size=page_size
-    )
+    items, total = await import_service.list_imports_paginated(db, page=page, page_size=page_size)
     return PaginatedEnvelope(
         data=[
             ImportListItem(

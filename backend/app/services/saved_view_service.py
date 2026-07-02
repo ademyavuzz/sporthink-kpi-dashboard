@@ -40,9 +40,7 @@ async def list_views(
 
     total = int(
         (
-            await db.execute(
-                select(func.count()).select_from(SavedView).where(*base_where)
-            )
+            await db.execute(select(func.count()).select_from(SavedView).where(*base_where))
         ).scalar_one()
     )
 

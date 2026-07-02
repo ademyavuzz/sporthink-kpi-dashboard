@@ -135,14 +135,9 @@ async def list_paginated(
     """Returns: (page_rows, total)."""
     from sqlalchemy import func
 
-    total = int(
-        (await db.execute(select(func.count()).select_from(Import))).scalar_one()
-    )
+    total = int((await db.execute(select(func.count()).select_from(Import))).scalar_one())
     result = await db.execute(
-        select(Import)
-        .order_by(desc(Import.id))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        select(Import).order_by(desc(Import.id)).offset((page - 1) * page_size).limit(page_size)
     )
     return list(result.scalars().all()), total
 

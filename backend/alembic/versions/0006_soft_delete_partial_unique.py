@@ -61,9 +61,7 @@ def downgrade() -> None:
     # channel_mapping
     op.execute("ALTER TABLE channel_mapping DROP INDEX uk_source_medium_active")
     op.execute("ALTER TABLE channel_mapping DROP COLUMN source_medium_active")
-    op.execute(
-        "ALTER TABLE channel_mapping ADD UNIQUE KEY uk_source_medium (source, medium)"
-    )
+    op.execute("ALTER TABLE channel_mapping ADD UNIQUE KEY uk_source_medium (source, medium)")
 
     # roles
     op.execute("ALTER TABLE roles DROP INDEX uk_name_active")

@@ -41,9 +41,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(200), nullable=False),
         sa.Column("message", sa.String(500), nullable=True),
         sa.Column("link", sa.String(500), nullable=True),
-        sa.Column(
-            "is_read", sa.Boolean(), nullable=False, server_default=sa.text("0")
-        ),
+        sa.Column("is_read", sa.Boolean(), nullable=False, server_default=sa.text("0")),
         sa.Column("read_at", sa.DateTime(), nullable=True),
         sa.Column(
             "created_at",
@@ -67,9 +65,7 @@ def upgrade() -> None:
         "notifications",
         ["user_id", "is_read", "created_at"],
     )
-    op.create_index(
-        "idx_notif_user_created", "notifications", ["user_id", "created_at"]
-    )
+    op.create_index("idx_notif_user_created", "notifications", ["user_id", "created_at"])
 
 
 def downgrade() -> None:

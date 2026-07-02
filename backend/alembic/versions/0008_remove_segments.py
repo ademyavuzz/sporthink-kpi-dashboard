@@ -64,9 +64,7 @@ def downgrade() -> None:
         sa.Column("rules", sa.JSON(), nullable=False),
         sa.Column("cached_count", sa.Integer(), nullable=True),
         sa.Column("cached_at", sa.DateTime(), nullable=True),
-        sa.Column(
-            "is_shared", sa.Boolean(), nullable=False, server_default=sa.text("0")
-        ),
+        sa.Column("is_shared", sa.Boolean(), nullable=False, server_default=sa.text("0")),
         sa.Column(
             "created_at",
             sa.DateTime(),

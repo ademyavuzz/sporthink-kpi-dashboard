@@ -37,9 +37,7 @@ async def _get_super_admin_id() -> int:
     from app.models import User
 
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(User.id).where(User.email == settings.super_admin_email)
-        )
+        result = await db.execute(select(User.id).where(User.email == settings.super_admin_email))
         return int(result.scalar_one())
 
 

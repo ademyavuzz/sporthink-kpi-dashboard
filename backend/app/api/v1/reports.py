@@ -122,9 +122,7 @@ async def list_reports(
     _current_user: User = Depends(require_permission(Permission.REPORTS_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedEnvelope[ReportListItem]:
-    rows, total = await report_service.list_reports_paginated(
-        db, page=page, page_size=page_size
-    )
+    rows, total = await report_service.list_reports_paginated(db, page=page, page_size=page_size)
     return PaginatedEnvelope(
         data=[_to_list_item(r) for r in rows],
         pagination=PaginationMeta(page=page, page_size=page_size, total=total),

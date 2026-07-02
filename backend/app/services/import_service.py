@@ -430,9 +430,7 @@ async def run_import(
         final_path = _move_to_final_path(tmp_path, original_filename, import_id, now)
         import_run.file_path = final_path
     except OSError:
-        logger.exception(
-            "import_file_move_failed import_id=%s tmp=%s", import_id, tmp_path
-        )
+        logger.exception("import_file_move_failed import_id=%s tmp=%s", import_id, tmp_path)
     await db.commit()
     started_ts = time.monotonic()
 
@@ -607,9 +605,7 @@ async def run_import(
         # eski rakamların görünmemesi için tüm `kpi:*` key'leri düşürülür.
         # Çağrı sessizdir (Redis down olsa bile commit'i etkilemez).
         flushed = await cache.delete_pattern(cache_keys.kpi_invalidation_pattern())
-        logger.info(
-            "kpi_cache_flushed_after_import import_id=%s keys=%d", import_id, flushed
-        )
+        logger.info("kpi_cache_flushed_after_import import_id=%s keys=%d", import_id, flushed)
 
         # Aggregate rebuild — KPI tabloları artık güncel olmalı.
         # `kpi_*_aggregates` raw'dan yeniden hesaplanmazsa dashboard
@@ -886,9 +882,7 @@ async def get_sample_errors(
     ]
 
 
-async def list_all_errors(
-    db: AsyncSession, import_id: int
-) -> list[ImportRowError]:
+async def list_all_errors(db: AsyncSession, import_id: int) -> list[ImportRowError]:
     """Bir import'un TÜM hata satırları, source_row_number+id sıralı.
 
     CSV indirme için kullanılır (`/imports/{id}/errors.csv`). Hata sayısı bir

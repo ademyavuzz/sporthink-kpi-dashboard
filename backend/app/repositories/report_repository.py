@@ -59,9 +59,7 @@ async def list_paginated(
     total = int(
         (
             await db.execute(
-                select(func.count())
-                .select_from(Report)
-                .where(Report.deleted_at.is_(None))
+                select(func.count()).select_from(Report).where(Report.deleted_at.is_(None))
             )
         ).scalar_one()
     )

@@ -117,7 +117,5 @@ async def delete_notification(
     current: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessEnvelope[dict]:
-    await notification_service.delete(
-        db, notification_id=notification_id, user_id=current.id
-    )
+    await notification_service.delete(db, notification_id=notification_id, user_id=current.id)
     return SuccessEnvelope(data={"deleted": True, "id": notification_id})

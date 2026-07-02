@@ -26,9 +26,7 @@ pytestmark = [
 BASE = "/api/v1/notifications"
 
 
-async def _auth_headers(
-    client: AsyncClient, creds: dict[str, str]
-) -> tuple[dict[str, str], int]:
+async def _auth_headers(client: AsyncClient, creds: dict[str, str]) -> tuple[dict[str, str], int]:
     """Login → (Authorization header, user_id)."""
     r = await client.post("/api/v1/auth/login", json=creds)
     body = r.json()["data"]
