@@ -17,6 +17,8 @@
 ![MySQL](https://img.shields.io/badge/MySQL-8.4_LTS-4479A1?logo=mysql&logoColor=white)
 ![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
 
+### [🌐 Canlı Uygulama](https://sporthinkkpidashboard.com/login) · [▶️ Tanıtım Videosu](https://www.youtube.com/watch?v=ZKEY5kyo8fc)
+
 [Özellikler](#özellikler) · [Ekran Görüntüleri](#ekran-görüntüleri) · [Mimari](#mimari) · [Hızlı Başlangıç](#hızlı-başlangıç) · [Dokümantasyon](#dokümantasyon)
 
 <img src="docs/screenshots/02-overview.png" alt="Genel Özet dashboard'u" width="900">
@@ -29,19 +31,19 @@
 
 Sporthink'in pazarlama ekibi GA4, Meta Ads, Google Ads ve e-ticaret verilerini ayrı araçlarda takip ediyor; KPI'lar manuel Excel hesaplarıyla derleniyordu. Bu uygulama dört veri kaynağını tek veritabanında birleştirir, **31 standart KPI**'yi tek formül kaynağından hesaplar ve **11 dashboard sayfası** üzerinden görselleştirir.
 
-Self-hosted çalışır (lisans maliyeti yok), Türkçe/İngilizce arayüz sunar ve rol bazlı erişim kontrolü (RBAC) ile ekip içi yetkilendirme sağlar.
+Self-hosted çalışır (lisans maliyeti yok), Türkçe/İngilizce arayüz sunar ve rol bazlı erişim kontrolü (RBAC) ile ekip içi yetkilendirme sağlar. Uygulama şu anda production ortamında canlı olarak kullanılmaktadır.
 
 ## Özellikler
 
-- **4 veri kaynağı** — GA4 (trafik), Meta Ads, Google Ads, E-Ticaret (sipariş/müşteri/ürün)
-- **31 KPI** — trafik, reklam, satış ve pazarlama kategorilerinde; karşılaştırma dönemi (önceki dönem / YoY), trend yönü ve NULL ("veri yok") semantiği ile
-- **11 dashboard sayfası** — KPI kartları, ApexCharts grafikler, sıralanabilir/özelleştirilebilir tablolar, Türkiye ısı haritası
-- **Gelişmiş filtreleme** — sayfa bazlı çok-seçimli filtreler (kanal, cihaz, şehir, kategori, marka, kampanya, hedef...), grafiklerden cross-filter, URL ile paylaşılabilir filtre durumu
-- **CSV import sihirbazı** — 4 adımlı, drag-drop, header doğrulama, otomatik tip dönüşümü, FK çözümleme, dedup ve satır bazlı hata raporu (CSV indirme)
-- **PDF raporlama** — seçilebilir bölümlerle asenkron (Celery) rapor üretimi ve indirme
-- **RBAC** — 41 granüler izin, özelleştirilebilir roller, Süper Admin sistem rolü, denetim (audit) kaydı
-- **Kullanıcı yönetimi** — e-posta davet akışı, şifre sıfırlama, profil/avatar, bildirim merkezi
-- **i18n & tema** — TR (varsayılan) + EN, açık/koyu tema, Europe/Istanbul zaman dilimi
+- **4 veri kaynağı:** GA4 (trafik), Meta Ads, Google Ads, E-Ticaret (sipariş/müşteri/ürün)
+- **31 KPI:** trafik, reklam, satış ve pazarlama kategorilerinde; karşılaştırma dönemi (önceki dönem / YoY), trend yönü ve NULL ("veri yok") semantiği ile
+- **11 dashboard sayfası:** KPI kartları, ApexCharts grafikler, sıralanabilir/özelleştirilebilir tablolar, Türkiye ısı haritası
+- **Gelişmiş filtreleme:** sayfa bazlı çok-seçimli filtreler (kanal, cihaz, şehir, kategori, marka, kampanya, hedef...), grafiklerden cross-filter, URL ile paylaşılabilir filtre durumu
+- **CSV import sihirbazı:** 4 adımlı, drag-drop, header doğrulama, otomatik tip dönüşümü, FK çözümleme, dedup ve satır bazlı hata raporu (CSV indirme)
+- **PDF raporlama:** seçilebilir bölümlerle asenkron (Celery) rapor üretimi ve indirme
+- **RBAC:** 41 granüler izin, özelleştirilebilir roller, Süper Admin sistem rolü, denetim (audit) kaydı
+- **Kullanıcı yönetimi:** e-posta davet akışı, şifre sıfırlama, profil/avatar, bildirim merkezi
+- **i18n & tema:** TR (varsayılan) + EN, açık/koyu tema, Europe/Istanbul zaman dilimi
 
 ## Dashboard Sayfaları
 
@@ -49,8 +51,8 @@ Self-hosted çalışır (lisans maliyeti yok), Türkçe/İngilizce arayüz sunar
 |---|---|
 | **Genel Özet** | 9 KPI özeti · ciro trendi · kanal dağılımı · funnel · yeni/tekrarlayan · top 10 ürün |
 | **Trafik** | 7 GA4 KPI · günlük oturum trendi · kanal/cihaz/şehir kırılımları · Türkiye haritası |
-| **Meta Ads** | 8 KPI · harcama–gelir trendi · kampanya tablosu |
-| **Google Ads** | 8 KPI · harcama–gelir trendi · kampanya tablosu |
+| **Meta Ads** | 8 KPI · harcama ve gelir trendi · kampanya tablosu |
+| **Google Ads** | 8 KPI · harcama ve gelir trendi · kampanya tablosu |
 | **E-Ticaret** | 7 KPI · günlük ciro & sipariş · ödeme/durum kırılımı · top 20 müşteri |
 | **Kampanyalar** | Tüm kampanyalar × ROAS/CTR/CPA · platform filtresi · kampanya detay modalı |
 | **Dönüşüm Hunisi** | Görüntüleme → Sepet → Checkout → Satın alma + drop-off oranları |
@@ -90,10 +92,10 @@ flowchart LR
     API --> UI["React Dashboard<br/>11 sayfa"]
 ```
 
-- **Katmanlı backend** — Router → Service → Repository; KPI formülleri tek dosyada (`kpi_service.py`), izinler tek enum'da (`permissions.py`)
-- **İki katmanlı hesap** — KPI sorguları raw tablolardan değil, import sonrası Celery ile yeniden kurulan aggregate tablolardan çalışır
-- **Auth** — kısa ömürlü JWT access token + httpOnly cookie'de rotasyonlu refresh token; bcrypt (cost 12)
-- **Zaman & para** — veritabanı ve API UTC + `DECIMAL(15,2)` TRY; kullanıcı arayüzü Europe/Istanbul'a çevirir
+- **Katmanlı backend:** Router → Service → Repository; KPI formülleri tek dosyada (`kpi_service.py`), izinler tek enum'da (`permissions.py`)
+- **İki katmanlı hesap:** KPI sorguları raw tablolardan değil, import sonrası Celery ile yeniden kurulan aggregate tablolardan çalışır
+- **Auth:** kısa ömürlü JWT access token + httpOnly cookie'de rotasyonlu refresh token; bcrypt (cost 12)
+- **Zaman & para:** veritabanı ve API UTC + `DECIMAL(15,2)` TRY; kullanıcı arayüzü Europe/Istanbul'a çevirir
 
 Detaylı mimari kararlar için: [`docs/overview/03-architecture.md`](docs/overview/03-architecture.md)
 
@@ -140,13 +142,13 @@ Giriş: `admin@sporthink.local` / `.env` içindeki `SUPER_ADMIN_PASSWORD`.
 ## Test & Kalite
 
 ```bash
-# Backend — 139 test (unit + integration)
+# Backend: 139 test (unit + integration)
 docker compose -f docker-compose.dev.yml exec backend pytest -q
 
 # Backend lint/format
 docker compose -f docker-compose.dev.yml exec backend ruff check .
 
-# Frontend — 28 test
+# Frontend: 28 test
 docker compose -f docker-compose.dev.yml exec frontend npx vitest run
 
 # Frontend lint + typecheck
@@ -158,7 +160,7 @@ CI (GitHub Actions) her push'ta backend lint'i ve frontend lint + typecheck + un
 
 ## Deployment
 
-Production, tek host Docker Compose ile Ubuntu 24.04 LTS VDS üzerinde çalışır. İki fazlı kurulum (önce IP/HTTP, domain hazır olunca Let's Encrypt HTTPS) ve güncelleme akışı script'e bağlanmıştır:
+Production, tek host Docker Compose ile Ubuntu 24.04 LTS VDS üzerinde çalışır ve https://sporthinkkpidashboard.com adresinde canlıdır. İki fazlı kurulum (önce IP/HTTP, domain hazır olunca Let's Encrypt HTTPS) ve güncelleme akışı script'e bağlanmıştır:
 
 ```bash
 # İlk kurulum
@@ -218,13 +220,16 @@ sporthink-kpi-dashboard/
 
 ## Lisans
 
-© 2026 Sporthink Sport Apparel — Tüm hakları saklıdır. Bu yazılım Sporthink'in iç kullanımı için geliştirilmiştir; izinsiz kopyalanamaz ve dağıtılamaz. Ayrıntılar: [`LICENSE`](LICENSE)
+© 2026 Sporthink Sport Apparel. Tüm hakları saklıdır. Bu yazılım Sporthink'in iç kullanımı için geliştirilmiştir; izinsiz kopyalanamaz ve dağıtılamaz. Ayrıntılar: [`LICENSE`](LICENSE)
 
----
+## Geliştirici
 
-<div align="center">
+**Adem Yavuz** · Dokuz Eylül Üniversitesi, Yönetim Bilişim Sistemleri
 
-**Geliştirici:** Adem Yavuz · Dokuz Eylül Üniversitesi YBS ·
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-ademyavuztr-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/ademyavuztr/)
+[![GitHub](https://img.shields.io/badge/GitHub-ademyavuzz-181717?logo=github&logoColor=white)](https://github.com/ademyavuzz)
+[![Kaggle](https://img.shields.io/badge/Kaggle-ademyavuz1-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/ademyavuz1)
+[![Medium](https://img.shields.io/badge/Medium-digitalatolye-000000?logo=medium&logoColor=white)](https://digitalatolye.medium.com/)
+[![E-posta](https://img.shields.io/badge/E--posta-ademyavuz093%40gmail.com-EA4335?logo=gmail&logoColor=white)](mailto:ademyavuz093@gmail.com)
+
 **Akademik danışman:** Prof. Dr. Vahap Tecim · **Sektör sponsoru:** Sporthink Sport Apparel
-
-</div>
