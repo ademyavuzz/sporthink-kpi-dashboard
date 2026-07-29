@@ -184,29 +184,29 @@ Step by step guides: [`DEPLOY.md`](DEPLOY.md) · [`docs/overview/11-deployment.m
 
 ```
 sporthink-kpi-dashboard/
-├── backend/                 # FastAPI, Celery, MySQL
-│   ├── app/
-│   │   ├── api/v1/          # HTTP routers
-│   │   ├── services/        # Business logic and 31 KPI formulas
-│   │   ├── repositories/    # SQLAlchemy queries
-│   │   ├── models/          # ORM (18 tables)
-│   │   ├── schemas/         # Pydantic API contracts
-│   │   ├── parsers/         # CSV parser and 10 source configs
-│   │   ├── tasks/           # Celery (aggregation, email, reports)
-│   │   └── core/            # Permissions, security, cache keys
-│   ├── alembic/versions/    # Database migrations
-│   └── tests/               # Unit and integration (139 tests)
-├── frontend/                # React 19, Vite, TypeScript, Tailwind
-│   ├── src/
-│   │   ├── pages/           # 11 dashboards plus admin, import, reports
-│   │   ├── components/      # KPI cards, charts, filters, tables
-│   │   ├── lib/api/         # Typed Axios clients
-│   │   └── stores/          # Zustand (auth, theme, language, filters)
-│   └── public/locales/      # i18n (TR and EN)
-├── docs/                    # Technical specification and screenshots
-├── nginx/ · mysql/          # Production reverse proxy and DB tuning
-├── scripts/                 # deploy.sh plus API smoke and CRUD checks
-└── docker-compose.*.yml     # dev, prod and demo stacks
+    backend/                 # FastAPI, Celery, MySQL
+        app/
+            api/v1/          # HTTP routers
+            services/        # Business logic and 31 KPI formulas
+            repositories/    # SQLAlchemy queries
+            models/          # ORM (18 tables)
+            schemas/         # Pydantic API contracts
+            parsers/         # CSV parser and 10 source configs
+            tasks/           # Celery (aggregation, email, reports)
+            core/            # Permissions, security, cache keys
+        alembic/versions/    # Database migrations
+        tests/               # Unit and integration (139 tests)
+    frontend/                # React 19, Vite, TypeScript, Tailwind
+        src/
+            pages/           # 11 dashboards plus admin, import, reports
+            components/      # KPI cards, charts, filters, tables
+            lib/api/         # Typed Axios clients
+            stores/          # Zustand (auth, theme, language, filters)
+        public/locales/      # i18n (TR and EN)
+    docs/                    # Technical specification and screenshots
+    nginx/ · mysql/          # Production reverse proxy and DB tuning
+    scripts/                 # deploy.sh plus API smoke and CRUD checks
+    docker-compose.*.yml     # dev, prod and demo stacks
 ```
 
 ## Security
